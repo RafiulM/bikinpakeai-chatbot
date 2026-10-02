@@ -15,7 +15,7 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
-import { Route as ProtectedAppRouteImport } from './routes/_protected/app'
+import { Route as ProtectedCustomerRouteImport } from './routes/_protected/customer'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiNotesIndexRouteImport } from './routes/api/notes/index'
 import { Route as ApiNotesIdRouteImport } from './routes/api/notes/$id'
@@ -50,9 +50,9 @@ const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => ProtectedRoute,
 } as any)
-const ProtectedAppRoute = ProtectedAppRouteImport.update({
-  id: '/app',
-  path: '/app',
+const ProtectedCustomerRoute = ProtectedCustomerRouteImport.update({
+  id: '/customer',
+  path: '/customer',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -86,7 +86,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/admin': typeof ProtectedAdminRoute
-  '/app': typeof ProtectedAppRoute
+  '/customer': typeof ProtectedCustomerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/notes/': typeof ApiNotesIndexRoute
@@ -98,7 +98,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/admin': typeof ProtectedAdminRoute
-  '/app': typeof ProtectedAppRoute
+  '/customer': typeof ProtectedCustomerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/notes': typeof ApiNotesIndexRoute
@@ -113,7 +113,7 @@ export interface FileRoutesById {
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_protected/admin': typeof ProtectedAdminRoute
-  '/_protected/app': typeof ProtectedAppRoute
+  '/_protected/customer': typeof ProtectedCustomerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/notes/': typeof ApiNotesIndexRoute
@@ -127,7 +127,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/admin'
-    | '/app'
+    | '/customer'
     | '/api/auth/$'
     | '/api/notes/$id'
     | '/api/notes/'
@@ -139,7 +139,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/admin'
-    | '/app'
+    | '/customer'
     | '/api/auth/$'
     | '/api/notes/$id'
     | '/api/notes'
@@ -153,7 +153,7 @@ export interface FileRouteTypes {
     | '/_auth/sign-in'
     | '/_auth/sign-up'
     | '/_protected/admin'
-    | '/_protected/app'
+    | '/_protected/customer'
     | '/api/auth/$'
     | '/api/notes/$id'
     | '/api/notes/'
@@ -216,11 +216,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAdminRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/app': {
-      id: '/_protected/app'
-      path: '/app'
-      fullPath: '/app'
-      preLoaderRoute: typeof ProtectedAppRouteImport
+    '/_protected/customer': {
+      id: '/_protected/customer'
+      path: '/customer'
+      fullPath: '/customer'
+      preLoaderRoute: typeof ProtectedCustomerRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/api/auth/$': {
@@ -275,12 +275,12 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface ProtectedRouteChildren {
   ProtectedAdminRoute: typeof ProtectedAdminRoute
-  ProtectedAppRoute: typeof ProtectedAppRoute
+  ProtectedCustomerRoute: typeof ProtectedCustomerRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedAdminRoute: ProtectedAdminRoute,
-  ProtectedAppRoute: ProtectedAppRoute,
+  ProtectedCustomerRoute: ProtectedCustomerRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(

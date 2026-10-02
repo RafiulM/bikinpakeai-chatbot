@@ -22,3 +22,6 @@ coverage/
 .vercel/
 .claude/settings.local.json
 .codex/config.local.toml
+
+# Local test account for manual browser checks
+.lab-test-account.json

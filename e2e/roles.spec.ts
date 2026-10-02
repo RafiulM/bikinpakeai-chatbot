@@ -146,7 +146,7 @@ test("the admin page renders only for a permitted role", async ({ page }) => {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill("Roles-test-password-123!");
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/app$/);
+  await expect(page).toHaveURL(/\/customer$/);
 
   await page.goto("/admin");
   await expect(page.getByText("Every account’s notes")).toHaveCount(0);

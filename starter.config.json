@@ -1,7 +1,7 @@
 {
   "id": "tanstack-postgres",
-  "name": "Base TanStack Postgres",
-  "description": "An AI-friendly foundation with TanStack Start, Drizzle and PostgreSQL.",
+  "name": "Bikinpakeai Support Lab",
+  "description": "Chatbot customer support Bikinpakeai yang membandingkan jawaban dengan Jev dan tanpa Jev.",
   "baseVersion": "0.1.0",
   "framework": "tanstack-start",
   "database": "postgresql"

@@ -4,7 +4,7 @@ test("anonymous visitors cannot access the protected app", async ({
   page,
   request,
 }) => {
-  await page.goto("/app");
+  await page.goto("/customer");
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(
     page.getByRole("heading", { name: "Welcome back" }),
@@ -31,18 +31,18 @@ test("signup, persisted session, signout, rejected password, and signin work", a
   await page
     .getByRole("button", { name: "Create account", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/app$/);
+  await expect(page).toHaveURL(/\/customer$/);
   await expect(
     page.getByRole("button", { name: "Sign out", exact: true }),
   ).toBeVisible();
   await page.reload();
-  await expect(page).toHaveURL(/\/app$/);
+  await expect(page).toHaveURL(/\/customer$/);
   await expect(
     page.getByRole("button", { name: "Sign out", exact: true }),
   ).toBeVisible();
   // Signed-in visitors skip the root too.
   await page.goto("/");
-  await expect(page).toHaveURL(/\/app$/);
+  await expect(page).toHaveURL(/\/customer$/);
   const cookies = await context.cookies();
   expect(
     cookies.some(
@@ -50,10 +50,10 @@ test("signup, persisted session, signout, rejected password, and signin work", a
     ),
   ).toBe(true);
   await page.goto("/sign-in");
-  await expect(page).toHaveURL(/\/app$/);
+  await expect(page).toHaveURL(/\/customer$/);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
-  await page.goto("/app");
+  await page.goto("/customer");
   await expect(page).toHaveURL(/\/sign-in$/);
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill("incorrect-password");
@@ -63,7 +63,7 @@ test("signup, persisted session, signout, rejected password, and signin work", a
   ).toContainText("Check your email and password");
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/app$/);
+  await expect(page).toHaveURL(/\/customer$/);
   expect(errors).toEqual([]);
 });
 

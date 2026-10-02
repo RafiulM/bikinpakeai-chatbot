@@ -73,7 +73,7 @@ function AdminPage() {
 
       <div className="mt-8">
         <Button variant="ghost" asChild size="sm">
-          <Link to="/app">
+          <Link to="/customer">
             <ArrowLeft aria-hidden="true" />
             Back to your app
           </Link>
