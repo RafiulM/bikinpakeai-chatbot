@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Check, ClipboardCopy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/lab/segmented-control";
@@ -10,8 +10,11 @@ type CopyState = "idle" | "copied" | "manual";
 /** Copies the labelled transcript, with a preview of exactly what is copied. */
 export function CopyTranscript({
   conversation,
+  onCopied,
 }: {
   conversation: Pick<LabConversation, "code" | "title" | "turns">;
+  /** Called with the number of messages once the text is on the clipboard. */
+  onCopied?: (messages: number) => void;
 }) {
   const id = useId();
   const [state, setState] = useState<CopyState>("idle");
@@ -28,6 +31,11 @@ export function CopyTranscript({
     [conversation, options],
   );
   const empty = conversation.turns.length === 0;
+  useEffect(() => {
+    if (state !== "copied") return;
+    const timer = setTimeout(() => setState("idle"), 2500);
+    return () => clearTimeout(timer);
+  }, [state]);
 
   async function copy() {
     // Built again so the header time is the moment of copying.
@@ -35,6 +43,7 @@ export function CopyTranscript({
     try {
       await navigator.clipboard.writeText(fresh);
       setState("copied");
+      onCopied?.(conversation.turns.length);
     } catch {
       // Clipboard blocked: select the preview so Ctrl/Cmd+C still works.
       const node = preview.current;
@@ -114,14 +123,12 @@ export function CopyTranscript({
         ) : (
           <ClipboardCopy aria-hidden="true" />
         )}
-        {state === "copied" ? "Transkrip tersalin" : "Salin transkrip"}
+        {state === "copied" ? "Tersalin" : "Salin transkrip"}
       </Button>
       <p role="status" className="text-sm text-muted-foreground">
-        {state === "copied"
-          ? `${conversation.turns.length} pesan beserta label Jev tersalin. Tempel di dokumen atau chat.`
-          : state === "manual"
-            ? "Browser menolak salin otomatis. Teks sudah dipilih, tekan Ctrl+C atau Cmd+C."
-            : ""}
+        {state === "manual"
+          ? "Browser menolak salin otomatis. Teks sudah dipilih, tekan Ctrl+C atau Cmd+C."
+          : ""}
       </p>
     </div>
   );

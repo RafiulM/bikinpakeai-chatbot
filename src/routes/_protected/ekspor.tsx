@@ -3,6 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ClipboardCopy, FileDown, Video } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useLabConversation } from "@/components/lab/conversation-store";
+import {
+  Confirmation,
+  useConfirmation,
+} from "@/components/lab/export/confirmation";
 import { CopyTranscript } from "@/components/lab/export/copy-transcript";
 import { DownloadSummary } from "@/components/lab/export/download-summary";
 import { ExportSection } from "@/components/lab/export/export-section";
@@ -21,6 +25,7 @@ function ExportPage() {
   const { conversation } = useLabConversation();
   const [report, setReport] = useState<TestRunReport | null>(null);
   const [loadingRun, setLoadingRun] = useState(true);
+  const { message, confirm, dismiss } = useConfirmation();
 
   // The latest finished mass test, for the sources and the summary file.
   useEffect(() => {
@@ -72,7 +77,15 @@ function ExportPage() {
             <li>Total kumulatif percakapan aktif</li>
             <li>Laporan uji test set terakhir per kategori</li>
           </ul>
-          <DownloadSummary conversation={conversation} report={report} />
+          <DownloadSummary
+            conversation={conversation}
+            report={report}
+            onSaved={(fileName) =>
+              confirm(
+                `Ringkasan tersimpan sebagai ${fileName}. Cek folder Unduhan.`,
+              )
+            }
+          />
         </ExportSection>
         <ExportSection
           id="export-transcript"
@@ -85,7 +98,14 @@ function ExportPage() {
             <li>Label Jev, rute, dan alasan keputusan</li>
             <li>Data sensitif tetap tersamarkan</li>
           </ul>
-          <CopyTranscript conversation={conversation} />
+          <CopyTranscript
+            conversation={conversation}
+            onCopied={(messages) =>
+              confirm(
+                `Transkrip ${messages} pesan beserta label Jev tersalin. Tempel dengan Ctrl+V atau Cmd+V.`,
+              )
+            }
+          />
         </ExportSection>
         <ExportSection
           id="export-recording"
@@ -101,6 +121,7 @@ function ExportPage() {
           <RecordingToggle />
         </ExportSection>
       </div>
+      <Confirmation message={message} onDismiss={dismiss} />
     </div>
   );
 }

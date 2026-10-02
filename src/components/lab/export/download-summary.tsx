@@ -1,5 +1,5 @@
-import { useId, useState } from "react";
-import { FileDown } from "lucide-react";
+import { useEffect, useId, useState } from "react";
+import { Check, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/lab/segmented-control";
 import { buildSummaryFile, type SummaryFormat } from "@/lib/lab/summary-export";
@@ -9,15 +9,23 @@ import type { LabConversation, TestRunReport } from "@/lib/lab/types";
 export function DownloadSummary({
   conversation,
   report,
+  onSaved,
 }: {
   conversation: Pick<LabConversation, "code" | "title" | "turns">;
   report: TestRunReport | null;
+  /** Called with the file name once the download has started. */
+  onSaved?: (fileName: string) => void;
 }) {
   const id = useId();
   const [format, setFormat] = useState<SummaryFormat>("markdown");
   const [withConversation, setWithConversation] = useState(true);
   const [withReport, setWithReport] = useState(true);
-  const [status, setStatus] = useState("");
+  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    if (!saved) return;
+    const timer = setTimeout(() => setSaved(false), 2500);
+    return () => clearTimeout(timer);
+  }, [saved]);
   const hasConversation = conversation.turns.length > 0;
   const includeConversation = withConversation && hasConversation;
   const includeReport = withReport && report !== null;
@@ -41,7 +49,8 @@ export function DownloadSummary({
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus(`${file.fileName} diunduh.`);
+    setSaved(true);
+    onSaved?.(file.fileName);
   }
 
   return (
@@ -96,12 +105,14 @@ export function DownloadSummary({
         ]}
       />
       <Button onClick={download} disabled={!ready} className="w-fit">
-        <FileDown aria-hidden="true" />
-        Unduh ringkasan
+        {saved ? <Check aria-hidden="true" /> : <FileDown aria-hidden="true" />}
+        {saved ? "Tersimpan" : "Unduh ringkasan"}
       </Button>
-      <p role="status" className="text-sm text-muted-foreground">
-        {ready ? status : "Pilih minimal satu isi yang tersedia."}
-      </p>
+      {!ready && (
+        <p className="text-sm text-muted-foreground">
+          Pilih minimal satu isi yang tersedia.
+        </p>
+      )}
     </div>
   );
 }
