@@ -7,3 +7,4 @@ export * from "./notes";
 export * from "./conversations";
 export * from "./messages";
 export * from "./responses";
+export * from "./jev-analyses";

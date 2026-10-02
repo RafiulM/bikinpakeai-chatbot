@@ -43,6 +43,13 @@
       "when": 1790964154575,
       "tag": "0005_conversation_active_view",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790965448140,
+      "tag": "0006_jev_analyses",
+      "breakpoints": true
     }
   ]
 }

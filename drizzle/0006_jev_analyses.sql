@@ -1,0 +1,37 @@
+CREATE TABLE "jev_analyses" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"message_id" uuid NOT NULL,
+	"status" text DEFAULT 'done' NOT NULL,
+	"error" text,
+	"product" text,
+	"issue_type" text,
+	"urgency" text,
+	"frustration_score" numeric(4, 3),
+	"churn_risk" numeric(4, 3),
+	"sensitive_data" boolean DEFAULT false NOT NULL,
+	"injection_detected" boolean DEFAULT false NOT NULL,
+	"confidence" numeric(4, 3),
+	"labels" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"decision" text,
+	"route" text,
+	"route_label" text,
+	"route_reason" text,
+	"rules" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"steps" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"model_id" text,
+	"input_tokens" integer DEFAULT 0 NOT NULL,
+	"output_tokens" integer DEFAULT 0 NOT NULL,
+	"latency_ms" integer DEFAULT 0 NOT NULL,
+	"cost_usd" numeric(12, 6) DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "jev_analyses_status_check" CHECK ("jev_analyses"."status" in ('done', 'failed')),
+	CONSTRAINT "jev_analyses_issue_type_check" CHECK ("jev_analyses"."issue_type" is null or "jev_analyses"."issue_type" in ('pembayaran', 'akses_akun', 'cara_pakai', 'bug', 'saran_fitur')),
+	CONSTRAINT "jev_analyses_urgency_check" CHECK ("jev_analyses"."urgency" is null or "jev_analyses"."urgency" in ('rendah', 'sedang', 'tinggi', 'mendesak')),
+	CONSTRAINT "jev_analyses_decision_check" CHECK ("jev_analyses"."decision" is null or "jev_analyses"."decision" in ('answered', 'masked', 'blocked', 'escalated', 'clarify')),
+	CONSTRAINT "jev_analyses_route_check" CHECK ("jev_analyses"."route" is null or "jev_analyses"."route" in ('template', 'fast_model', 'reasoning_model', 'escalate', 'clarify')),
+	CONSTRAINT "jev_analyses_scores_check" CHECK (("jev_analyses"."frustration_score" is null or "jev_analyses"."frustration_score" between 0 and 1) and ("jev_analyses"."churn_risk" is null or "jev_analyses"."churn_risk" between 0 and 1) and ("jev_analyses"."confidence" is null or "jev_analyses"."confidence" between 0 and 1)),
+	CONSTRAINT "jev_analyses_done_fields_check" CHECK ("jev_analyses"."status" = 'failed' or ("jev_analyses"."decision" is not null and "jev_analyses"."route" is not null and "jev_analyses"."issue_type" is not null))
+);
+--> statement-breakpoint
+ALTER TABLE "jev_analyses" ADD CONSTRAINT "jev_analyses_message_id_messages_id_fk" FOREIGN KEY ("message_id") REFERENCES "public"."messages"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "jev_analyses_message_idx" ON "jev_analyses" USING btree ("message_id");

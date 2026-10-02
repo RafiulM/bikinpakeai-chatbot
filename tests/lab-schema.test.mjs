@@ -124,3 +124,102 @@ test("each message keeps at most one answer per mode with valid metrics", async 
     await db.end();
   }
 });
+
+test("jev analyses keep one reading per message and enforce valid labels", async () => {
+  const db = pool();
+  try {
+    await db.query('INSERT INTO "user" (id, name, email) VALUES ($1, $2, $3)', [
+      "lab-jev",
+      "Lab Jev",
+      "lab-jev@example.com",
+    ]);
+    const {
+      rows: [conversation],
+    } = await db.query(
+      "INSERT INTO conversations (user_id) VALUES ($1) RETURNING id",
+      ["lab-jev"],
+    );
+    const {
+      rows: [message],
+    } = await db.query(
+      "INSERT INTO messages (conversation_id, sender, content) VALUES ($1, 'customer', 'Mau refund') RETURNING id",
+      [conversation.id],
+    );
+    const insert = (fields) => {
+      const columns = Object.keys(fields);
+      return db.query(
+        `INSERT INTO jev_analyses (message_id, ${columns.join(", ")}) VALUES ($1, ${columns.map((_, i) => `$${i + 2}`).join(", ")}) RETURNING *`,
+        [message.id, ...Object.values(fields)],
+      );
+    };
+    await assert.rejects(
+      insert({ status: "done" }),
+      /jev_analyses_done_fields_check/,
+    );
+    await assert.rejects(
+      insert({
+        status: "done",
+        decision: "escalated",
+        route: "escalate",
+        issue_type: "pembayaran",
+        frustration_score: 1.5,
+      }),
+      /jev_analyses_scores_check/,
+    );
+    await assert.rejects(
+      insert({
+        status: "done",
+        decision: "ignored",
+        route: "escalate",
+        issue_type: "pembayaran",
+      }),
+      /jev_analyses_decision_check/,
+    );
+    const {
+      rows: [failed],
+    } = await insert({
+      status: "failed",
+      error: "Model klasifikasi tidak merespons.",
+    });
+    assert.equal(failed.status, "failed");
+    await assert.rejects(
+      insert({
+        status: "done",
+        decision: "escalated",
+        route: "escalate",
+        issue_type: "pembayaran",
+      }),
+      /jev_analyses_message_idx/,
+    );
+    await db.query("DELETE FROM jev_analyses WHERE message_id = $1", [
+      message.id,
+    ]);
+    const {
+      rows: [done],
+    } = await insert({
+      status: "done",
+      decision: "escalated",
+      route: "escalate",
+      issue_type: "pembayaran",
+      urgency: "mendesak",
+      frustration_score: 0.86,
+      labels: JSON.stringify([
+        { label: "Produk", value: "DesainPakeAI", confidence: 0.93 },
+      ]),
+      steps: JSON.stringify([
+        { name: "Klasifikasi", note: "1 panggilan Jev", durationMs: 220 },
+      ]),
+    });
+    assert.equal(Number(done.frustration_score), 0.86);
+    assert.equal(done.labels[0].label, "Produk");
+    await db.query("DELETE FROM messages WHERE id = $1", [message.id]);
+    const left = await db.query(
+      "SELECT count(*)::int AS n FROM jev_analyses WHERE message_id = $1",
+      [message.id],
+    );
+    assert.equal(left.rows[0].n, 0);
+  } finally {
+    await db.query('DELETE FROM "user" WHERE id = $1', ["lab-jev"]);
+    await db.end();
+  }
+});
