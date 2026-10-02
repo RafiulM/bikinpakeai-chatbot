@@ -219,4 +219,23 @@ test("conversation detail carries Jev readings and failed readings", async () =>
     analysisStatus: "failed",
     analysisError: "Model klasifikasi tidak merespons.",
   });
+
+  const debug = await owner.get(`/api/conversations/${conversation.id}/debug`);
+  expect(debug.status()).toBe(200);
+  const { data: cards } = await debug.json();
+  expect(cards.cards.map((card: { status: string }) => card.status)).toEqual([
+    "done",
+    "failed",
+  ]);
+  expect(cards.cards[1].error).toBe("Model klasifikasi tidak merespons.");
+  expect(cards.summary).toMatchObject({
+    analyzed: 1,
+    failed: 1,
+    pending: 0,
+    escalated: 1,
+    masked: 0,
+  });
+  expect(
+    (await owner.get(`/api/conversations/${randomUUID()}/debug`)).status(),
+  ).toBe(404);
 });
