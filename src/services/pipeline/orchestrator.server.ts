@@ -23,6 +23,7 @@ import { readLocally, readMessage } from "./jev.server";
 export interface EscalationContext {
   messageId: string;
   analysis: JevAnalysis;
+  refundRequested: boolean;
 }
 
 export interface PipelineInput {
@@ -117,9 +118,13 @@ async function runJevPath(
       .onEscalate({
         messageId: input.messageId,
         analysis: { messageId: input.messageId, ...baseAnalysis, steps: [] },
+        refundRequested: reading.classification.refundRequested,
       })
       .catch(() => null);
   }
+
+  if (ticketId)
+    baseAnalysis.routeLabel = `${rules.routeLabel} · Tiket ${ticketId}`;
 
   const draft = await answerWithHandler(
     rules.route,

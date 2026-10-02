@@ -59,6 +59,24 @@ test("a frustrated refund request is escalated with Jev and judged on both paths
   const settled = await waitForBaseline(conversationId);
   expect(settled.withoutJev.review.verdict).toBe("wrong");
   expect(settled.withoutJev.review.flags).toContain("missed_escalation");
+
+  // Jev opened a ticket and told the customer its code.
+  expect(turn.ticketId).toMatch(/^T-\d+$/);
+  expect(turn.withJev.content).toContain(`tiket ${turn.ticketId}`);
+  expect(turn.analysis.routeLabel).toContain(turn.ticketId);
+  expect(settled.ticketId).toBe(turn.ticketId);
+  const db = testDb();
+  try {
+    const { rows } = await db.query(
+      "SELECT priority, status, issue_label FROM tickets WHERE message_id = $1",
+      [turn.message.id],
+    );
+    expect(rows).toEqual([
+      { priority: "urgent", status: "open", issue_label: "Pembayaran · refund" },
+    ]);
+  } finally {
+    await db.end();
+  }
 });
 
 test("card numbers are masked, answered from a template, and never stored raw", async () => {

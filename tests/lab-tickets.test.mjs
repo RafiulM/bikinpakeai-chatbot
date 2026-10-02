@@ -73,3 +73,54 @@ test("filters split active from done and search across key fields", async () => 
   );
   assert.deepEqual(filterTickets(tickets, "done", "andal"), []);
 });
+
+test("escalations become tickets with a priority and a briefing", async () => {
+  const { ticketDraft, ticketPriority } =
+    await import("../src/lib/lab/tickets.ts");
+  const input = {
+    messageText: "Sudah 3 hari begini, saya kecewa banget. Mau refund aja.",
+    product: "DesainPakeAI",
+    issueType: "pembayaran",
+    urgency: "tinggi",
+    frustrationScore: 0.86,
+    churnRisk: 0.78,
+    refundRequested: true,
+    rules: [
+      "Frustrasi 0,86 melewati ambang 0,75",
+      "Permintaan refund wajib ditangani manusia",
+    ],
+  };
+  const draft = ticketDraft(input);
+  assert.equal(draft.priority, "urgent");
+  assert.equal(draft.issueLabel, "Pembayaran · refund");
+  assert.equal(
+    draft.escalationReason,
+    "Frustrasi 0,86 melewati ambang 0,75; Permintaan refund wajib ditangani manusia",
+  );
+  assert.ok(draft.summaryPoints.includes("Pelanggan meminta refund."));
+  assert.ok(draft.title.length <= 120);
+  assert.equal(
+    ticketPriority({
+      ...input,
+      frustrationScore: 0.5,
+      churnRisk: 0.2,
+      urgency: "sedang",
+      refundRequested: false,
+    }),
+    "medium",
+  );
+  assert.equal(
+    ticketPriority({ ...input, frustrationScore: 0.76, urgency: "sedang" }),
+    "high",
+  );
+  assert.equal(
+    ticketPriority({
+      ...input,
+      frustrationScore: 0.1,
+      churnRisk: 0.1,
+      urgency: "rendah",
+      refundRequested: false,
+    }),
+    "low",
+  );
+});

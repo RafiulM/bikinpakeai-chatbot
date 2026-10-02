@@ -3,6 +3,7 @@ import { db } from "@/db/index.server";
 import { conversations, jevAnalyses, messages, responses } from "@/db/schema";
 import { maskSensitive } from "@/lib/lab/mask";
 import { toJevAnalysis } from "./jev.service.server";
+import { ticketsForMessages } from "./tickets.service.server";
 import { VIEW_IDS, type ViewId } from "@/lib/lab/types";
 import type {
   BotResponse,
@@ -213,7 +214,11 @@ export function buildTurns(
   rows: LabMessage[],
   answers: (typeof responses.$inferSelect)[] = [],
   readings: (typeof jevAnalyses.$inferSelect)[] = [],
+  ticketRows: Awaited<ReturnType<typeof ticketsForMessages>> = [],
 ): ConversationTurn[] {
+  const ticketByMessage = new Map(
+    ticketRows.map((ticket) => [ticket.messageId, ticket]),
+  );
   const readingByMessage = new Map(
     readings.map((reading) => [reading.messageId, reading]),
   );
@@ -240,7 +245,10 @@ export function buildTurns(
         }),
         withJev: jev ? toBotResponse(jev) : null,
         withoutJev: base ? toBotResponse(base) : null,
-        ticketId: null,
+        ticketId: ticketByMessage.get(message.id)?.code ?? null,
+        ...(ticketByMessage.get(message.id)?.replies.length && {
+          agentReplies: ticketByMessage.get(message.id)?.replies,
+        }),
         ...(jev?.takeaway && { takeaway: jev.takeaway }),
       });
       continue;
@@ -283,18 +291,19 @@ export async function getConversation(
     .where(eq(messages.conversationId, conversationId))
     .orderBy(asc(messages.createdAt), asc(messages.id));
   const ids = rows.map((row) => row.id);
-  const [answers, readings] = ids.length
+  const [answers, readings, ticketRows] = ids.length
     ? await Promise.all([
         db.select().from(responses).where(inArray(responses.messageId, ids)),
         db
           .select()
           .from(jevAnalyses)
           .where(inArray(jevAnalyses.messageId, ids)),
+        ticketsForMessages(ids),
       ])
-    : [[], []];
+    : [[], [], []];
   return {
     ...toConversationSummary(conversation),
-    turns: buildTurns(rows.map(toLabMessage), answers, readings),
+    turns: buildTurns(rows.map(toLabMessage), answers, readings, ticketRows),
   };
 }
 

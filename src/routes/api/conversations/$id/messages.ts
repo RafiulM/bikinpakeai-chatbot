@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ApiError, readJson, withApiSession } from "@/lib/api.server";
 import { addCustomerMessage } from "@/services/conversations.service.server";
 import { answerMessage } from "@/services/pipeline/orchestrator.server";
+import { createTicketForEscalation } from "@/services/tickets.service.server";
 import type { ConversationTurn } from "@/lib/lab/types";
 import {
   conversationIdSchema,
@@ -45,6 +46,8 @@ export const Route = createFileRoute("/api/conversations/$id/messages")({
               rawText: input.content,
               maskedText: result.message.content,
               masked: result.message.isMasked,
+              onEscalate: ({ messageId, analysis, refundRequested }) =>
+                createTicketForEscalation(messageId, analysis, refundRequested),
             });
             turn.analysis = jev.analysis;
             turn.withJev = jev.withJev;
