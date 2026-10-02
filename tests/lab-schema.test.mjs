@@ -341,3 +341,73 @@ test("scenario reference data is seeded and matches the shared list", async () =
     await db.end();
   }
 });
+
+test("test sets seed built-in cases and keep runs and results consistent", async () => {
+  const db = pool();
+  try {
+    const sets = await db.query(
+      "SELECT s.id, s.user_id, count(c.id)::int AS cases FROM test_sets s JOIN test_cases c ON c.test_set_id = s.id WHERE s.user_id IS NULL GROUP BY s.id ORDER BY s.position",
+    );
+    assert.equal(sets.rows.length, 3);
+    for (const row of sets.rows) {
+      assert.ok(row.cases >= 50 && row.cases <= 100, `${row.cases} cases`);
+    }
+    const setId = sets.rows[0].id;
+    const [firstCase] = (
+      await db.query(
+        "SELECT id FROM test_cases WHERE test_set_id = $1 ORDER BY position LIMIT 1",
+        [setId],
+      )
+    ).rows;
+    await assert.rejects(
+      db.query(
+        "INSERT INTO test_cases (test_set_id, position, input_text, expected_label) VALUES ($1, 999, 'x', 'unknown')",
+        [setId],
+      ),
+      /test_cases_expected_label_check/,
+    );
+
+    await db.query('INSERT INTO "user" (id, name, email) VALUES ($1, $2, $3)', [
+      "lab-tester",
+      "Lab Tester",
+      "lab-tester@example.com",
+    ]);
+    const run = await db.query(
+      "INSERT INTO test_runs (user_id, test_set_id, total) VALUES ($1, $2, $3) RETURNING id, number, status",
+      ["lab-tester", setId, sets.rows[0].cases],
+    );
+    const runId = run.rows[0].id;
+    assert.equal(run.rows[0].status, "running");
+    await assert.rejects(
+      db.query("UPDATE test_runs SET status = 'done' WHERE id = $1", [runId]),
+      /test_runs_finished_at_check/,
+    );
+    await assert.rejects(
+      db.query("UPDATE test_runs SET progress = total + 1 WHERE id = $1", [
+        runId,
+      ]),
+      /test_runs_progress_check/,
+    );
+    const insertResult =
+      "INSERT INTO test_results (test_run_id, test_case_id, mode, verdict, latency_ms, cost_usd) VALUES ($1, $2, $3, $4, 420, 0.0003)";
+    await db.query(insertResult, [runId, firstCase.id, "with_jev", "correct"]);
+    await assert.rejects(
+      db.query(insertResult, [runId, firstCase.id, "with_jev", "wrong"]),
+      /test_results_run_case_mode_idx/,
+    );
+    await assert.rejects(
+      db.query(insertResult, [runId, firstCase.id, "without_jev", "maybe"]),
+      /test_results_verdict_check/,
+    );
+
+    await db.query('DELETE FROM "user" WHERE id = $1', ["lab-tester"]);
+    const left = await db.query(
+      "SELECT (SELECT count(*)::int FROM test_runs WHERE id = $1) AS runs, (SELECT count(*)::int FROM test_results WHERE test_run_id = $1) AS results, (SELECT count(*)::int FROM test_sets WHERE id = $2) AS sets",
+      [runId, setId],
+    );
+    assert.deepEqual(left.rows[0], { runs: 0, results: 0, sets: 1 });
+  } finally {
+    await db.query('DELETE FROM "user" WHERE id = $1', ["lab-tester"]);
+    await db.end();
+  }
+});
