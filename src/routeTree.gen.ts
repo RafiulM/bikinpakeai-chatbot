@@ -25,6 +25,7 @@ import { Route as ApiNotesIndexRouteImport } from './routes/api/notes/index'
 import { Route as ApiNotesIdRouteImport } from './routes/api/notes/$id'
 import { Route as ApiAdminNotesIndexRouteImport } from './routes/api/admin/notes/index'
 import { Route as ApiAdminNotesIdRouteImport } from './routes/api/admin/notes/$id'
+import { Route as ApiConversationsIdIndexRouteImport } from './routes/api/conversations/$id/index'
 import { Route as ApiConversationsIdMessagesRouteImport } from './routes/api/conversations/$id/messages'
 
 const IndexRoute = IndexRouteImport.update({
@@ -105,6 +106,11 @@ const ApiAdminNotesIdRoute = ApiAdminNotesIdRouteImport.update({
   path: '/api/admin/notes/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiConversationsIdIndexRoute = ApiConversationsIdIndexRouteImport.update({
+  id: '/api/conversations/$id/',
+  path: '/api/conversations/$id/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiConversationsIdMessagesRoute =
   ApiConversationsIdMessagesRouteImport.update({
     id: '/api/conversations/$id/messages',
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
+  '/api/conversations/$id/': typeof ApiConversationsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/admin/notes': typeof ApiAdminNotesIndexRoute
+  '/api/conversations/$id': typeof ApiConversationsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
+  '/api/conversations/$id/': typeof ApiConversationsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -184,6 +193,7 @@ export interface FileRouteTypes {
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/messages'
     | '/api/admin/notes/'
+    | '/api/conversations/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/messages'
     | '/api/admin/notes'
+    | '/api/conversations/$id'
   id:
     | '__root__'
     | '/'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/messages'
     | '/api/admin/notes/'
+    | '/api/conversations/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -233,6 +245,7 @@ export interface RootRouteChildren {
   ApiAdminNotesIdRoute: typeof ApiAdminNotesIdRoute
   ApiConversationsIdMessagesRoute: typeof ApiConversationsIdMessagesRoute
   ApiAdminNotesIndexRoute: typeof ApiAdminNotesIndexRoute
+  ApiConversationsIdIndexRoute: typeof ApiConversationsIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -349,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminNotesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/conversations/$id/': {
+      id: '/api/conversations/$id/'
+      path: '/api/conversations/$id'
+      fullPath: '/api/conversations/$id/'
+      preLoaderRoute: typeof ApiConversationsIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/conversations/$id/messages': {
       id: '/api/conversations/$id/messages'
       path: '/api/conversations/$id/messages'
@@ -402,6 +422,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminNotesIdRoute: ApiAdminNotesIdRoute,
   ApiConversationsIdMessagesRoute: ApiConversationsIdMessagesRoute,
   ApiAdminNotesIndexRoute: ApiAdminNotesIndexRoute,
+  ApiConversationsIdIndexRoute: ApiConversationsIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

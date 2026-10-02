@@ -13,3 +13,12 @@ export const sendMessageSchema = z
   .strict();
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+
+export const listConversationsSchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(50).default(20),
+    offset: z.coerce.number().int().min(0).max(1_000_000).default(0),
+  })
+  .strict();
+
+export type ListConversationsInput = z.infer<typeof listConversationsSchema>;

@@ -1,8 +1,13 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db/index.server";
 import { conversations, messages } from "@/db/schema";
 import { maskSensitive } from "@/lib/lab/mask";
-import type { LabMessage } from "@/lib/lab/types";
+import type {
+  ConversationTurn,
+  LabConversation,
+  LabMessage,
+} from "@/lib/lab/types";
+import type { ListConversationsInput } from "@/validators/conversations";
 
 // Conversations and customer messages. Every query is scoped to the verified
 // session user; the caller never supplies an owner.
@@ -121,4 +126,87 @@ export async function addCustomerMessage(
     }
     return { kind: "ok", message: toLabMessage(row) } as const;
   });
+}
+
+/** Most recent conversations first, with how many messages each holds. */
+export async function listConversations(
+  userId: string,
+  { limit, offset }: ListConversationsInput,
+) {
+  const rows = await db
+    .select({ ...conversationFields, messageCount: count(messages.id) })
+    .from(conversations)
+    .leftJoin(messages, eq(messages.conversationId, conversations.id))
+    .where(eq(conversations.userId, userId))
+    .groupBy(conversations.id)
+    .orderBy(desc(conversations.createdAt), desc(conversations.id))
+    .limit(limit + 1)
+    .offset(offset);
+  return {
+    data: rows.slice(0, limit).map((row) => ({
+      ...toConversationSummary(row),
+      messageCount: row.messageCount,
+    })),
+    meta: { limit, offset, hasMore: rows.length > limit },
+  };
+}
+
+/**
+ * Groups stored messages into turns: each customer message opens a turn, and
+ * human-agent messages attach to the turn they answer.
+ */
+export function buildTurns(rows: LabMessage[]): ConversationTurn[] {
+  const turns: ConversationTurn[] = [];
+  for (const message of rows) {
+    if (message.sender === "customer") {
+      turns.push({
+        message,
+        analysis: null,
+        withJev: null,
+        withoutJev: null,
+        ticketId: null,
+      });
+      continue;
+    }
+    const last = turns.at(-1);
+    if (!last) continue;
+    last.agentReplies = [
+      ...(last.agentReplies ?? []),
+      {
+        id: message.id,
+        ticketId: last.ticketId ?? "",
+        agentName: "Tim Support",
+        content: message.content,
+        createdAt: message.createdAt,
+      },
+    ];
+  }
+  return turns;
+}
+
+/** The full conversation for every view, or undefined when it is not the caller's. */
+export async function getConversation(
+  userId: string,
+  conversationId: string,
+): Promise<LabConversation | undefined> {
+  const [conversation] = await db
+    .select(conversationFields)
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        eq(conversations.userId, userId),
+      ),
+    )
+    .limit(1);
+  if (!conversation) return undefined;
+  const rows = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(asc(messages.createdAt), asc(messages.id));
+  return {
+    ...toConversationSummary(conversation),
+    turns: buildTurns(rows.map(toLabMessage)),
+  };
 }

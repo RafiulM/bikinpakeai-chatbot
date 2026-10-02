@@ -100,3 +100,68 @@ test("another account cannot write into someone else's conversation", async ({
     await stranger.dispose();
   }
 });
+
+test("history endpoints return the caller's conversations as ordered turns", async ({
+  playwright,
+}) => {
+  const owner = await playwright.request.newContext({
+    baseURL: "http://localhost:3101",
+  });
+  const stranger = await playwright.request.newContext({
+    baseURL: "http://localhost:3101",
+  });
+  try {
+    await signUp(owner, "history");
+    await signUp(stranger, "history-stranger");
+    const { data: first } = await (
+      await owner.post("/api/conversations", { headers, data: {} })
+    ).json();
+    const { data: second } = await (
+      await owner.post("/api/conversations", { headers, data: {} })
+    ).json();
+    for (const content of ["Pesan pertama", "Pesan kedua"]) {
+      expect(
+        (
+          await owner.post(`/api/conversations/${first.id}/messages`, {
+            headers,
+            data: { content },
+          })
+        ).status(),
+      ).toBe(201);
+    }
+
+    const detail = await owner.get(`/api/conversations/${first.id}`);
+    expect(detail.status()).toBe(200);
+    const { data: conversation } = await detail.json();
+    expect(conversation.title).toBe("Pesan pertama");
+    expect(
+      conversation.turns.map(
+        (turn: { message: { content: string } }) => turn.message.content,
+      ),
+    ).toEqual(["Pesan pertama", "Pesan kedua"]);
+    expect(conversation.turns[0]).toMatchObject({
+      analysis: null,
+      withJev: null,
+      withoutJev: null,
+    });
+
+    const list = await (await owner.get("/api/conversations?limit=1")).json();
+    expect(list.meta).toEqual({ limit: 1, offset: 0, hasMore: true });
+    expect(list.data[0].id).toBe(second.id);
+    const page2 = await (
+      await owner.get("/api/conversations?limit=1&offset=1")
+    ).json();
+    expect(page2.data[0]).toMatchObject({ id: first.id, messageCount: 2 });
+    expect((await owner.get("/api/conversations?limit=0")).status()).toBe(422);
+
+    expect(
+      (await stranger.get(`/api/conversations/${first.id}`)).status(),
+    ).toBe(404);
+    expect(
+      (await (await stranger.get("/api/conversations")).json()).data,
+    ).toEqual([]);
+  } finally {
+    await owner.dispose();
+    await stranger.dispose();
+  }
+});
