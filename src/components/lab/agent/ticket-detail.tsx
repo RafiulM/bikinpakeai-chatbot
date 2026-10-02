@@ -1,18 +1,22 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import type { SupportTicket } from "@/lib/lab/types";
-import { formatClock, formatScore } from "@/lib/lab/format";
+import type { LabConversation, SupportTicket } from "@/lib/lab/types";
+import { formatScore } from "@/lib/lab/format";
+import { TicketConversation } from "./ticket-conversation";
 import { FrustrationTag, PriorityTag, StatusTag } from "./ticket-tags";
 
 /** Everything an agent needs to pick up a ticket without reading the whole chat. */
 export function TicketDetail({
   ticket,
+  conversation,
   actions,
   notice,
   children,
 }: {
   ticket: SupportTicket;
+  /** The full conversation, when this session has it. */
+  conversation?: LabConversation;
   /** Header buttons (claim, close, reopen). */
   actions?: ReactNode;
   notice?: ReactNode;
@@ -114,38 +118,7 @@ export function TicketDetail({
         </section>
       </div>
 
-      <section aria-labelledby="ticket-thread" className="grid gap-3">
-        <h3
-          id="ticket-thread"
-          className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-        >
-          Percakapan & balasan
-        </h3>
-        <ol className="grid gap-2">
-          {ticket.excerpt.map((line, index) => (
-            <li
-              key={index}
-              className="grid gap-0.5 rounded-[10px] bg-surface-subtle px-3 py-2.5 text-sm"
-            >
-              <span className="text-xs font-semibold text-muted-foreground">
-                {line.label} · {formatClock(line.createdAt)}
-              </span>
-              {line.content}
-            </li>
-          ))}
-          {ticket.replies.map((reply) => (
-            <li
-              key={reply.id}
-              className="grid gap-0.5 rounded-[10px] border bg-card px-3 py-2.5 text-sm"
-            >
-              <span className="text-xs font-semibold text-muted-foreground">
-                {reply.agentName} · {formatClock(reply.createdAt)}
-              </span>
-              {reply.content}
-            </li>
-          ))}
-        </ol>
-      </section>
+      <TicketConversation ticket={ticket} conversation={conversation} />
       {children}
     </section>
   );

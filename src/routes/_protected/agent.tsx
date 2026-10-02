@@ -7,6 +7,7 @@ import { TicketList } from "@/components/lab/agent/ticket-list";
 import { sortTickets, type TicketSort } from "@/lib/lab/tickets";
 import { SegmentedControl } from "@/components/lab/segmented-control";
 import { useTickets } from "@/components/lab/ticket-store";
+import { useLabConversation } from "@/components/lab/conversation-store";
 import type { TicketStatus } from "@/lib/lab/types";
 
 export const Route = createFileRoute("/_protected/agent")({
@@ -20,6 +21,7 @@ const SAMPLE_NOW = Date.UTC(2026, 9, 1, 7, 11);
 
 function AgentPage() {
   const { tickets: allTickets, counts } = useTickets();
+  const { conversations } = useLabConversation();
   const [sort, setSort] = useState<TicketSort>("urgency");
   const [status, setStatus] = useState<TicketStatus>("open");
   const tickets = sortTickets(
@@ -89,7 +91,12 @@ function AgentPage() {
               now={SAMPLE_NOW}
             />
           </section>
-          <TicketDetail ticket={selected} />
+          <TicketDetail
+            ticket={selected}
+            conversation={conversations.find(
+              (conversation) => conversation.id === selected.conversationId,
+            )}
+          />
         </div>
       )}
     </div>
