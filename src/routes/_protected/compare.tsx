@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Highlighter } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import { useConversationParam } from "@/components/lab/use-conversation-param";
 import { CompareRow } from "@/components/lab/compare-row";
 import { CumulativeSummary } from "@/components/lab/cumulative-summary";
 import { DeltaStrip } from "@/components/lab/delta-strip";
@@ -23,6 +24,7 @@ function ComparePage() {
   const differing = turns.filter(verdictsDiffer);
   const shown = filter === "all" ? turns : differing;
 
+  useConversationParam(mockConversation.id);
   return (
     <div className="grid max-w-[1200px] gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">

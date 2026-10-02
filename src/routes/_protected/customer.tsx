@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
+import { useConversationParam } from "@/components/lab/use-conversation-param";
 import { ChatComposer } from "@/components/lab/chat-composer";
 import { ChatWidget } from "@/components/lab/chat-widget";
 import { LastTurnCard } from "@/components/lab/last-turn-card";
@@ -91,6 +92,7 @@ function CustomerPage() {
     requestAnimationFrame(() => inputRef.current?.focus());
   }
 
+  useConversationParam(conversation.id);
   return (
     <div className="grid max-w-[1200px] gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">

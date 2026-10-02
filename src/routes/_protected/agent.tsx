@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
+import { useConversationParam } from "@/components/lab/use-conversation-param";
 import { mockConversation } from "@/lib/lab/mock-data";
 
 export const Route = createFileRoute("/_protected/agent")({
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/_protected/agent")({
 // escalations from the shared conversation so the context carries over.
 function AgentPage() {
   const escalated = mockConversation.turns.filter((turn) => turn.ticketId);
+  useConversationParam(mockConversation.id);
   return (
     <div className="grid max-w-[1200px] gap-6">
       <div>

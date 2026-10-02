@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
+import { useConversationParam } from "@/components/lab/use-conversation-param";
 import { sortTurns } from "@/lib/lab/conversation";
 import { formatClock, formatSeconds, formatUsd } from "@/lib/lab/format";
 import { mockConversation } from "@/lib/lab/mock-data";
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/_protected/debug")({
 // reads the same conversation so switching views keeps the context.
 function DebugPage() {
   const turns = sortTurns(mockConversation.turns);
+  useConversationParam(mockConversation.id);
   return (
     <div className="grid max-w-[1200px] gap-6">
       <div>
