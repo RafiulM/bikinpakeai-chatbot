@@ -178,3 +178,13 @@ export function ratioText(jev: number, base: number, unit: "speed" | "cost") {
   const saved = 1 - jev / base;
   return saved >= 0.01 ? `${Math.floor(saved * 100)}% lebih hemat` : null;
 }
+
+/** One-sentence verdict on a conversation, e.g. "Jev lebih tepat di 3 dari 5 pesan." */
+export function conversationHeadline(summary: ConversationSummary) {
+  const { compared, jevBetterCount, withJev, withoutJev } = summary;
+  if (jevBetterCount > 0)
+    return `Jev lebih tepat di ${jevBetterCount} dari ${compared} pesan.`;
+  if (withJev.correct === withoutJev.correct)
+    return `Ketepatan sama di ${compared} pesan.`;
+  return "Pembanding lebih tepat di percakapan ini.";
+}

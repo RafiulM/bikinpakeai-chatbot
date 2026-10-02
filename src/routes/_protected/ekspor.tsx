@@ -4,12 +4,13 @@ import { ClipboardCopy, FileDown, Video } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useLabConversation } from "@/components/lab/conversation-store";
 import { CopyTranscript } from "@/components/lab/export/copy-transcript";
+import { DownloadSummary } from "@/components/lab/export/download-summary";
 import { ExportSection } from "@/components/lab/export/export-section";
 import { RecordingToggle } from "@/components/lab/export/recording-toggle";
 import { SourceSummary } from "@/components/lab/export/source-summary";
 import { labApi } from "@/lib/lab/api-client";
 import { summarize } from "@/lib/lab/compare";
-import type { TestRunState } from "@/lib/lab/types";
+import type { TestRunReport } from "@/lib/lab/types";
 
 export const Route = createFileRoute("/_protected/ekspor")({
   head: () => ({ meta: [{ title: `Ekspor & Rekap | ${siteConfig.name}` }] }),
@@ -18,15 +19,17 @@ export const Route = createFileRoute("/_protected/ekspor")({
 
 function ExportPage() {
   const { conversation } = useLabConversation();
-  const [lastRun, setLastRun] = useState<TestRunState | null>(null);
+  const [report, setReport] = useState<TestRunReport | null>(null);
   const [loadingRun, setLoadingRun] = useState(true);
 
+  // The latest finished mass test, for the sources and the summary file.
   useEffect(() => {
     let active = true;
     labApi
       .listTestRuns("done")
-      .then(([run]) => {
-        if (active) setLastRun(run ?? null);
+      .then(async ([run]) => {
+        const last = run ? await labApi.getTestRunReport(run.runId) : null;
+        if (active) setReport(last);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -54,7 +57,7 @@ function ExportPage() {
           messageCount: conversation.turns.length,
           summary: summarize(conversation.turns),
         }}
-        lastRun={lastRun}
+        lastRun={report}
         loadingRun={loadingRun}
       />
       <div className="grid items-start gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -69,6 +72,7 @@ function ExportPage() {
             <li>Total kumulatif percakapan aktif</li>
             <li>Laporan uji test set terakhir per kategori</li>
           </ul>
+          <DownloadSummary conversation={conversation} report={report} />
         </ExportSection>
         <ExportSection
           id="export-transcript"

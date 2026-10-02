@@ -1,5 +1,5 @@
 import { MessagesSquare, FlaskConical } from "lucide-react";
-import type { TestRunState } from "@/lib/lab/types";
+import type { TestRunReport } from "@/lib/lab/types";
 import type { ConversationSummary } from "@/lib/lab/compare";
 
 const percent = (part: number, total: number) =>
@@ -17,7 +17,10 @@ export function SourceSummary({
     messageCount: number;
     summary: ConversationSummary;
   };
-  lastRun: TestRunState | null;
+  lastRun: Pick<
+    TestRunReport,
+    "runNumber" | "testSetName" | "total" | "withJev" | "withoutJev"
+  > | null;
   loadingRun: boolean;
 }) {
   const { summary } = conversation;

@@ -1,7 +1,12 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { ConversationTurn } from "@/lib/lab/types";
-import { ratioText, summarize, type ModeTotals } from "@/lib/lab/compare";
+import {
+  conversationHeadline,
+  ratioText,
+  summarize,
+  type ModeTotals,
+} from "@/lib/lab/compare";
 import { formatSeconds, formatUsd } from "@/lib/lab/format";
 
 function percent(value: number) {
@@ -52,11 +57,7 @@ export function CumulativeSummary({
           id="cumulative-title"
           className="font-serif text-[clamp(30px,3vw,40px)] leading-[1.1] font-normal tracking-[-1.2px]"
         >
-          {summary.jevBetterCount > 0
-            ? `Jev lebih tepat di ${summary.jevBetterCount} dari ${compared} pesan.`
-            : withJev.correct === withoutJev.correct
-              ? `Ketepatan sama di ${compared} pesan.`
-              : `Pembanding lebih tepat di percakapan ini.`}
+          {conversationHeadline(summary)}
         </h2>
         {support.length > 0 && (
           <p className="text-[19px] leading-snug text-foreground/85">

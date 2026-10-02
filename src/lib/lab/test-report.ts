@@ -1,5 +1,6 @@
-import { ratioText } from "./compare";
-import { CATEGORY_LABEL } from "./scenarios";
+// Explicit .ts extensions: this pure module also runs directly under Node tests.
+import { ratioText } from "./compare.ts";
+import { CATEGORY_LABEL } from "./scenarios.ts";
 import {
   ISSUE_TYPES,
   type IssueType,
@@ -7,7 +8,7 @@ import {
   type TestCaseResult,
   type TestRunReport,
   type VerdictTally,
-} from "./types";
+} from "./types.ts";
 
 // Report totals derived from per-message results. Pure, so the preview data
 // and the server report count verdicts exactly the same way.
