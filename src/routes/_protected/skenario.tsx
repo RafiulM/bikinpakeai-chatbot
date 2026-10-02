@@ -1,9 +1,14 @@
-import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useRef, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { Play } from "lucide-react";
 import { siteConfig } from "@/config/site";
-import { CategorySection } from "@/components/lab/scenarios/category-accordion";
 import { useLabConversation } from "@/components/lab/conversation-store";
+import { CategorySection } from "@/components/lab/scenarios/category-accordion";
+import {
+  RunQueue,
+  type RunItem,
+  type RunState,
+} from "@/components/lab/scenarios/run-queue";
 import { ScenarioCard } from "@/components/lab/scenarios/scenario-card";
 import { Button } from "@/components/ui/button";
 import { CATEGORY_LABEL, SCENARIOS, type Scenario } from "@/lib/lab/scenarios";
@@ -22,21 +27,18 @@ const GROUPS = ISSUE_TYPES.map((category) => ({
 })).filter((group) => group.scenarios.length > 0);
 
 function ScenarioPage() {
+  const { conversation, busy, send } = useLabConversation();
   const [open, setOpen] = useState<Set<IssueType>>(
     () => new Set([GROUPS[0]?.category].filter(Boolean) as IssueType[]),
   );
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [queue, setQueue] = useState<RunItem[]>([]);
+  const [running, setRunning] = useState(false);
+  const stopRef = useRef(false);
+  const queueRef = useRef<HTMLDivElement>(null);
   const allOpen = open.size === GROUPS.length;
-  const { conversation, busy, send } = useLabConversation();
-  const [lastRun, setLastRun] = useState<{ name: string; code: string } | null>(
-    null,
-  );
 
-  async function run(scenario: Scenario) {
-    setLastRun({ name: scenario.name, code: conversation.code });
-    await send(scenario.prompt);
-  }
-
-  function toggle(category: IssueType) {
+  function toggleGroup(category: IssueType) {
     setOpen((current) => {
       const next = new Set(current);
       if (next.has(category)) next.delete(category);
@@ -44,6 +46,56 @@ function ScenarioPage() {
       return next;
     });
   }
+
+  function togglePick(id: string) {
+    setPicked((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function setState(id: string, state: RunState) {
+    setQueue((items) =>
+      items.map((item) => (item.id === id ? { ...item, state } : item)),
+    );
+  }
+
+  /** Sends the scenarios one by one, each after the previous reply arrived. */
+  async function runAll(scenarios: Scenario[]) {
+    if (running || busy || scenarios.length === 0) return;
+    stopRef.current = false;
+    setRunning(true);
+    setQueue(
+      scenarios.map((scenario) => ({
+        id: scenario.id,
+        name: scenario.name,
+        expectedRoute: scenario.expectedRoute,
+        state: "waiting",
+      })),
+    );
+    if (window.matchMedia("(max-width: 1279px)").matches)
+      queueRef.current?.scrollIntoView({ block: "start" });
+    for (const scenario of scenarios) {
+      if (stopRef.current) {
+        setState(scenario.id, "stopped");
+        continue;
+      }
+      setState(scenario.id, "running");
+      try {
+        await send(scenario.prompt);
+        setState(scenario.id, "done");
+      } catch {
+        setState(scenario.id, "failed");
+      }
+    }
+    setRunning(false);
+  }
+
+  const pickedScenarios = SCENARIOS.filter((scenario) =>
+    picked.has(scenario.id),
+  );
 
   return (
     <div className="grid max-w-[1200px] gap-6">
@@ -54,82 +106,109 @@ function ScenarioPage() {
           </h1>
           <p className="text-sm text-muted-foreground">
             Dikirim ke percakapan aktif {conversation.code} · {SCENARIOS.length}{" "}
-            kasus contoh dalam {GROUPS.length} kategori untuk memicu perilaku
-            Jev tertentu saat demo
+            kasus dalam {GROUPS.length} kategori
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            setOpen(
-              allOpen ? new Set() : new Set(GROUPS.map((g) => g.category)),
-            )
-          }
-        >
-          {allOpen ? "Tutup semua" : "Buka semua"}
-        </Button>
-      </div>
-      <div
-        role="status"
-        className={
-          lastRun
-            ? "flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[10px] border border-signal bg-signal-soft px-4 py-3 text-sm"
-            : "sr-only"
-        }
-      >
-        {lastRun && (
-          <>
-            <span>
-              {busy ? "Mengirim" : "Terkirim"}: <strong>{lastRun.name}</strong>{" "}
-              ke percakapan {lastRun.code}.
-            </span>
-            <span className="flex gap-3 font-semibold">
-              <Link to="/customer" className="underline underline-offset-3">
-                Lihat di Customer
-              </Link>
-              <Link to="/debug" className="underline underline-offset-3">
-                Debug
-              </Link>
-              <Link to="/compare" className="underline underline-offset-3">
-                Compare
-              </Link>
-            </span>
-          </>
-        )}
-      </div>
-      <div className="grid gap-3">
-        {GROUPS.map((group) => (
-          <CategorySection
-            key={group.category}
-            title={CATEGORY_LABEL[group.category]}
-            count={group.scenarios.length}
-            open={open.has(group.category)}
-            onToggle={() => toggle(group.category)}
+        <div className="flex flex-wrap items-center gap-2">
+          <p role="status" className="text-sm text-muted-foreground">
+            {picked.size} dipilih
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setPicked(
+                picked.size === SCENARIOS.length
+                  ? new Set()
+                  : new Set(SCENARIOS.map((scenario) => scenario.id)),
+              )
+            }
           >
-            <ul className="grid gap-3 md:grid-cols-2">
-              {group.scenarios.map((scenario) => (
-                <li key={scenario.id}>
-                  <ScenarioCard
-                    scenario={scenario}
-                    action={
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={busy}
-                        onClick={() => void run(scenario)}
-                        aria-label={`Jalankan skenario ${scenario.name}`}
-                      >
-                        <Play aria-hidden="true" />
-                        Jalankan
-                      </Button>
-                    }
-                  />
-                </li>
-              ))}
-            </ul>
-          </CategorySection>
-        ))}
+            {picked.size === SCENARIOS.length
+              ? "Kosongkan pilihan"
+              : "Pilih semua"}
+          </Button>
+          <Button
+            size="sm"
+            disabled={picked.size === 0 || running || busy}
+            onClick={() => void runAll(pickedScenarios)}
+          >
+            <Play aria-hidden="true" />
+            Jalankan terpilih ({picked.size})
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid gap-3">
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setOpen(
+                  allOpen ? new Set() : new Set(GROUPS.map((g) => g.category)),
+                )
+              }
+            >
+              {allOpen ? "Tutup semua kategori" : "Buka semua kategori"}
+            </Button>
+          </div>
+          {GROUPS.map((group) => (
+            <CategorySection
+              key={group.category}
+              title={CATEGORY_LABEL[group.category]}
+              count={group.scenarios.length}
+              open={open.has(group.category)}
+              onToggle={() => toggleGroup(group.category)}
+            >
+              <ul className="grid gap-3 lg:grid-cols-2">
+                {group.scenarios.map((scenario) => (
+                  <li key={scenario.id}>
+                    <ScenarioCard
+                      scenario={scenario}
+                      select={
+                        <label className="flex cursor-pointer items-start gap-2.5 text-[15px] leading-snug font-semibold">
+                          <input
+                            type="checkbox"
+                            checked={picked.has(scenario.id)}
+                            onChange={() => togglePick(scenario.id)}
+                            className="mt-0.5 size-[18px] shrink-0 accent-foreground"
+                          />
+                          <span id={`scenario-${scenario.id}`}>
+                            {scenario.name}
+                          </span>
+                        </label>
+                      }
+                      action={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={busy || running}
+                          onClick={() => void runAll([scenario])}
+                          aria-label={`Jalankan skenario ${scenario.name}`}
+                        >
+                          <Play aria-hidden="true" />
+                          Jalankan
+                        </Button>
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            </CategorySection>
+          ))}
+        </div>
+        <div ref={queueRef}>
+          <RunQueue
+            items={queue}
+            running={running}
+            onStop={() => {
+              stopRef.current = true;
+            }}
+            onClear={() => setQueue([])}
+          />
+        </div>
       </div>
     </div>
   );
