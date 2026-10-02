@@ -12,6 +12,7 @@ import {
 import { db } from "@/db/index.server";
 import {
   conversations,
+  jevAnalyses,
   messages,
   responses,
   ticketReplies,
@@ -25,6 +26,8 @@ import type {
   TicketStatus,
 } from "@/lib/lab/types";
 import { publishLabEvent } from "@/lib/lab/events.server";
+import { ticketBriefing } from "./pipeline/ticket-summary.server";
+import type { SummaryMessage } from "@/lib/lab/ticket-summary";
 import type {
   ListTicketsInput,
   ReplyTicketInput,
@@ -65,12 +68,20 @@ export async function createTicketForEscalation(
     refundRequested,
     rules: analysis.rules,
   });
+  const history = await conversationHistory(message.conversationId, messageId, {
+    decision: analysis.decision,
+    issueType: analysis.issueType,
+    refundRequested,
+    frustrationScore: analysis.frustrationScore,
+  });
+  const summaryPoints = await ticketBriefing(history);
   const [created] = await db
     .insert(tickets)
     .values({
       conversationId: message.conversationId,
       messageId,
       ...draft,
+      summaryPoints: summaryPoints.length ? summaryPoints : draft.summaryPoints,
       frustrationScore: analysis.frustrationScore,
       churnRisk: analysis.churnRisk,
     })
@@ -420,4 +431,66 @@ export async function updateTicketStatus(
   if (outcome.kind !== "ok") return outcome;
   const ticket = await getTicket(userId, ticketId);
   return ticket ? { kind: "ok", ticket } : { kind: "not_found" };
+}
+
+/**
+ * Customer messages of a conversation up to the escalated one, each with the
+ * decision Jev made for it. The escalated message may not be stored yet, so
+ * its reading can be passed in.
+ */
+async function conversationHistory(
+  conversationId: string,
+  uptoMessageId: string,
+  current?: Omit<SummaryMessage, "content">,
+): Promise<SummaryMessage[]> {
+  const rows = await db
+    .select({
+      id: messages.id,
+      content: messages.content,
+      decision: jevAnalyses.decision,
+      issueType: jevAnalyses.issueType,
+      frustrationScore: jevAnalyses.frustrationScore,
+    })
+    .from(messages)
+    .leftJoin(jevAnalyses, eq(jevAnalyses.messageId, messages.id))
+    .where(
+      and(
+        eq(messages.conversationId, conversationId),
+        eq(messages.sender, "customer"),
+      ),
+    )
+    .orderBy(asc(messages.createdAt), asc(messages.id));
+  const upto = rows.findIndex((row) => row.id === uptoMessageId);
+  return rows.slice(0, upto === -1 ? rows.length : upto + 1).map((row) => ({
+    content: row.content,
+    decision: (row.decision as SummaryMessage["decision"]) ?? null,
+    issueType: row.issueType,
+    frustrationScore: row.frustrationScore,
+    ...(row.id === uptoMessageId && current),
+  }));
+}
+
+/** Rewrites a ticket's briefing from the latest conversation. */
+export async function regenerateTicketSummary(
+  userId: string,
+  ticketId: string,
+) {
+  const row = await ownedTicketRow(userId, ticketId);
+  if (!row) return undefined;
+  const history = await conversationHistory(
+    row.ticket.conversationId,
+    row.ticket.messageId,
+    {
+      decision: "escalated",
+      issueType: null,
+      refundRequested: /refund/i.test(row.ticket.issueLabel),
+      frustrationScore: row.ticket.frustrationScore,
+    },
+  );
+  const summaryPoints = await ticketBriefing(history);
+  await db
+    .update(tickets)
+    .set({ summaryPoints })
+    .where(eq(tickets.id, ticketId));
+  return getTicket(userId, ticketId);
 }
