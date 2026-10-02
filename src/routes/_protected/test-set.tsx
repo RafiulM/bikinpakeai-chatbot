@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
 import { StepCard } from "@/components/lab/test-set/step-card";
+import { TestSetPicker } from "@/components/lab/test-set/test-set-picker";
 import { mockLastReport, mockTestSets } from "@/lib/lab/mock-test-sets";
 import { formatPercent } from "@/lib/lab/format";
 
@@ -11,6 +13,10 @@ export const Route = createFileRoute("/_protected/test-set")({
 
 function TestSetPage() {
   const report = mockLastReport;
+  const [selectedSet, setSelectedSet] = useState<string | null>(
+    mockTestSets[0]?.id ?? null,
+  );
+  const chosen = mockTestSets.find((set) => set.id === selectedSet);
   return (
     <div className="grid max-w-[1200px] gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -34,27 +40,21 @@ function TestSetPage() {
           title="Pilih test set"
           description="Kumpulan pesan berlabel. Setiap pesan diproses dengan Jev dan tanpa Jev."
         >
-          <ul className="grid gap-2">
-            {mockTestSets.map((set) => (
-              <li key={set.id} className="rounded-[10px] border px-4 py-3">
-                <p className="flex justify-between gap-2 text-[15px] font-semibold">
-                  {set.name}
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    {set.caseCount} pesan
-                  </span>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {set.description}
-                </p>
-              </li>
-            ))}
-          </ul>
+          <TestSetPicker
+            sets={mockTestSets}
+            value={selectedSet}
+            onChange={setSelectedSet}
+          />
         </StepCard>
         <StepCard
           step={2}
           id="test-step-run"
           title="Proses uji massal"
-          description="Kemajuan dan hasil sementara tampil di sini selama uji berjalan."
+          description={
+            chosen
+              ? `Test set: ${chosen.name} · ${chosen.caseCount} pesan`
+              : "Pilih test set dulu."
+          }
         >
           <p className="rounded-[10px] bg-surface-subtle p-4 text-sm text-muted-foreground">
             Pilih test set lalu jalankan uji.
