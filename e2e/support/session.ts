@@ -25,3 +25,51 @@ export async function signUp(client: APIRequestContext, prefix = "lab") {
   expect(response.status()).toBe(200);
   return data;
 }
+
+/** Cookie header for streaming requests made outside Playwright's client. */
+export async function cookieHeader(client: APIRequestContext) {
+  const { cookies } = await client.storageState();
+  return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
+}
+
+/** Reads server-sent events until `count` events arrive or the timeout hits. */
+export async function readEvents(
+  url: string,
+  cookie: string,
+  count: number,
+  timeoutMs = 8000,
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const events: { event: string; data: unknown }[] = [];
+  try {
+    const response = await fetch(url, {
+      headers: { cookie, accept: "text/event-stream" },
+      signal: controller.signal,
+    });
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (events.length < count) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let index: number;
+      while ((index = buffer.indexOf("\n\n")) !== -1) {
+        const block = buffer.slice(0, index);
+        buffer = buffer.slice(index + 2);
+        const event = /^event: (.*)$/m.exec(block)?.[1];
+        const data = /^data: (.*)$/m.exec(block)?.[1];
+        if (event && data) events.push({ event, data: JSON.parse(data) });
+      }
+    }
+    return {
+      status: response.status,
+      contentType: response.headers.get("content-type"),
+      events,
+    };
+  } finally {
+    clearTimeout(timer);
+    controller.abort();
+  }
+}

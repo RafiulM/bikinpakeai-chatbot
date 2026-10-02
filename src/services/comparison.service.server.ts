@@ -2,9 +2,11 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/index.server";
 import { conversations, messages, responses } from "@/db/schema";
 import { pickWinner, summarize, turnDelta } from "@/lib/lab/compare";
+import { publishLabEvent } from "@/lib/lab/events.server";
 import type { BotResponse, ConversationTurn } from "@/lib/lab/types";
 import {
   getConversation,
+  toBotResponse,
   toConversationSummary,
 } from "./conversations.service.server";
 
@@ -53,6 +55,17 @@ export async function getConversationSummary(
     .limit(1);
   if (!conversation) return undefined;
 
+  return {
+    conversation: toConversationSummary(conversation),
+    ...(await computeSummary(conversationId)),
+  };
+}
+
+/**
+ * Totals for a conversation whose ownership was already verified. Internal:
+ * called by the owner-scoped summary and by the answer pipeline.
+ */
+async function computeSummary(conversationId: string) {
   const rows = await db
     .select({
       messageId: messages.id,
@@ -98,7 +111,6 @@ export async function getConversationSummary(
   const summary = summarize([...pairs.values()] as ConversationTurn[]);
   const { withJev, withoutJev } = summary;
   return {
-    conversation: toConversationSummary(conversation),
     ...summary,
     speedup:
       withJev.latencyMs > 0 ? withoutJev.latencyMs / withJev.latencyMs : null,
@@ -107,4 +119,45 @@ export async function getConversationSummary(
         ? Math.round((1 - withJev.costUsd / withoutJev.costUsd) * 1e4) / 1e4
         : null,
   };
+}
+
+export type NewResponse = Omit<
+  typeof responses.$inferInsert,
+  "id" | "createdAt"
+>;
+
+/**
+ * Stores one answer for a customer message. When this completes the pair,
+ * subscribers of the conversation receive the new difference and totals.
+ * The caller must already have verified that the message belongs to the user.
+ */
+export async function saveResponse(input: NewResponse) {
+  const [saved] = await db.insert(responses).values(input).returning();
+  const pair = await db
+    .select()
+    .from(responses)
+    .where(eq(responses.messageId, saved.messageId));
+  const jev = pair.find((row) => row.mode === "with_jev");
+  const base = pair.find((row) => row.mode === "without_jev");
+  if (jev && base) {
+    const [message] = await db
+      .select({ conversationId: messages.conversationId })
+      .from(messages)
+      .where(eq(messages.id, saved.messageId))
+      .limit(1);
+    if (message) {
+      const turn = {
+        withJev: toBotResponse(jev),
+        withoutJev: toBotResponse(base),
+      } as ConversationTurn;
+      publishLabEvent({
+        type: "comparison",
+        conversationId: message.conversationId,
+        messageId: saved.messageId,
+        delta: turnDelta(turn),
+        summary: await computeSummary(message.conversationId),
+      });
+    }
+  }
+  return toBotResponse(saved);
 }

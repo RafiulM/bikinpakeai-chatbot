@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { testDb } from "./support/db";
-import { headers, signUp } from "./support/session";
+import { cookieHeader, headers, readEvents, signUp } from "./support/session";
 
 let owner: APIRequestContext;
 
@@ -137,5 +137,33 @@ test("an empty conversation summarizes to zero without errors", async () => {
     speedup: null,
     costSaving: null,
     running: [],
+  });
+});
+
+test("the events stream opens with the current totals and stays private", async ({
+  request,
+}) => {
+  const { data: conversation } = await (
+    await owner.post("/api/conversations", { headers, data: {} })
+  ).json();
+  const url = `http://localhost:3101/api/conversations/${conversation.id}/events`;
+  expect((await request.get(url)).status()).toBe(401);
+  expect(
+    (
+      await readEvents(
+        `http://localhost:3101/api/conversations/${randomUUID()}/events`,
+        await cookieHeader(owner),
+        1,
+      )
+    ).status,
+  ).toBe(404);
+
+  const stream = await readEvents(url, await cookieHeader(owner), 1);
+  expect(stream.status).toBe(200);
+  expect(stream.contentType).toContain("text/event-stream");
+  expect(stream.events[0].event).toBe("ready");
+  expect(stream.events[0].data).toMatchObject({
+    conversation: { id: conversation.id },
+    compared: 0,
   });
 });

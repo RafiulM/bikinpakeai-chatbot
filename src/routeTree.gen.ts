@@ -28,6 +28,7 @@ import { Route as ApiAdminNotesIndexRouteImport } from './routes/api/admin/notes
 import { Route as ApiAdminNotesIdRouteImport } from './routes/api/admin/notes/$id'
 import { Route as ApiConversationsIdIndexRouteImport } from './routes/api/conversations/$id/index'
 import { Route as ApiConversationsIdComparisonRouteImport } from './routes/api/conversations/$id/comparison'
+import { Route as ApiConversationsIdEventsRouteImport } from './routes/api/conversations/$id/events'
 import { Route as ApiConversationsIdMessagesRouteImport } from './routes/api/conversations/$id/messages'
 import { Route as ApiConversationsIdSummaryRouteImport } from './routes/api/conversations/$id/summary'
 
@@ -125,6 +126,12 @@ const ApiConversationsIdComparisonRoute =
     path: '/api/conversations/$id/comparison',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiConversationsIdEventsRoute =
+  ApiConversationsIdEventsRouteImport.update({
+    id: '/api/conversations/$id/events',
+    path: '/api/conversations/$id/events',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiConversationsIdMessagesRoute =
   ApiConversationsIdMessagesRouteImport.update({
     id: '/api/conversations/$id/messages',
@@ -154,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/api/notes/': typeof ApiNotesIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/comparison': typeof ApiConversationsIdComparisonRoute
+  '/api/conversations/$id/events': typeof ApiConversationsIdEventsRoute
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/conversations/$id/summary': typeof ApiConversationsIdSummaryRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
@@ -175,6 +183,7 @@ export interface FileRoutesByTo {
   '/api/notes': typeof ApiNotesIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/comparison': typeof ApiConversationsIdComparisonRoute
+  '/api/conversations/$id/events': typeof ApiConversationsIdEventsRoute
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/conversations/$id/summary': typeof ApiConversationsIdSummaryRoute
   '/api/admin/notes': typeof ApiAdminNotesIndexRoute
@@ -199,6 +208,7 @@ export interface FileRoutesById {
   '/api/notes/': typeof ApiNotesIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/comparison': typeof ApiConversationsIdComparisonRoute
+  '/api/conversations/$id/events': typeof ApiConversationsIdEventsRoute
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/conversations/$id/summary': typeof ApiConversationsIdSummaryRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
@@ -222,6 +232,7 @@ export interface FileRouteTypes {
     | '/api/notes/'
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/comparison'
+    | '/api/conversations/$id/events'
     | '/api/conversations/$id/messages'
     | '/api/conversations/$id/summary'
     | '/api/admin/notes/'
@@ -243,6 +254,7 @@ export interface FileRouteTypes {
     | '/api/notes'
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/comparison'
+    | '/api/conversations/$id/events'
     | '/api/conversations/$id/messages'
     | '/api/conversations/$id/summary'
     | '/api/admin/notes'
@@ -266,6 +278,7 @@ export interface FileRouteTypes {
     | '/api/notes/'
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/comparison'
+    | '/api/conversations/$id/events'
     | '/api/conversations/$id/messages'
     | '/api/conversations/$id/summary'
     | '/api/admin/notes/'
@@ -283,6 +296,7 @@ export interface RootRouteChildren {
   ApiNotesIndexRoute: typeof ApiNotesIndexRoute
   ApiAdminNotesIdRoute: typeof ApiAdminNotesIdRoute
   ApiConversationsIdComparisonRoute: typeof ApiConversationsIdComparisonRoute
+  ApiConversationsIdEventsRoute: typeof ApiConversationsIdEventsRoute
   ApiConversationsIdMessagesRoute: typeof ApiConversationsIdMessagesRoute
   ApiConversationsIdSummaryRoute: typeof ApiConversationsIdSummaryRoute
   ApiAdminNotesIndexRoute: typeof ApiAdminNotesIndexRoute
@@ -424,6 +438,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiConversationsIdComparisonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/conversations/$id/events': {
+      id: '/api/conversations/$id/events'
+      path: '/api/conversations/$id/events'
+      fullPath: '/api/conversations/$id/events'
+      preLoaderRoute: typeof ApiConversationsIdEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/conversations/$id/messages': {
       id: '/api/conversations/$id/messages'
       path: '/api/conversations/$id/messages'
@@ -484,6 +505,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiNotesIndexRoute: ApiNotesIndexRoute,
   ApiAdminNotesIdRoute: ApiAdminNotesIdRoute,
   ApiConversationsIdComparisonRoute: ApiConversationsIdComparisonRoute,
+  ApiConversationsIdEventsRoute: ApiConversationsIdEventsRoute,
   ApiConversationsIdMessagesRoute: ApiConversationsIdMessagesRoute,
   ApiConversationsIdSummaryRoute: ApiConversationsIdSummaryRoute,
   ApiAdminNotesIndexRoute: ApiAdminNotesIndexRoute,
