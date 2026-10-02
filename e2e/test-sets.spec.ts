@@ -247,3 +247,59 @@ test("a test run processes every message on both versions and stays private", as
     await db.end();
   }
 });
+
+test("a run report adds up from its per-message outcomes", async () => {
+  const [run] = (
+    await (await owner.get("/api/test-runs?status=done&limit=1")).json()
+  ).data;
+  expect(run).toBeTruthy();
+  const response = await owner.get(`/api/test-runs/${run.runId}/report`);
+  expect(response.status()).toBe(200);
+  const { data: report } = await response.json();
+
+  expect(report).toMatchObject({
+    runId: run.runId,
+    runNumber: run.runNumber,
+    testSetName: "Support umum",
+    status: "done",
+    total: 60,
+  });
+  expect(report.cases).toHaveLength(60);
+  expect(report.cases[0].inputText).toBe(
+    "Saya sudah transfer untuk membership Pro tapi aksesnya belum aktif.",
+  );
+  for (const mode of ["withJev", "withoutJev"] as const) {
+    const { correct, wrong, escalated } = report[mode];
+    expect({ correct, wrong, escalated }).toEqual(run[mode]);
+    expect(report[mode].averageLatencyMs).toBeGreaterThanOrEqual(0);
+  }
+  expect(report.categories.map((item: { id: string }) => item.id)).toEqual([
+    "pembayaran",
+    "akses_akun",
+    "cara_pakai",
+    "bug",
+    "saran_fitur",
+  ]);
+  expect(
+    report.categories.reduce(
+      (sum: number, item: { total: number }) => sum + item.total,
+      0,
+    ),
+  ).toBe(60);
+  const payments = report.cases.filter(
+    (item: { category: string }) => item.category === "pembayaran",
+  );
+  expect(report.categories[0]).toMatchObject({
+    label: "Pembayaran",
+    total: payments.length,
+    withJev: payments.filter(
+      (item: { withJev: { verdict: string } }) =>
+        item.withJev.verdict !== "wrong",
+    ).length,
+  });
+
+  expect((await other.get(`/api/test-runs/${run.runId}/report`)).status()).toBe(
+    404,
+  );
+  expect((await owner.get("/api/test-runs?status=paused")).status()).toBe(422);
+});

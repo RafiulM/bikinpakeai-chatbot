@@ -44,6 +44,7 @@ import { Route as ApiScenariosIdRunRouteImport } from './routes/api/scenarios/$i
 import { Route as ApiTestRunsIdIndexRouteImport } from './routes/api/test-runs/$id/index'
 import { Route as ApiTestRunsIdCancelRouteImport } from './routes/api/test-runs/$id/cancel'
 import { Route as ApiTestRunsIdEventsRouteImport } from './routes/api/test-runs/$id/events'
+import { Route as ApiTestRunsIdReportRouteImport } from './routes/api/test-runs/$id/report'
 import { Route as ApiTicketsIdIndexRouteImport } from './routes/api/tickets/$id/index'
 import { Route as ApiTicketsIdRepliesRouteImport } from './routes/api/tickets/$id/replies'
 import { Route as ApiTicketsIdSummaryRouteImport } from './routes/api/tickets/$id/summary'
@@ -225,6 +226,11 @@ const ApiTestRunsIdEventsRoute = ApiTestRunsIdEventsRouteImport.update({
   path: '/api/test-runs/$id/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTestRunsIdReportRoute = ApiTestRunsIdReportRouteImport.update({
+  id: '/api/test-runs/$id/report',
+  path: '/api/test-runs/$id/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTicketsIdIndexRoute = ApiTicketsIdIndexRouteImport.update({
   id: '/api/tickets/$id/',
   path: '/api/tickets/$id/',
@@ -272,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/api/scenarios/$id/run': typeof ApiScenariosIdRunRoute
   '/api/test-runs/$id/cancel': typeof ApiTestRunsIdCancelRoute
   '/api/test-runs/$id/events': typeof ApiTestRunsIdEventsRoute
+  '/api/test-runs/$id/report': typeof ApiTestRunsIdReportRoute
   '/api/tickets/$id/replies': typeof ApiTicketsIdRepliesRoute
   '/api/tickets/$id/summary': typeof ApiTicketsIdSummaryRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
@@ -310,6 +317,7 @@ export interface FileRoutesByTo {
   '/api/scenarios/$id/run': typeof ApiScenariosIdRunRoute
   '/api/test-runs/$id/cancel': typeof ApiTestRunsIdCancelRoute
   '/api/test-runs/$id/events': typeof ApiTestRunsIdEventsRoute
+  '/api/test-runs/$id/report': typeof ApiTestRunsIdReportRoute
   '/api/tickets/$id/replies': typeof ApiTicketsIdRepliesRoute
   '/api/tickets/$id/summary': typeof ApiTicketsIdSummaryRoute
   '/api/admin/notes': typeof ApiAdminNotesIndexRoute
@@ -351,6 +359,7 @@ export interface FileRoutesById {
   '/api/scenarios/$id/run': typeof ApiScenariosIdRunRoute
   '/api/test-runs/$id/cancel': typeof ApiTestRunsIdCancelRoute
   '/api/test-runs/$id/events': typeof ApiTestRunsIdEventsRoute
+  '/api/test-runs/$id/report': typeof ApiTestRunsIdReportRoute
   '/api/tickets/$id/replies': typeof ApiTicketsIdRepliesRoute
   '/api/tickets/$id/summary': typeof ApiTicketsIdSummaryRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
@@ -391,6 +400,7 @@ export interface FileRouteTypes {
     | '/api/scenarios/$id/run'
     | '/api/test-runs/$id/cancel'
     | '/api/test-runs/$id/events'
+    | '/api/test-runs/$id/report'
     | '/api/tickets/$id/replies'
     | '/api/tickets/$id/summary'
     | '/api/admin/notes/'
@@ -429,6 +439,7 @@ export interface FileRouteTypes {
     | '/api/scenarios/$id/run'
     | '/api/test-runs/$id/cancel'
     | '/api/test-runs/$id/events'
+    | '/api/test-runs/$id/report'
     | '/api/tickets/$id/replies'
     | '/api/tickets/$id/summary'
     | '/api/admin/notes'
@@ -469,6 +480,7 @@ export interface FileRouteTypes {
     | '/api/scenarios/$id/run'
     | '/api/test-runs/$id/cancel'
     | '/api/test-runs/$id/events'
+    | '/api/test-runs/$id/report'
     | '/api/tickets/$id/replies'
     | '/api/tickets/$id/summary'
     | '/api/admin/notes/'
@@ -501,6 +513,7 @@ export interface RootRouteChildren {
   ApiScenariosIdRunRoute: typeof ApiScenariosIdRunRoute
   ApiTestRunsIdCancelRoute: typeof ApiTestRunsIdCancelRoute
   ApiTestRunsIdEventsRoute: typeof ApiTestRunsIdEventsRoute
+  ApiTestRunsIdReportRoute: typeof ApiTestRunsIdReportRoute
   ApiTicketsIdRepliesRoute: typeof ApiTicketsIdRepliesRoute
   ApiTicketsIdSummaryRoute: typeof ApiTicketsIdSummaryRoute
   ApiAdminNotesIndexRoute: typeof ApiAdminNotesIndexRoute
@@ -756,6 +769,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTestRunsIdEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/test-runs/$id/report': {
+      id: '/api/test-runs/$id/report'
+      path: '/api/test-runs/$id/report'
+      fullPath: '/api/test-runs/$id/report'
+      preLoaderRoute: typeof ApiTestRunsIdReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tickets/$id/': {
       id: '/api/tickets/$id/'
       path: '/api/tickets/$id'
@@ -840,6 +860,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiScenariosIdRunRoute: ApiScenariosIdRunRoute,
   ApiTestRunsIdCancelRoute: ApiTestRunsIdCancelRoute,
   ApiTestRunsIdEventsRoute: ApiTestRunsIdEventsRoute,
+  ApiTestRunsIdReportRoute: ApiTestRunsIdReportRoute,
   ApiTicketsIdRepliesRoute: ApiTicketsIdRepliesRoute,
   ApiTicketsIdSummaryRoute: ApiTicketsIdSummaryRoute,
   ApiAdminNotesIndexRoute: ApiAdminNotesIndexRoute,

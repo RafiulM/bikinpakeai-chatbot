@@ -11,10 +11,10 @@ export const Route = createFileRoute("/api/test-runs/")({
     handlers: {
       GET: ({ request }) =>
         withApiSession(request, async (session) => {
-          const { limit } = listTestRunsSchema.parse(
+          const { limit, status } = listTestRunsSchema.parse(
             Object.fromEntries(new URL(request.url).searchParams),
           );
-          const runs = await listTestRuns(session.user.id, limit);
+          const runs = await listTestRuns(session.user.id, limit, status);
           return Response.json({ data: runs, meta: { total: runs.length } });
         }),
       // Starts a run and returns at once; follow it with GET /api/test-runs/:id

@@ -3,8 +3,13 @@ import { and, asc, count, desc, eq, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db/index.server";
 import { testCases, testResults, testRuns, testSets } from "@/db/schema";
 import { gradeAnswer } from "@/lib/lab/test-grade";
+import { categoryScores, summarizeCases } from "@/lib/lab/test-report";
 import type {
+  IssueType,
   ResponseMode,
+  TestCaseOutcome,
+  TestCaseResult,
+  TestRunReport,
   TestRunStatus,
   Verdict,
   VerdictTally,
@@ -85,11 +90,20 @@ export async function getTestRunState(
 }
 
 /** The account's most recent runs, newest first. */
-export async function listTestRuns(userId: string, limit: number) {
+export async function listTestRuns(
+  userId: string,
+  limit: number,
+  status?: TestRunStatus,
+) {
   const rows = await db
     .select({ id: testRuns.id, status: testRuns.status })
     .from(testRuns)
-    .where(eq(testRuns.userId, userId))
+    .where(
+      and(
+        eq(testRuns.userId, userId),
+        status ? eq(testRuns.status, status) : undefined,
+      ),
+    )
     .orderBy(desc(testRuns.startedAt))
     .limit(limit);
   for (const row of rows)
@@ -155,6 +169,72 @@ async function readState(runId: string): Promise<TestRunState> {
 async function publish(runId: string) {
   if (registry.bus.listenerCount(runId) === 0) return;
   registry.bus.emit(runId, await readState(runId));
+}
+
+/**
+ * Full report of one of the account's runs: per-message outcomes in test-set
+ * order plus totals and category scores derived from them. A run that was
+ * cancelled or is still going reports the messages finished so far.
+ */
+export async function getTestRunReport(
+  userId: string,
+  runId: string,
+): Promise<TestRunReport | undefined> {
+  const state = await getTestRunState(userId, runId);
+  if (!state) return undefined;
+  const rows = await db
+    .select({
+      caseId: testCases.id,
+      inputText: testCases.inputText,
+      expectedLabel: testCases.expectedLabel,
+      category: testCases.category,
+      mode: testResults.mode,
+      verdict: testResults.verdict,
+      issueType: testResults.issueType,
+      latencyMs: testResults.latencyMs,
+      costUsd: testResults.costUsd,
+    })
+    .from(testResults)
+    .innerJoin(testCases, eq(testCases.id, testResults.testCaseId))
+    .where(eq(testResults.testRunId, runId))
+    .orderBy(asc(testCases.position), asc(testResults.mode));
+
+  const byCase = new Map<string, Partial<TestCaseResult>>();
+  for (const row of rows) {
+    const item = byCase.get(row.caseId) ?? {
+      caseId: row.caseId,
+      inputText: row.inputText,
+      expectedLabel: row.expectedLabel,
+      category: row.category as IssueType | null,
+    };
+    const outcome: TestCaseOutcome = {
+      verdict: row.verdict as Verdict,
+      latencyMs: row.latencyMs,
+      costUsd: row.costUsd,
+    };
+    if (row.mode === "with_jev") {
+      item.withJev = outcome;
+      item.category ??= row.issueType as IssueType | null;
+    } else item.withoutJev = outcome;
+    byCase.set(row.caseId, item);
+  }
+  const cases = [...byCase.values()].filter(
+    (item): item is TestCaseResult => !!item.withJev && !!item.withoutJev,
+  );
+  return {
+    runId: state.runId,
+    runNumber: state.runNumber,
+    testSetId: state.testSetId,
+    testSetName: state.testSetName,
+    total: cases.length,
+    status: state.status,
+    progress: state.processed,
+    startedAt: state.startedAt,
+    finishedAt: state.finishedAt,
+    ...summarizeCases(cases),
+    categories: categoryScores(cases),
+    cases,
+  };
 }
 
 export type StartTestRunResult =

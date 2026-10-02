@@ -235,8 +235,8 @@ export interface TestCaseOutcome {
 
 export interface TestCaseResult {
   caseId: string;
-  /** Issue category the message belongs to, for filtering the report. */
-  category: IssueType;
+  /** Issue category for filtering the report: the case's own, else Jev's reading. */
+  category: IssueType | null;
   inputText: string;
   expectedLabel: string;
   withJev: TestCaseOutcome;

@@ -28,5 +28,8 @@ export const startTestRunSchema = z
   .strict();
 
 export const listTestRunsSchema = z
-  .object({ limit: z.coerce.number().int().min(1).max(50).default(10) })
+  .object({
+    limit: z.coerce.number().int().min(1).max(50).default(10),
+    status: z.enum(["running", "done", "failed", "cancelled"]).optional(),
+  })
   .strict();
