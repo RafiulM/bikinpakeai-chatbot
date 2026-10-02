@@ -145,3 +145,40 @@ test("summary totals and running accuracy follow the conversation", async () => 
     [1, 0.5],
   );
 });
+
+test("pair deltas include ratios and survive zero costs and missing answers", async () => {
+  const { turnDelta } = await import("../src/lib/lab/compare.ts");
+  const delta = turnDelta(
+    turn(
+      response("with_jev", "correct", 820, 0.0004),
+      response("without_jev", "correct", 2900, 0.0061),
+    ),
+  );
+  assert.ok(Math.abs(delta.speedup - 2900 / 820) < 1e-9);
+  assert.equal(delta.costSaving, 0.9344);
+  assert.equal(delta.winner, "with_jev");
+
+  const freeTemplate = turnDelta(
+    turn(
+      response("with_jev", "correct", 0, 0),
+      response("without_jev", "wrong", 2700, 0),
+    ),
+  );
+  assert.equal(freeTemplate.speedup, null);
+  assert.equal(freeTemplate.costSaving, null);
+  assert.equal(freeTemplate.accuracy, "jev_better");
+
+  const pricier = turnDelta(
+    turn(
+      response("with_jev", "correct", 1000, 0.02),
+      response("without_jev", "correct", 900, 0.01),
+    ),
+  );
+  assert.equal(pricier.costSaving, -1);
+  assert.equal(pricier.winner, "without_jev");
+
+  assert.equal(
+    turnDelta(turn(null, response("without_jev", "correct", 1, 0))),
+    null,
+  );
+});

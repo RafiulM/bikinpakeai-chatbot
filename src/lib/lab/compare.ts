@@ -59,7 +59,16 @@ export interface TurnDelta {
   latencyMs: number;
   /** Positive when Jev was cheaper. */
   costUsd: number;
+  /** How many times faster Jev was (baseline ÷ Jev); null when undefined. */
+  speedup: number | null;
+  /** Share of the baseline cost saved by Jev (0–1, negative when pricier). */
+  costSaving: number | null;
   accuracy: "jev_better" | "base_better" | "both_right" | "both_wrong";
+  winner: Winner;
+}
+
+function ratio(numerator: number, denominator: number) {
+  return denominator > 0 ? numerator / denominator : null;
 }
 
 export function turnDelta(turn: ConversationTurn): TurnDelta | null {
@@ -68,9 +77,13 @@ export function turnDelta(turn: ConversationTurn): TurnDelta | null {
   if (!jev || !base) return null;
   const jevRight = isCorrect(jev.review.verdict);
   const baseRight = isCorrect(base.review.verdict);
+  const costSaving = ratio(base.costUsd - jev.costUsd, base.costUsd);
   return {
     latencyMs: base.latencyMs - jev.latencyMs,
     costUsd: base.costUsd - jev.costUsd,
+    speedup: ratio(base.latencyMs, jev.latencyMs),
+    costSaving: costSaving === null ? null : Math.round(costSaving * 1e4) / 1e4,
+    winner: pickWinner(turn),
     accuracy:
       jevRight && baseRight
         ? "both_right"
