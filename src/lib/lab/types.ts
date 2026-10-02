@@ -182,3 +182,41 @@ export interface SupportTicket {
   replies: TicketReply[];
   createdAt: string;
 }
+
+export interface TestSetSummary {
+  id: string;
+  name: string;
+  description: string;
+  caseCount: number;
+  /** Categories covered, for the picker's subtitle. */
+  categories: string[];
+}
+
+export type TestRunStatus = "running" | "done" | "failed" | "cancelled";
+
+export interface VerdictTally {
+  correct: number;
+  wrong: number;
+  escalated: number;
+}
+
+export interface TestRunReport {
+  runId: string;
+  runNumber: number;
+  testSetId: string;
+  testSetName: string;
+  total: number;
+  status: TestRunStatus;
+  progress: number;
+  startedAt: string;
+  finishedAt: string | null;
+  withJev: VerdictTally & { averageLatencyMs: number; totalCostUsd: number };
+  withoutJev: VerdictTally & { averageLatencyMs: number; totalCostUsd: number };
+  /** Correct answers per category: [label, jevCorrect, baseCorrect, total]. */
+  categories: {
+    label: string;
+    withJev: number;
+    withoutJev: number;
+    total: number;
+  }[];
+}

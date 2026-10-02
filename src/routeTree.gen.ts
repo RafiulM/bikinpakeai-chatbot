@@ -20,6 +20,7 @@ import { Route as ProtectedCompareRouteImport } from './routes/_protected/compar
 import { Route as ProtectedCustomerRouteImport } from './routes/_protected/customer'
 import { Route as ProtectedDebugRouteImport } from './routes/_protected/debug'
 import { Route as ProtectedSkenarioRouteImport } from './routes/_protected/skenario'
+import { Route as ProtectedTestSetRouteImport } from './routes/_protected/test-set'
 import { Route as ApiSuggestionsRouteImport } from './routes/api/suggestions'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiConversationsIndexRouteImport } from './routes/api/conversations/index'
@@ -93,6 +94,11 @@ const ProtectedDebugRoute = ProtectedDebugRouteImport.update({
 const ProtectedSkenarioRoute = ProtectedSkenarioRouteImport.update({
   id: '/skenario',
   path: '/skenario',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedTestSetRoute = ProtectedTestSetRouteImport.update({
+  id: '/test-set',
+  path: '/test-set',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ApiSuggestionsRoute = ApiSuggestionsRouteImport.update({
@@ -215,6 +221,7 @@ export interface FileRoutesByFullPath {
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
   '/skenario': typeof ProtectedSkenarioRoute
+  '/test-set': typeof ProtectedTestSetRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
@@ -247,6 +254,7 @@ export interface FileRoutesByTo {
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
   '/skenario': typeof ProtectedSkenarioRoute
+  '/test-set': typeof ProtectedTestSetRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
@@ -282,6 +290,7 @@ export interface FileRoutesById {
   '/_protected/customer': typeof ProtectedCustomerRoute
   '/_protected/debug': typeof ProtectedDebugRoute
   '/_protected/skenario': typeof ProtectedSkenarioRoute
+  '/_protected/test-set': typeof ProtectedTestSetRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
@@ -316,6 +325,7 @@ export interface FileRouteTypes {
     | '/customer'
     | '/debug'
     | '/skenario'
+    | '/test-set'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/customer'
     | '/debug'
     | '/skenario'
+    | '/test-set'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
@@ -382,6 +393,7 @@ export interface FileRouteTypes {
     | '/_protected/customer'
     | '/_protected/debug'
     | '/_protected/skenario'
+    | '/_protected/test-set'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
@@ -509,6 +521,13 @@ declare module '@tanstack/react-router' {
       path: '/skenario'
       fullPath: '/skenario'
       preLoaderRoute: typeof ProtectedSkenarioRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/test-set': {
+      id: '/_protected/test-set'
+      path: '/test-set'
+      fullPath: '/test-set'
+      preLoaderRoute: typeof ProtectedTestSetRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/api/suggestions': {
@@ -680,6 +699,7 @@ interface ProtectedRouteChildren {
   ProtectedCustomerRoute: typeof ProtectedCustomerRoute
   ProtectedDebugRoute: typeof ProtectedDebugRoute
   ProtectedSkenarioRoute: typeof ProtectedSkenarioRoute
+  ProtectedTestSetRoute: typeof ProtectedTestSetRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
@@ -689,6 +709,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedCustomerRoute: ProtectedCustomerRoute,
   ProtectedDebugRoute: ProtectedDebugRoute,
   ProtectedSkenarioRoute: ProtectedSkenarioRoute,
+  ProtectedTestSetRoute: ProtectedTestSetRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(

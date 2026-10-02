@@ -1,0 +1,91 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { siteConfig } from "@/config/site";
+import { StepCard } from "@/components/lab/test-set/step-card";
+import { mockLastReport, mockTestSets } from "@/lib/lab/mock-test-sets";
+import { formatPercent } from "@/lib/lab/format";
+
+export const Route = createFileRoute("/_protected/test-set")({
+  head: () => ({ meta: [{ title: `Uji Test Set | ${siteConfig.name}` }] }),
+  component: TestSetPage,
+});
+
+function TestSetPage() {
+  const report = mockLastReport;
+  return (
+    <div className="grid max-w-[1200px] gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[22px] leading-tight font-medium tracking-tight">
+            Uji Test Set
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Uji 50–100 pesan berlabel sekaligus untuk mengukur kedua versi
+            chatbot
+          </p>
+        </div>
+        <span className="rounded-full border bg-muted px-2.5 py-1 text-xs font-semibold">
+          Data contoh
+        </span>
+      </div>
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <StepCard
+          step={1}
+          id="test-step-pick"
+          title="Pilih test set"
+          description="Kumpulan pesan berlabel. Setiap pesan diproses dengan Jev dan tanpa Jev."
+        >
+          <ul className="grid gap-2">
+            {mockTestSets.map((set) => (
+              <li key={set.id} className="rounded-[10px] border px-4 py-3">
+                <p className="flex justify-between gap-2 text-[15px] font-semibold">
+                  {set.name}
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {set.caseCount} pesan
+                  </span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {set.description}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </StepCard>
+        <StepCard
+          step={2}
+          id="test-step-run"
+          title="Proses uji massal"
+          description="Kemajuan dan hasil sementara tampil di sini selama uji berjalan."
+        >
+          <p className="rounded-[10px] bg-surface-subtle p-4 text-sm text-muted-foreground">
+            Pilih test set lalu jalankan uji.
+          </p>
+        </StepCard>
+      </div>
+      <StepCard
+        step={3}
+        id="test-step-report"
+        title="Laporan hasil"
+        description={`Run #${report.runNumber} · ${report.testSetName} · ${report.total} pesan`}
+      >
+        <dl className="grid grid-cols-2 gap-4 sm:max-w-md">
+          <div>
+            <dt className="text-xs font-semibold text-muted-foreground">
+              Skor akhir · Dengan Jev
+            </dt>
+            <dd className="text-[40px] font-medium tracking-tight tabular-nums">
+              {formatPercent(report.withJev.correct, report.total)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold text-muted-foreground">
+              Skor akhir · Tanpa Jev
+            </dt>
+            <dd className="text-[40px] font-medium tracking-tight text-muted-foreground tabular-nums">
+              {formatPercent(report.withoutJev.correct, report.total)}
+            </dd>
+          </div>
+        </dl>
+      </StepCard>
+    </div>
+  );
+}
