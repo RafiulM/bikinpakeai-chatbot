@@ -6,8 +6,10 @@ import { conversationIdSchema } from "@/validators/conversations";
 
 const HEARTBEAT_MS = 20_000;
 
-// Server-Sent Events: "ready" with the current totals on connect, then a
-// "comparison" event whenever both answers to a message are in.
+// Server-Sent Events for live cards: "ready" with the current totals on
+// connect, then "analysis" / "analysis_failed" when Jev finishes reading a
+// message, "answer" for each stored answer, and "comparison" when a pair is
+// complete. Event payloads follow LabStreamEvent in src/lib/lab/stream-events.
 export const Route = createFileRoute("/api/conversations/$id/events")({
   server: {
     handlers: {
@@ -31,9 +33,16 @@ export const Route = createFileRoute("/api/conversations/$id/events")({
                   cleanup();
                 }
               };
-              const send = (event: string, data: unknown) =>
-                write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+              let sequence = 0;
+              const send = (event: string, data: unknown) => {
+                sequence += 1;
+                write(
+                  `id: ${sequence}\nevent: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
+                );
+              };
 
+              // Browsers reconnect on their own after this many milliseconds.
+              write("retry: 3000\n\n");
               send("ready", summary);
               const unsubscribe = subscribeLabEvents(id.data, (event) =>
                 send(event.type, event),

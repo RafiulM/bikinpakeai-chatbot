@@ -134,6 +134,18 @@ export type NewResponse = Omit<
  */
 export async function saveResponse(input: NewResponse) {
   const [saved] = await db.insert(responses).values(input).returning();
+  const [owner] = await db
+    .select({ conversationId: messages.conversationId })
+    .from(messages)
+    .where(eq(messages.id, saved.messageId))
+    .limit(1);
+  if (owner)
+    publishLabEvent({
+      type: "answer",
+      conversationId: owner.conversationId,
+      messageId: saved.messageId,
+      response: toBotResponse(saved),
+    });
   const pair = await db
     .select()
     .from(responses)
@@ -141,11 +153,7 @@ export async function saveResponse(input: NewResponse) {
   const jev = pair.find((row) => row.mode === "with_jev");
   const base = pair.find((row) => row.mode === "without_jev");
   if (jev && base) {
-    const [message] = await db
-      .select({ conversationId: messages.conversationId })
-      .from(messages)
-      .where(eq(messages.id, saved.messageId))
-      .limit(1);
+    const message = owner;
     if (message) {
       const turn = {
         withJev: toBotResponse(jev),
