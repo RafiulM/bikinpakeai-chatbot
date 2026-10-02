@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from "react";
-import { Check, Link2 } from "lucide-react";
+import { Check, Link2, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { SignOutButton } from "@/components/sign-out-button";
+import { cn } from "@/lib/utils";
+import { useRecordingMode } from "./recording-mode";
 import { useViewShortcuts } from "./use-view-shortcuts";
 import { ViewNav } from "./view-nav";
 
@@ -20,6 +22,31 @@ export function LabShell({
   children: ReactNode;
 }) {
   useViewShortcuts();
+  const { recording, setRecording } = useRecordingMode();
+  if (recording)
+    return (
+      <div data-recording="on" className="min-h-dvh bg-background">
+        <button
+          type="button"
+          onClick={() => setRecording(false)}
+          className="fixed top-3 right-3 z-20 inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground opacity-40 shadow-sm transition-opacity hover:opacity-100 focus-visible:opacity-100"
+        >
+          <X className="size-3.5" aria-hidden="true" />
+          Keluar mode rekaman
+          <kbd className="rounded border px-1 font-mono text-[11px]">Esc</kbd>
+        </button>
+        <main
+          id="main-content"
+          className={cn(
+            "mx-auto min-w-0 max-w-[1280px] px-10 pt-10 pb-12 max-lg:px-4 max-lg:pt-14",
+            // Larger text and numbers read better on a recorded screen.
+            "lg:[zoom:1.12]",
+          )}
+        >
+          {children}
+        </main>
+      </div>
+    );
   return (
     <div className="grid min-h-dvh content-start lg:grid-cols-[232px_minmax(0,1fr)] lg:content-stretch">
       <aside className="z-10 flex gap-6 border-b bg-canvas-warm px-4 py-2 max-lg:sticky max-lg:top-0 max-lg:items-center max-lg:overflow-x-auto lg:sticky lg:top-0 lg:h-dvh lg:flex-col lg:overflow-y-auto lg:border-r lg:border-b-0 lg:px-3 lg:py-5">

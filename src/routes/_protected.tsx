@@ -17,9 +17,9 @@ import { labSearchSchema } from "@/lib/lab/search";
 // SSR and again on client navigation. It protects pages only: API routes and
 // server functions must verify the session themselves.
 export const Route = createFileRoute("/_protected")({
-  // ?c=<conversationId> survives every switch between views.
+  // ?c=<conversationId> and ?rekam=1 survive every switch between views.
   validateSearch: labSearchSchema,
-  search: { middlewares: [retainSearchParams(["c"])] },
+  search: { middlewares: [retainSearchParams(["c", "rekam"])] },
   beforeLoad: ({ context }) => {
     if (!context.session) throw redirect({ to: "/sign-in" });
     return { session: context.session };

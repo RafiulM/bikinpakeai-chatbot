@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 // URL contract shared by every Support Lab view: ?c=<conversationId> opens a
-// specific conversation directly in any view.
+// specific conversation directly in any view, and ?rekam=1 turns on the clean
+// recording mode.
 export const labSearchSchema = z.object({
   c: z
     .string()
@@ -11,6 +12,7 @@ export const labSearchSchema = z.object({
     .regex(/^[A-Za-z0-9-]+$/)
     .optional()
     .catch(undefined),
+  rekam: z.literal(1).optional().catch(undefined),
 });
 
 export type LabSearch = z.infer<typeof labSearchSchema>;

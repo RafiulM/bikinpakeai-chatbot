@@ -4,6 +4,7 @@ import { ClipboardCopy, FileDown, Video } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useLabConversation } from "@/components/lab/conversation-store";
 import { ExportSection } from "@/components/lab/export/export-section";
+import { RecordingToggle } from "@/components/lab/export/recording-toggle";
 import { SourceSummary } from "@/components/lab/export/source-summary";
 import { labApi } from "@/lib/lab/api-client";
 import { summarize } from "@/lib/lab/compare";
@@ -91,6 +92,7 @@ function ExportPage() {
             <li>Teks dan angka diperbesar</li>
             <li>Tekan Esc untuk keluar kapan saja</li>
           </ul>
+          <RecordingToggle />
         </ExportSection>
       </div>
     </div>
