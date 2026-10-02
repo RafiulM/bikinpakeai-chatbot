@@ -26,6 +26,7 @@ import { Route as ApiConversationsIndexRouteImport } from './routes/api/conversa
 import { Route as ApiConversationsCurrentRouteImport } from './routes/api/conversations/current'
 import { Route as ApiNotesIndexRouteImport } from './routes/api/notes/index'
 import { Route as ApiNotesIdRouteImport } from './routes/api/notes/$id'
+import { Route as ApiScenariosIndexRouteImport } from './routes/api/scenarios/index'
 import { Route as ApiTicketsIndexRouteImport } from './routes/api/tickets/index'
 import { Route as ApiAdminNotesIndexRouteImport } from './routes/api/admin/notes/index'
 import { Route as ApiAdminNotesIdRouteImport } from './routes/api/admin/notes/$id'
@@ -122,6 +123,11 @@ const ApiNotesIdRoute = ApiNotesIdRouteImport.update({
   path: '/api/notes/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiScenariosIndexRoute = ApiScenariosIndexRouteImport.update({
+  id: '/api/scenarios/',
+  path: '/api/scenarios/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTicketsIndexRoute = ApiTicketsIndexRouteImport.update({
   id: '/api/tickets/',
   path: '/api/tickets/',
@@ -203,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
+  '/api/scenarios/': typeof ApiScenariosIndexRoute
   '/api/tickets/': typeof ApiTicketsIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/comparison': typeof ApiConversationsIdComparisonRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/conversations': typeof ApiConversationsIndexRoute
   '/api/notes': typeof ApiNotesIndexRoute
+  '/api/scenarios': typeof ApiScenariosIndexRoute
   '/api/tickets': typeof ApiTicketsIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/comparison': typeof ApiConversationsIdComparisonRoute
@@ -264,6 +272,7 @@ export interface FileRoutesById {
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
+  '/api/scenarios/': typeof ApiScenariosIndexRoute
   '/api/tickets/': typeof ApiTicketsIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/comparison': typeof ApiConversationsIdComparisonRoute
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
     | '/api/notes/$id'
     | '/api/conversations/'
     | '/api/notes/'
+    | '/api/scenarios/'
     | '/api/tickets/'
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/comparison'
@@ -324,6 +334,7 @@ export interface FileRouteTypes {
     | '/api/notes/$id'
     | '/api/conversations'
     | '/api/notes'
+    | '/api/scenarios'
     | '/api/tickets'
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/comparison'
@@ -355,6 +366,7 @@ export interface FileRouteTypes {
     | '/api/notes/$id'
     | '/api/conversations/'
     | '/api/notes/'
+    | '/api/scenarios/'
     | '/api/tickets/'
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/comparison'
@@ -379,6 +391,7 @@ export interface RootRouteChildren {
   ApiNotesIdRoute: typeof ApiNotesIdRoute
   ApiConversationsIndexRoute: typeof ApiConversationsIndexRoute
   ApiNotesIndexRoute: typeof ApiNotesIndexRoute
+  ApiScenariosIndexRoute: typeof ApiScenariosIndexRoute
   ApiTicketsIndexRoute: typeof ApiTicketsIndexRoute
   ApiAdminNotesIdRoute: typeof ApiAdminNotesIdRoute
   ApiConversationsIdComparisonRoute: typeof ApiConversationsIdComparisonRoute
@@ -514,6 +527,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiNotesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/scenarios/': {
+      id: '/api/scenarios/'
+      path: '/api/scenarios'
+      fullPath: '/api/scenarios/'
+      preLoaderRoute: typeof ApiScenariosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tickets/': {
       id: '/api/tickets/'
       path: '/api/tickets'
@@ -645,6 +665,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiNotesIdRoute: ApiNotesIdRoute,
   ApiConversationsIndexRoute: ApiConversationsIndexRoute,
   ApiNotesIndexRoute: ApiNotesIndexRoute,
+  ApiScenariosIndexRoute: ApiScenariosIndexRoute,
   ApiTicketsIndexRoute: ApiTicketsIndexRoute,
   ApiAdminNotesIdRoute: ApiAdminNotesIdRoute,
   ApiConversationsIdComparisonRoute: ApiConversationsIdComparisonRoute,
