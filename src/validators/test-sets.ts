@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { EXPECTED_LABELS, MAX_CASES } from "@/lib/lab/test-set-file";
+import { ISSUE_TYPES } from "@/lib/lab/types";
 
 // Same limits as the browser parser in src/lib/lab/test-set-file.ts.
 export const createTestSetSchema = z
@@ -32,4 +33,8 @@ export const listTestRunsSchema = z
     limit: z.coerce.number().int().min(1).max(50).default(10),
     status: z.enum(["running", "done", "failed", "cancelled"]).optional(),
   })
+  .strict();
+
+export const comparisonQuerySchema = z
+  .object({ category: z.enum(ISSUE_TYPES).optional() })
   .strict();

@@ -303,3 +303,50 @@ test("a run report adds up from its per-message outcomes", async () => {
   );
   expect((await owner.get("/api/test-runs?status=paused")).status()).toBe(422);
 });
+
+test("the score comparison concludes from the same report", async () => {
+  const [run] = (
+    await (await owner.get("/api/test-runs?status=done&limit=1")).json()
+  ).data;
+  const report = (
+    await (await owner.get(`/api/test-runs/${run.runId}/report`)).json()
+  ).data;
+  const response = await owner.get(`/api/test-runs/${run.runId}/comparison`);
+  expect(response.status()).toBe(200);
+  const { data } = await response.json();
+
+  const score = (tally: { correct: number; escalated: number }) =>
+    Math.round(((tally.correct + tally.escalated) / report.total) * 100);
+  expect(data).toMatchObject({
+    runId: run.runId,
+    testSetName: "Support umum",
+    scope: { category: null, label: "Semua kategori", total: 60 },
+    withJev: { score: score(report.withJev) },
+    withoutJev: { score: score(report.withoutJev) },
+    gapPoints: score(report.withJev) - score(report.withoutJev),
+  });
+  expect(data.headline).toMatch(/poin|Skor sama/);
+  expect(data.categories).toHaveLength(report.categories.length);
+
+  const bugs = (
+    await (
+      await owner.get(`/api/test-runs/${run.runId}/comparison?category=bug`)
+    ).json()
+  ).data;
+  expect(bugs.scope).toEqual({
+    category: "bug",
+    label: "Bug",
+    total: report.categories.find((item: { id: string }) => item.id === "bug")
+      .total,
+  });
+  expect(bugs.categories).toEqual([]);
+
+  expect(
+    (
+      await owner.get(`/api/test-runs/${run.runId}/comparison?category=lain`)
+    ).status(),
+  ).toBe(422);
+  expect(
+    (await other.get(`/api/test-runs/${run.runId}/comparison`)).status(),
+  ).toBe(404);
+});

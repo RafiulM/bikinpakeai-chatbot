@@ -1,46 +1,17 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import type { TestRunReport, VerdictTally } from "@/lib/lab/types";
-import { ratioText } from "@/lib/lab/compare";
-import { rightCount } from "@/lib/lab/test-report";
-import { formatPercent, formatSeconds, formatUsd } from "@/lib/lab/format";
-
-type VersionSummary = TestRunReport["withJev"];
-
-const points = (part: number, total: number) =>
-  total === 0 ? 0 : Math.round((part / total) * 100);
-
-function headline(jev: number, base: number) {
-  const gap = jev - base;
-  if (gap > 0) return `Jev unggul ${gap} poin: ${jev}% lawan ${base}%.`;
-  if (gap < 0) return `Pembanding unggul ${-gap} poin: ${base}% lawan ${jev}%.`;
-  return `Skor sama: ${jev}%.`;
-}
+import type { ScoreComparison, VersionScore } from "@/lib/lab/test-report";
+import { formatSeconds, formatUsd } from "@/lib/lab/format";
 
 /** Final scores of both versions side by side, read as a conclusion. */
 export function FinalScoreComparison({
-  scopeLabel,
-  total,
-  withJev,
-  withoutJev,
-  categories,
+  comparison,
 }: {
-  /** What the scores cover, e.g. "Semua kategori · 80 pesan". */
-  scopeLabel: string;
-  total: number;
-  withJev: VersionSummary;
-  withoutJev: VersionSummary;
-  /** Per-category scores; shown when more than one category is in scope. */
-  categories?: TestRunReport["categories"];
+  comparison: ScoreComparison;
 }) {
-  const jev = points(rightCount(withJev), total);
-  const base = points(rightCount(withoutJev), total);
-  const fewerWrong = withoutJev.wrong - withJev.wrong;
-  const support = [
-    ratioText(withJev.averageLatencyMs, withoutJev.averageLatencyMs, "speed"),
-    ratioText(withJev.totalCostUsd, withoutJev.totalCostUsd, "cost"),
-    fewerWrong > 0 ? `${fewerWrong} jawaban salah lebih sedikit` : null,
-  ].filter(Boolean);
+  const { scope, withJev, withoutJev, highlights, categories } = comparison;
+  const total = scope.total;
+  const scopeLabel = `${scope.label} · ${total} pesan`;
 
   return (
     <section
@@ -56,12 +27,12 @@ export function FinalScoreComparison({
           aria-live="polite"
           className="font-serif text-[clamp(26px,2.6vw,34px)] leading-[1.15] font-normal tracking-[-0.8px]"
         >
-          {headline(jev, base)}
+          {comparison.headline}
         </h3>
-        {support.length > 0 && (
+        {highlights.length > 0 && (
           <p className="text-[17px] leading-snug text-foreground/85">
             Untuk pesan dan knowledge base yang sama, versi dengan Jev{" "}
-            {support.join(", ")}.
+            {highlights.join(", ")}.
           </p>
         )}
       </div>
@@ -114,9 +85,7 @@ export function FinalScoreComparison({
         Skor akhir menghitung jawaban benar ditambah penyerahan ke tim support
         yang tepat.
       </p>
-      {categories && categories.length > 1 && (
-        <CategoryScores categories={categories} />
-      )}
+      {categories.length > 1 && <CategoryScores categories={categories} />}
     </section>
   );
 }
@@ -159,7 +128,7 @@ function Score({
   total,
   strong,
 }: {
-  tally: VerdictTally;
+  tally: VersionScore;
   total: number;
   strong?: boolean;
 }) {
@@ -173,7 +142,7 @@ function Score({
           !strong && "text-muted-foreground",
         )}
       >
-        {formatPercent(rightCount(tally), total)}
+        {tally.score}%
       </span>
       <span
         aria-hidden="true"
@@ -194,7 +163,7 @@ function Score({
 function CategoryScores({
   categories,
 }: {
-  categories: TestRunReport["categories"];
+  categories: ScoreComparison["categories"];
 }) {
   return (
     <div className="overflow-x-auto">
@@ -220,9 +189,7 @@ function CategoryScores({
         </thead>
         <tbody className="[&_tr]:border-b [&_tr:last-child]:border-0">
           {categories.map((item) => {
-            const jev = points(item.withJev, item.total);
-            const base = points(item.withoutJev, item.total);
-            const gap = jev - base;
+            const gap = item.gapPoints;
             return (
               <tr key={item.id}>
                 <th scope="row" className="py-2 pr-3 text-left font-medium">
@@ -232,10 +199,10 @@ function CategoryScores({
                   </span>
                 </th>
                 <td className="py-2 pr-3">
-                  <Share value={jev} strong />
+                  <Share value={item.withJev} strong />
                 </td>
                 <td className="py-2 pr-3">
-                  <Share value={base} />
+                  <Share value={item.withoutJev} />
                 </td>
                 <td
                   className={cn(
