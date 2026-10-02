@@ -14,7 +14,11 @@ import { mockSendMessage } from "@/lib/lab/mock-api";
 import { createMockStream, playMockPipeline } from "@/lib/lab/mock-stream";
 import type { LabStreamEvent } from "@/lib/lab/stream-events";
 import { mockConversation } from "@/lib/lab/mock-data";
-import type { ConversationTurn, LabConversation } from "@/lib/lab/types";
+import type {
+  AgentReply,
+  ConversationTurn,
+  LabConversation,
+} from "@/lib/lab/types";
 
 // One conversation store for every view. Customer, Debug, Compare and Agent
 // all read from here, so switching views never loses the conversation.
@@ -45,7 +49,13 @@ type Action =
     }
   | { type: "fail"; conversationId: string; tempId: string }
   | { type: "remove"; conversationId: string; messageId: string }
-  | { type: "stream"; conversationId: string; event: LabStreamEvent };
+  | { type: "stream"; conversationId: string; event: LabStreamEvent }
+  | {
+      type: "agentReply";
+      conversationId: string;
+      messageId: string;
+      reply: AgentReply;
+    };
 
 const STORAGE_KEY = "bikinpakeai-support-lab:v1";
 
@@ -166,6 +176,17 @@ function reducer(state: StoreState, action: Action): StoreState {
         }),
       );
     }
+    case "agentReply":
+      return updateTurns(state, action.conversationId, (turns) =>
+        turns.map((turn) =>
+          turn.message.id === action.messageId
+            ? {
+                ...turn,
+                agentReplies: [...(turn.agentReplies ?? []), action.reply],
+              }
+            : turn,
+        ),
+      );
     case "remove":
       return updateTurns(state, action.conversationId, (turns) =>
         turns.filter((turn) => turn.message.id !== action.messageId),
@@ -217,6 +238,11 @@ interface LabConversationValue {
   retry: (turn: ConversationTurn) => void;
   startNew: () => { endedCode: string; code: string };
   select: (id: string) => void;
+  addAgentReply: (
+    conversationId: string,
+    messageId: string,
+    reply: AgentReply,
+  ) => void;
 }
 
 const LabConversationContext = createContext<LabConversationValue | null>(null);
@@ -349,6 +375,12 @@ export function LabConversationProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const addAgentReply = useCallback(
+    (conversationId: string, messageId: string, reply: AgentReply) =>
+      dispatch({ type: "agentReply", conversationId, messageId, reply }),
+    [],
+  );
+
   const value = useMemo<LabConversationValue>(
     () => ({
       conversation: active,
@@ -358,8 +390,18 @@ export function LabConversationProvider({ children }: { children: ReactNode }) {
       retry,
       startNew,
       select,
+      addAgentReply,
     }),
-    [active, state.conversations, state.pending, send, retry, startNew, select],
+    [
+      active,
+      state.conversations,
+      state.pending,
+      send,
+      retry,
+      startNew,
+      select,
+      addAgentReply,
+    ],
   );
 
   return (

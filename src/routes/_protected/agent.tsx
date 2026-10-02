@@ -6,7 +6,9 @@ import { STATUS_LABEL } from "@/components/lab/agent/ticket-tags";
 import { TicketList } from "@/components/lab/agent/ticket-list";
 import { sortTickets, type TicketSort } from "@/lib/lab/tickets";
 import { SegmentedControl } from "@/components/lab/segmented-control";
-import { useTickets } from "@/components/lab/ticket-store";
+import { AGENT_NAME, useTickets } from "@/components/lab/ticket-store";
+import { ReplyForm } from "@/components/lab/agent/reply-form";
+import { TicketActions } from "@/components/lab/agent/ticket-actions";
 import { useLabConversation } from "@/components/lab/conversation-store";
 import type { TicketStatus } from "@/lib/lab/types";
 
@@ -20,7 +22,15 @@ export const Route = createFileRoute("/_protected/agent")({
 const SAMPLE_NOW = Date.UTC(2026, 9, 1, 7, 11);
 
 function AgentPage() {
-  const { tickets: allTickets, counts } = useTickets();
+  const {
+    tickets: allTickets,
+    counts,
+    claim,
+    close,
+    reopen,
+    reply,
+  } = useTickets();
+  const [notice, setNotice] = useState<string | null>(null);
   const { conversations } = useLabConversation();
   const [sort, setSort] = useState<TicketSort>("urgency");
   const [status, setStatus] = useState<TicketStatus>("open");
@@ -29,8 +39,15 @@ function AgentPage() {
     sort,
   );
   const [selectedId, setSelectedId] = useState(tickets[0]?.id);
+  // A ticket stays open in the detail panel after it leaves the current
+  // filter (e.g. right after closing it), so it can be reopened at once.
   const selected =
-    tickets.find((ticket) => ticket.id === selectedId) ?? tickets[0];
+    allTickets.find((ticket) => ticket.id === selectedId) ?? tickets[0];
+
+  function select(id: string) {
+    setSelectedId(id);
+    setNotice(null);
+  }
 
   return (
     <div className="grid max-w-[1200px] gap-6">
@@ -87,7 +104,7 @@ function AgentPage() {
             <TicketList
               tickets={tickets}
               selectedId={selected.id}
-              onSelect={setSelectedId}
+              onSelect={select}
               now={SAMPLE_NOW}
             />
           </section>
@@ -96,7 +113,51 @@ function AgentPage() {
             conversation={conversations.find(
               (conversation) => conversation.id === selected.conversationId,
             )}
-          />
+            notice={
+              notice && (
+                <p
+                  role="status"
+                  className="rounded-[10px] border border-signal bg-signal-soft px-4 py-2.5 text-sm"
+                >
+                  {notice}
+                </p>
+              )
+            }
+            actions={
+              <TicketActions
+                ticket={selected}
+                onClaim={() => {
+                  claim(selected.id, AGENT_NAME);
+                  setNotice(
+                    `${selected.code} kamu klaim dan pindah ke tab Diklaim.`,
+                  );
+                }}
+                onClose={() => {
+                  close(selected.id);
+                  setNotice(
+                    `${selected.code} ditutup dan pindah ke tab Ditutup.`,
+                  );
+                }}
+                onReopen={() => {
+                  reopen(selected.id);
+                  setNotice(`${selected.code} dibuka lagi.`);
+                }}
+              />
+            }
+          >
+            <ReplyForm
+              disabled={selected.status === "closed"}
+              onSend={(content, closeAfter) => {
+                reply(selected.id, content, AGENT_NAME);
+                if (closeAfter) close(selected.id);
+                setNotice(
+                  closeAfter
+                    ? `Balasan terkirim dan ${selected.code} ditutup.`
+                    : "Balasan terkirim ke pelanggan.",
+                );
+              }}
+            />
+          </TicketDetail>
         </div>
       )}
     </div>
