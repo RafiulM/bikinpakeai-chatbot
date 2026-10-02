@@ -1,7 +1,13 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { ShieldCheck } from "lucide-react";
 import type { ConversationTurn } from "@/lib/lab/types";
-import { BotBubble, CustomerBubble, EscalationEvent } from "./chat-message";
+import {
+  AgentBubble,
+  BotBubble,
+  CustomerBubble,
+  EscalationEvent,
+  TypingBubble,
+} from "./chat-message";
 
 /**
  * Customer-facing support widget. Shows the conversation exactly as the
@@ -13,6 +19,7 @@ export function ChatWidget({
   pendingReply,
   greeting,
   renderBotFooter,
+  onRetry,
   composer,
 }: {
   turns: ConversationTurn[];
@@ -22,6 +29,8 @@ export function ChatWidget({
   /** Opening line for an empty conversation. */
   greeting?: string;
   renderBotFooter?: (turn: ConversationTurn) => ReactNode;
+  /** Resend a message whose delivery failed. */
+  onRetry?: (turn: ConversationTurn) => void;
   composer: ReactNode;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -70,11 +79,10 @@ export function ChatWidget({
               key={turn.message.id}
               turn={turn}
               footer={renderBotFooter?.(turn)}
+              onRetry={onRetry ? () => onRetry(turn) : undefined}
             />
           ))}
-          {pendingReply && (
-            <BotBubble content="Bikinpakeai sedang mengetik…" pending />
-          )}
+          {pendingReply && <TypingBubble />}
         </ol>
       </div>
       <div className="grid gap-3 border-t px-5 pt-3 pb-4 max-sm:px-4">
@@ -87,9 +95,11 @@ export function ChatWidget({
 function TurnBubbles({
   turn,
   footer,
+  onRetry,
 }: {
   turn: ConversationTurn;
   footer?: ReactNode;
+  onRetry?: () => void;
 }) {
   return (
     <>
@@ -97,6 +107,8 @@ function TurnBubbles({
         content={turn.message.content}
         createdAt={turn.message.createdAt}
         isMasked={turn.message.isMasked}
+        status={turn.deliveryStatus ?? "sent"}
+        onRetry={onRetry}
       />
       {turn.withJev && (
         <BotBubble
@@ -106,6 +118,14 @@ function TurnBubbles({
         />
       )}
       {turn.ticketId && <EscalationEvent ticketId={turn.ticketId} />}
+      {turn.agentReplies?.map((reply) => (
+        <AgentBubble
+          key={reply.id}
+          agentName={reply.agentName}
+          content={reply.content}
+          createdAt={reply.createdAt}
+        />
+      ))}
     </>
   );
 }

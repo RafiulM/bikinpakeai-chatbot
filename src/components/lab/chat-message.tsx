@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Headset, Lock } from "lucide-react";
+import { AlertCircle, Headset, Lock, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatClock } from "@/lib/lab/format";
 
@@ -11,7 +11,7 @@ export function MaskedText({ text }: { text: string }) {
   return (
     <>
       {parts.map((part, index) =>
-        MASKED_CARD.test(part) ? (
+        index % 2 === 1 ? (
           <span
             key={index}
             className="rounded-md bg-white/15 px-1.5 font-mono text-[14px]"
@@ -26,61 +26,169 @@ export function MaskedText({ text }: { text: string }) {
   );
 }
 
+type BubbleVariant = "customer" | "bot" | "agent";
+export type DeliveryStatus = "sent" | "sending" | "failed";
+
+const SPEAKER: Record<BubbleVariant, string> = {
+  customer: "Kamu",
+  bot: "Bikinpakeai",
+  agent: "Tim Support",
+};
+
+const BUBBLE_STYLE: Record<BubbleVariant, string> = {
+  customer: "rounded-br-md bg-foreground text-background",
+  bot: "rounded-bl-md border bg-surface-subtle",
+  agent: "rounded-bl-md border-2 border-foreground bg-card",
+};
+
+/**
+ * One chat bubble. Customer messages sit on the right; bot and human-agent
+ * replies sit on the left. The speaker name is always written out so the
+ * role is never conveyed by position or color alone.
+ */
+function Bubble({
+  variant,
+  speaker = SPEAKER[variant],
+  createdAt,
+  status = "sent",
+  note,
+  footer,
+  onRetry,
+  children,
+}: {
+  variant: BubbleVariant;
+  speaker?: string;
+  createdAt?: string;
+  status?: DeliveryStatus;
+  note?: ReactNode;
+  footer?: ReactNode;
+  onRetry?: () => void;
+  children: ReactNode;
+}) {
+  const mine = variant === "customer";
+  return (
+    <li
+      className={cn(
+        "grid max-w-[min(78%,560px)] gap-1.5 max-sm:max-w-[92%]",
+        mine ? "justify-items-end self-end" : "self-start",
+      )}
+    >
+      <p
+        className={cn(
+          "rounded-2xl px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]",
+          BUBBLE_STYLE[variant],
+          status === "sending" && "opacity-70",
+        )}
+      >
+        <span className="sr-only">{speaker}: </span>
+        {children}
+      </p>
+      {note}
+      {status === "failed" ? (
+        <p className="flex flex-wrap items-center gap-2 text-xs text-danger-text">
+          <AlertCircle className="size-3.5" aria-hidden="true" />
+          Gagal terkirim.
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex items-center gap-1 rounded-full font-semibold underline underline-offset-3"
+            >
+              <RotateCcw className="size-3" aria-hidden="true" />
+              Coba lagi
+            </button>
+          )}
+        </p>
+      ) : (
+        <p className="flex flex-wrap items-center gap-x-2.5 text-xs text-muted-foreground">
+          <span aria-hidden="true">
+            {speaker}
+            {createdAt && ` · ${formatClock(createdAt)}`}
+          </span>
+          {status === "sending" && <span>Mengirim…</span>}
+          {footer}
+        </p>
+      )}
+    </li>
+  );
+}
+
 export function CustomerBubble({
   content,
   createdAt,
   isMasked,
+  status,
+  onRetry,
 }: {
   content: string;
   createdAt: string;
   isMasked: boolean;
+  status?: DeliveryStatus;
+  onRetry?: () => void;
 }) {
   return (
-    <li className="grid max-w-[min(78%,560px)] justify-items-end gap-1.5 self-end max-sm:max-w-[92%]">
-      <p className="rounded-2xl rounded-br-md bg-foreground px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap text-background [overflow-wrap:anywhere]">
-        <MaskedText text={content} />
-      </p>
-      {isMasked && (
-        <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Lock className="size-3" aria-hidden="true" />
-          Nomor kartu disamarkan otomatis
-        </p>
-      )}
-      <p className="text-xs text-muted-foreground">
-        Kamu · {formatClock(createdAt)}
-      </p>
-    </li>
+    <Bubble
+      variant="customer"
+      createdAt={createdAt}
+      status={status}
+      onRetry={onRetry}
+      note={
+        isMasked && (
+          <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Lock className="size-3" aria-hidden="true" />
+            Nomor kartu disamarkan otomatis
+          </p>
+        )
+      }
+    >
+      <MaskedText text={content} />
+    </Bubble>
   );
 }
 
 export function BotBubble({
   content,
   createdAt,
-  pending = false,
   footer,
 }: {
   content: string;
   createdAt?: string;
-  pending?: boolean;
   /** Extra links shown after the timestamp. */
   footer?: ReactNode;
 }) {
   return (
-    <li className="grid max-w-[min(78%,560px)] gap-1.5 self-start max-sm:max-w-[92%]">
-      <p
-        className={cn(
-          "rounded-2xl rounded-bl-md border bg-surface-subtle px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]",
-          pending && "text-muted-foreground italic",
-        )}
-      >
-        {content}
+    <Bubble variant="bot" createdAt={createdAt} footer={footer}>
+      {content}
+    </Bubble>
+  );
+}
+
+export function AgentBubble({
+  content,
+  createdAt,
+  agentName,
+}: {
+  content: string;
+  createdAt: string;
+  agentName: string;
+}) {
+  return (
+    <Bubble
+      variant="agent"
+      speaker={`${agentName} · Tim Support`}
+      createdAt={createdAt}
+    >
+      {content}
+    </Bubble>
+  );
+}
+
+export function TypingBubble() {
+  return (
+    <li className="self-start">
+      <p className="inline-flex items-center gap-2 rounded-2xl rounded-bl-md border bg-surface-subtle px-4 py-3 text-[15px] text-muted-foreground italic">
+        Bikinpakeai sedang mengetik…
       </p>
-      {!pending && createdAt && (
-        <p className="flex flex-wrap items-center gap-x-2.5 text-xs text-muted-foreground">
-          <span>Bikinpakeai · {formatClock(createdAt)}</span>
-          {footer}
-        </p>
-      )}
     </li>
   );
 }

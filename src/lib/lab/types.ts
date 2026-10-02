@@ -94,12 +94,24 @@ export interface BotResponse {
   review: ResponseReview;
 }
 
+export interface AgentReply {
+  id: string;
+  ticketId: string;
+  agentName: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface ConversationTurn {
   message: LabMessage;
   analysis: JevAnalysis | null;
   withJev: BotResponse | null;
   withoutJev: BotResponse | null;
   ticketId: string | null;
+  /** Human replies sent from the Agent view for this turn's ticket. */
+  agentReplies?: AgentReply[];
+  /** Client-only: delivery state while the message is in flight. */
+  deliveryStatus?: "sending" | "failed";
   /** One-line takeaway for the comparison row. */
   takeaway?: string;
 }
