@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
+import { RunPanel } from "@/components/lab/test-set/run-panel";
 import { StepCard } from "@/components/lab/test-set/step-card";
+import { useTestRun } from "@/components/lab/test-set/use-test-run";
 import {
   TestSetOption,
   TestSetPicker,
@@ -10,7 +12,7 @@ import {
   UploadForm,
   type UploadedTestSet,
 } from "@/components/lab/test-set/upload-form";
-import type { TestSetSummary } from "@/lib/lab/types";
+import type { TestRunReport, TestSetSummary } from "@/lib/lab/types";
 import { mockLastReport, mockTestSets } from "@/lib/lab/mock-test-sets";
 import { formatPercent } from "@/lib/lab/format";
 
@@ -20,7 +22,9 @@ export const Route = createFileRoute("/_protected/test-set")({
 });
 
 function TestSetPage() {
-  const report = mockLastReport;
+  const [report, setReport] = useState<TestRunReport>(mockLastReport);
+  const { progress, start, cancel } = useTestRun(setReport);
+  const running = progress.status === "running";
   const [sets, setSets] = useState<TestSetSummary[]>(mockTestSets);
   const [selectedSet, setSelectedSet] = useState<string | null>(
     mockTestSets[0]?.id ?? null,
@@ -65,6 +69,7 @@ function TestSetPage() {
             sets={sets}
             value={selectedSet}
             onChange={setSelectedSet}
+            disabled={running}
             extraOption={
               <TestSetOption
                 name="test-set"
@@ -89,9 +94,12 @@ function TestSetPage() {
               : "Pilih test set dulu."
           }
         >
-          <p className="rounded-[10px] bg-surface-subtle p-4 text-sm text-muted-foreground">
-            Pilih test set lalu jalankan uji.
-          </p>
+          <RunPanel
+            set={chosen}
+            progress={progress}
+            onStart={() => chosen && start(chosen)}
+            onCancel={cancel}
+          />
         </StepCard>
       </div>
       <StepCard
