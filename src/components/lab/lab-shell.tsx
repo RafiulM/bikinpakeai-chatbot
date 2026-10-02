@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { Check, Link2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { SignOutButton } from "@/components/sign-out-button";
 import { useViewShortcuts } from "./use-view-shortcuts";
@@ -64,11 +65,28 @@ export function SessionCard({
   code,
   title,
   messageCount,
+  conversationId,
 }: {
   code: string;
   title: string;
   messageCount: number;
+  conversationId: string;
 }) {
+  const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle");
+
+  async function copyLink() {
+    const url = new URL(window.location.href);
+    url.searchParams.set("c", conversationId);
+    url.hash = "";
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setCopied("done");
+    } catch {
+      setCopied("failed");
+    }
+    setTimeout(() => setCopied("idle"), 2000);
+  }
+
   return (
     <section
       aria-label="Percakapan aktif"
@@ -83,6 +101,25 @@ export function SessionCard({
       <p className="text-muted-foreground">
         {messageCount} pesan · tetap utuh di semua tampilan
       </p>
+      <button
+        type="button"
+        onClick={copyLink}
+        className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full text-xs font-semibold underline underline-offset-3"
+      >
+        {copied === "done" ? (
+          <Check className="size-3.5 text-positive" aria-hidden="true" />
+        ) : (
+          <Link2 className="size-3.5" aria-hidden="true" />
+        )}
+        {copied === "done"
+          ? "Tautan tersalin"
+          : copied === "failed"
+            ? "Gagal menyalin"
+            : "Salin tautan tampilan ini"}
+      </button>
+      <span role="status" className="sr-only">
+        {copied === "done" ? "Tautan tampilan ini tersalin." : ""}
+      </span>
     </section>
   );
 }
