@@ -167,3 +167,56 @@ test("the events stream opens with the current totals and stays private", async 
     compared: 0,
   });
 });
+
+test("conversation detail carries Jev readings and failed readings", async () => {
+  const { data: conversation } = await (
+    await owner.post("/api/conversations", { headers, data: {} })
+  ).json();
+  const ids: string[] = [];
+  for (const content of ["Mau refund", "Pesan yang gagal dibaca"]) {
+    const { data } = await (
+      await owner.post(`/api/conversations/${conversation.id}/messages`, {
+        headers,
+        data: { content },
+      })
+    ).json();
+    ids.push(data.message.id);
+  }
+  const db = testDb();
+  try {
+    await db.query(
+      `INSERT INTO jev_analyses (message_id, status, product, issue_type, urgency, frustration_score, churn_risk, confidence, labels, decision, route, route_label, route_reason, rules, steps)
+       VALUES ($1, 'done', 'DesainPakeAI', 'pembayaran', 'mendesak', 0.86, 0.78, 0.91, $2, 'escalated', 'escalate', 'Eskalasi', 'Frustrasi tinggi.', $3, $4)`,
+      [
+        ids[0],
+        JSON.stringify([
+          { label: "Produk", value: "DesainPakeAI", confidence: 0.93 },
+        ]),
+        JSON.stringify(["Frustrasi melewati ambang"]),
+        JSON.stringify([
+          { name: "Klasifikasi", note: "1 panggilan", durationMs: 220 },
+        ]),
+      ],
+    );
+    await db.query(
+      "INSERT INTO jev_analyses (message_id, status, error) VALUES ($1, 'failed', 'Model klasifikasi tidak merespons.')",
+      [ids[1]],
+    );
+  } finally {
+    await db.end();
+  }
+  const { data } = await (
+    await owner.get(`/api/conversations/${conversation.id}`)
+  ).json();
+  expect(data.turns[0].analysis).toMatchObject({
+    decision: "escalated",
+    route: "escalate",
+    frustrationScore: 0.86,
+    labels: [{ label: "Produk" }],
+  });
+  expect(data.turns[1]).toMatchObject({
+    analysis: null,
+    analysisStatus: "failed",
+    analysisError: "Model klasifikasi tidak merespons.",
+  });
+});

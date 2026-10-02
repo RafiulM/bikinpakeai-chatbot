@@ -1,17 +1,11 @@
 import { EventEmitter } from "node:events";
-import type { TurnDelta } from "./compare";
+import type { LabStreamEvent } from "./stream-events";
 
 // In-process publish/subscribe for live Support Lab updates. One app process
 // serves the demo (see Dockerfile); scaling out would need a shared broker
 // such as PostgreSQL LISTEN/NOTIFY instead of this emitter.
 
-export type LabEvent = {
-  type: "comparison";
-  conversationId: string;
-  messageId: string;
-  delta: TurnDelta | null;
-  summary: unknown;
-};
+export type LabEvent = LabStreamEvent & { conversationId: string };
 
 const globalBus = globalThis as typeof globalThis & {
   __supportLabEvents?: EventEmitter;

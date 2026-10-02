@@ -1,7 +1,8 @@
 import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/index.server";
-import { conversations, messages, responses } from "@/db/schema";
+import { conversations, jevAnalyses, messages, responses } from "@/db/schema";
 import { maskSensitive } from "@/lib/lab/mask";
+import { toJevAnalysis } from "./jev.service.server";
 import { VIEW_IDS, type ViewId } from "@/lib/lab/types";
 import type {
   BotResponse,
@@ -211,7 +212,11 @@ export function toBotResponse(row: typeof responses.$inferSelect): BotResponse {
 export function buildTurns(
   rows: LabMessage[],
   answers: (typeof responses.$inferSelect)[] = [],
+  readings: (typeof jevAnalyses.$inferSelect)[] = [],
 ): ConversationTurn[] {
+  const readingByMessage = new Map(
+    readings.map((reading) => [reading.messageId, reading]),
+  );
   const byMessage = new Map<string, (typeof responses.$inferSelect)[]>();
   for (const answer of answers) {
     byMessage.set(answer.messageId, [
@@ -225,9 +230,14 @@ export function buildTurns(
       const pair = byMessage.get(message.id) ?? [];
       const jev = pair.find((answer) => answer.mode === "with_jev");
       const base = pair.find((answer) => answer.mode === "without_jev");
+      const reading = readingByMessage.get(message.id);
       turns.push({
         message,
-        analysis: null,
+        analysis: reading ? toJevAnalysis(reading) : null,
+        ...(reading?.status === "failed" && {
+          analysisStatus: "failed" as const,
+          analysisError: reading.error ?? undefined,
+        }),
         withJev: jev ? toBotResponse(jev) : null,
         withoutJev: base ? toBotResponse(base) : null,
         ticketId: null,
@@ -272,20 +282,19 @@ export async function getConversation(
     .from(messages)
     .where(eq(messages.conversationId, conversationId))
     .orderBy(asc(messages.createdAt), asc(messages.id));
-  const answers = rows.length
-    ? await db
-        .select()
-        .from(responses)
-        .where(
-          inArray(
-            responses.messageId,
-            rows.map((row) => row.id),
-          ),
-        )
-    : [];
+  const ids = rows.map((row) => row.id);
+  const [answers, readings] = ids.length
+    ? await Promise.all([
+        db.select().from(responses).where(inArray(responses.messageId, ids)),
+        db
+          .select()
+          .from(jevAnalyses)
+          .where(inArray(jevAnalyses.messageId, ids)),
+      ])
+    : [[], []];
   return {
     ...toConversationSummary(conversation),
-    turns: buildTurns(rows.map(toLabMessage), answers),
+    turns: buildTurns(rows.map(toLabMessage), answers, readings),
   };
 }
 

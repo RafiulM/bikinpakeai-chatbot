@@ -12,7 +12,13 @@ export type LabStreamEvent =
     }
   | { type: "analysis_failed"; messageId: string; error: string }
   | { type: "answer"; messageId: string; response: BotResponse }
-  | { type: "comparison"; messageId: string; delta: TurnDelta | null };
+  | {
+      type: "comparison";
+      messageId: string;
+      delta: TurnDelta | null;
+      /** Cumulative totals after this pair, sent by the server stream. */
+      summary?: unknown;
+    };
 
 export interface LabStream {
   subscribe(listener: (event: LabStreamEvent) => void): () => void;
