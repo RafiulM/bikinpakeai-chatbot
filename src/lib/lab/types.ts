@@ -128,5 +128,7 @@ export interface LabConversation {
   title: string;
   status: "active" | "ended";
   createdAt: string;
+  /** Last view opened for this conversation. */
+  activeView?: ViewId;
   turns: ConversationTurn[];
 }

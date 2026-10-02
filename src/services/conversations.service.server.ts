@@ -2,13 +2,17 @@ import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/index.server";
 import { conversations, messages, responses } from "@/db/schema";
 import { maskSensitive } from "@/lib/lab/mask";
+import { VIEW_IDS, type ViewId } from "@/lib/lab/types";
 import type {
   BotResponse,
   ConversationTurn,
   LabConversation,
   LabMessage,
 } from "@/lib/lab/types";
-import type { ListConversationsInput } from "@/validators/conversations";
+import type {
+  ListConversationsInput,
+  UpdateConversationInput,
+} from "@/validators/conversations";
 
 // Conversations and customer messages. Every query is scoped to the verified
 // session user; the caller never supplies an owner.
@@ -20,6 +24,7 @@ const conversationFields = {
   number: conversations.number,
   title: conversations.title,
   status: conversations.status,
+  activeView: conversations.activeView,
   createdAt: conversations.createdAt,
 };
 
@@ -28,6 +33,7 @@ type ConversationRow = {
   number: number | null;
   title: string;
   status: string;
+  activeView?: string;
   createdAt: Date;
 };
 
@@ -37,6 +43,9 @@ export function toConversationSummary(row: ConversationRow) {
     code: `#A-${row.number ?? 0}`,
     title: row.title,
     status: row.status as "active" | "ended",
+    activeView: (VIEW_IDS as readonly string[]).includes(row.activeView ?? "")
+      ? (row.activeView as ViewId)
+      : "customer",
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -310,4 +319,23 @@ export async function resolveConversation(
     conversation: (await getActiveConversation(userId)) ?? null,
     requestedFound: !requestedId,
   };
+}
+
+/** Remembers which view the caller last used for a conversation. */
+export async function updateConversation(
+  userId: string,
+  conversationId: string,
+  input: UpdateConversationInput,
+) {
+  const [row] = await db
+    .update(conversations)
+    .set({ activeView: input.activeView })
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        eq(conversations.userId, userId),
+      ),
+    )
+    .returning(conversationFields);
+  return row ? toConversationSummary(row) : undefined;
 }

@@ -26,6 +26,8 @@ export const conversations = pgTable(
       .default("Percakapan baru")
       .notNull(),
     status: text("status").default("active").notNull(),
+    /** Last view opened for this conversation, restored when it is reopened. */
+    activeView: text("active_view").default("customer").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -43,6 +45,10 @@ export const conversations = pgTable(
     check(
       "conversations_status_check",
       sql`${table.status} in ('active', 'ended')`,
+    ),
+    check(
+      "conversations_active_view_check",
+      sql`${table.activeView} in ('customer', 'debug', 'compare', 'agent')`,
     ),
   ],
 );

@@ -43,6 +43,7 @@ export async function getConversationSummary(
       number: conversations.number,
       title: conversations.title,
       status: conversations.status,
+      activeView: conversations.activeView,
       createdAt: conversations.createdAt,
     })
     .from(conversations)

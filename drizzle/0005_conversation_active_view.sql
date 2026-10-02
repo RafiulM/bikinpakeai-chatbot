@@ -1,0 +1,2 @@
+ALTER TABLE "conversations" ADD COLUMN "active_view" text DEFAULT 'customer' NOT NULL;--> statement-breakpoint
+ALTER TABLE "conversations" ADD CONSTRAINT "conversations_active_view_check" CHECK ("conversations"."active_view" in ('customer', 'debug', 'compare', 'agent'));

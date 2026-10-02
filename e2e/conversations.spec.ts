@@ -223,3 +223,35 @@ test("the current endpoint returns the newest active conversation", async ({
   ).json();
   expect(strangerCurrent.data?.id).not.toBe(started.id);
 });
+
+test("the active view is saved per conversation and validated", async () => {
+  const { data: conversation } = await startConversation();
+  expect(conversation).toMatchObject({ activeView: "customer" });
+  const url = `/api/conversations/${conversation.id}`;
+  const saved = await owner.patch(url, {
+    headers,
+    data: { activeView: "compare" },
+  });
+  expect(saved.status()).toBe(200);
+  expect((await saved.json()).data.activeView).toBe("compare");
+  expect((await (await owner.get(url)).json()).data.activeView).toBe("compare");
+
+  for (const body of [
+    { activeView: "settings" },
+    {},
+    { activeView: "debug", title: "x" },
+  ]) {
+    expect((await owner.patch(url, { headers, data: body })).status()).toBe(
+      422,
+    );
+  }
+  expect(
+    (await owner.patch(url, { data: { activeView: "debug" } })).status(),
+  ).toBe(403);
+  expect(
+    (
+      await stranger.patch(url, { headers, data: { activeView: "debug" } })
+    ).status(),
+  ).toBe(404);
+  expect((await (await owner.get(url)).json()).data.activeView).toBe("compare");
+});
