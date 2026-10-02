@@ -15,6 +15,20 @@ export const EXPECTED_LABELS = [
 ] as const;
 export type ExpectedLabel = (typeof EXPECTED_LABELS)[number];
 
+/** How each expected label reads in the test set picker. */
+export const EXPECTED_LABEL_TEXT: Record<ExpectedLabel, string> = {
+  pembayaran: "Pembayaran",
+  akses_akun: "Akses akun",
+  cara_pakai: "Cara pakai",
+  bug: "Bug",
+  saran_fitur: "Saran fitur",
+  answered: "Dijawab biasa",
+  masked: "Data sensitif",
+  blocked: "Prompt injection",
+  escalated: "Eskalasi",
+  clarify: "Klarifikasi",
+};
+
 export const MAX_CASES = 100;
 export const RECOMMENDED_MIN_CASES = 50;
 export const MAX_FILE_BYTES = 1024 * 1024;

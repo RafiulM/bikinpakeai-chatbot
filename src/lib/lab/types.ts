@@ -190,6 +190,8 @@ export interface TestSetSummary {
   caseCount: number;
   /** Categories covered, for the picker's subtitle. */
   categories: string[];
+  /** Shared sample set; false for an upload owned by the account. */
+  builtIn?: boolean;
 }
 
 export type TestRunStatus = "running" | "done" | "failed" | "cancelled";

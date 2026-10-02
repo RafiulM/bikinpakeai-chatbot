@@ -86,7 +86,12 @@ try {
   } else {
     await run(
       process.execPath,
-      [resolve(root, "node_modules/@playwright/test/cli.js"), "test"],
+      [
+        resolve(root, "node_modules/@playwright/test/cli.js"),
+        "test",
+        // Optional spec files or Playwright flags, e.g. e2e/notes.spec.ts.
+        ...process.argv.slice(3),
+      ],
       testEnv,
     );
   }

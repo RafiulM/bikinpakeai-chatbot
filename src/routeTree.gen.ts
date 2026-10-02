@@ -29,6 +29,7 @@ import { Route as ApiNotesIndexRouteImport } from './routes/api/notes/index'
 import { Route as ApiNotesIdRouteImport } from './routes/api/notes/$id'
 import { Route as ApiScenariosIndexRouteImport } from './routes/api/scenarios/index'
 import { Route as ApiScenariosBatchRouteImport } from './routes/api/scenarios/batch'
+import { Route as ApiTestSetsIndexRouteImport } from './routes/api/test-sets/index'
 import { Route as ApiTicketsIndexRouteImport } from './routes/api/tickets/index'
 import { Route as ApiAdminNotesIndexRouteImport } from './routes/api/admin/notes/index'
 import { Route as ApiAdminNotesIdRouteImport } from './routes/api/admin/notes/$id'
@@ -141,6 +142,11 @@ const ApiScenariosBatchRoute = ApiScenariosBatchRouteImport.update({
   path: '/api/scenarios/batch',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTestSetsIndexRoute = ApiTestSetsIndexRouteImport.update({
+  id: '/api/test-sets/',
+  path: '/api/test-sets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTicketsIndexRoute = ApiTicketsIndexRouteImport.update({
   id: '/api/tickets/',
   path: '/api/tickets/',
@@ -230,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
   '/api/scenarios/': typeof ApiScenariosIndexRoute
+  '/api/test-sets/': typeof ApiTestSetsIndexRoute
   '/api/tickets/': typeof ApiTicketsIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/comparison': typeof ApiConversationsIdComparisonRoute
@@ -263,6 +270,7 @@ export interface FileRoutesByTo {
   '/api/conversations': typeof ApiConversationsIndexRoute
   '/api/notes': typeof ApiNotesIndexRoute
   '/api/scenarios': typeof ApiScenariosIndexRoute
+  '/api/test-sets': typeof ApiTestSetsIndexRoute
   '/api/tickets': typeof ApiTicketsIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/comparison': typeof ApiConversationsIdComparisonRoute
@@ -299,6 +307,7 @@ export interface FileRoutesById {
   '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
   '/api/scenarios/': typeof ApiScenariosIndexRoute
+  '/api/test-sets/': typeof ApiTestSetsIndexRoute
   '/api/tickets/': typeof ApiTicketsIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
   '/api/conversations/$id/comparison': typeof ApiConversationsIdComparisonRoute
@@ -334,6 +343,7 @@ export interface FileRouteTypes {
     | '/api/conversations/'
     | '/api/notes/'
     | '/api/scenarios/'
+    | '/api/test-sets/'
     | '/api/tickets/'
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/comparison'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/api/conversations'
     | '/api/notes'
     | '/api/scenarios'
+    | '/api/test-sets'
     | '/api/tickets'
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/comparison'
@@ -402,6 +413,7 @@ export interface FileRouteTypes {
     | '/api/conversations/'
     | '/api/notes/'
     | '/api/scenarios/'
+    | '/api/test-sets/'
     | '/api/tickets/'
     | '/api/admin/notes/$id'
     | '/api/conversations/$id/comparison'
@@ -429,6 +441,7 @@ export interface RootRouteChildren {
   ApiConversationsIndexRoute: typeof ApiConversationsIndexRoute
   ApiNotesIndexRoute: typeof ApiNotesIndexRoute
   ApiScenariosIndexRoute: typeof ApiScenariosIndexRoute
+  ApiTestSetsIndexRoute: typeof ApiTestSetsIndexRoute
   ApiTicketsIndexRoute: typeof ApiTicketsIndexRoute
   ApiAdminNotesIdRoute: typeof ApiAdminNotesIdRoute
   ApiConversationsIdComparisonRoute: typeof ApiConversationsIdComparisonRoute
@@ -586,6 +599,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiScenariosBatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/test-sets/': {
+      id: '/api/test-sets/'
+      path: '/api/test-sets'
+      fullPath: '/api/test-sets/'
+      preLoaderRoute: typeof ApiTestSetsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tickets/': {
       id: '/api/tickets/'
       path: '/api/tickets'
@@ -728,6 +748,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiConversationsIndexRoute: ApiConversationsIndexRoute,
   ApiNotesIndexRoute: ApiNotesIndexRoute,
   ApiScenariosIndexRoute: ApiScenariosIndexRoute,
+  ApiTestSetsIndexRoute: ApiTestSetsIndexRoute,
   ApiTicketsIndexRoute: ApiTicketsIndexRoute,
   ApiAdminNotesIdRoute: ApiAdminNotesIdRoute,
   ApiConversationsIdComparisonRoute: ApiConversationsIdComparisonRoute,
