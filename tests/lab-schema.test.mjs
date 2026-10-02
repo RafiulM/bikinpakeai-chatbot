@@ -66,3 +66,61 @@ test("conversations number themselves and cascade to their messages", async () =
     await db.end();
   }
 });
+
+test("each message keeps at most one answer per mode with valid metrics", async () => {
+  const db = pool();
+  try {
+    await db.query('INSERT INTO "user" (id, name, email) VALUES ($1, $2, $3)', [
+      "lab-responses",
+      "Lab Responses",
+      "lab-responses@example.com",
+    ]);
+    const {
+      rows: [conversation],
+    } = await db.query(
+      "INSERT INTO conversations (user_id) VALUES ($1) RETURNING id",
+      ["lab-responses"],
+    );
+    const {
+      rows: [message],
+    } = await db.query(
+      "INSERT INTO messages (conversation_id, sender, content) VALUES ($1, 'customer', 'Halo') RETURNING id",
+      [conversation.id],
+    );
+    const insert = (mode, verdict = "correct", latency = 800, cost = 0.0004) =>
+      db.query(
+        `INSERT INTO responses (message_id, mode, content, latency_ms, cost_usd, verdict, verdict_label, issues, flags)
+         VALUES ($1, $2, 'Jawaban', $3, $4, $5, 'Label', $6, $7) RETURNING cost_usd, issues, flags`,
+        [
+          message.id,
+          mode,
+          latency,
+          cost,
+          verdict,
+          JSON.stringify(["Masalah"]),
+          JSON.stringify(["security"]),
+        ],
+      );
+    const {
+      rows: [jev],
+    } = await insert("with_jev");
+    assert.equal(Number(jev.cost_usd), 0.0004);
+    assert.deepEqual(jev.issues, ["Masalah"]);
+    await insert("without_jev", "wrong", 2900, 0.0061);
+    await assert.rejects(insert("with_jev"), /responses_message_mode_idx/);
+    await assert.rejects(insert("baseline"), /responses_mode_check/);
+    await db.query("DELETE FROM responses WHERE message_id = $1", [message.id]);
+    await assert.rejects(
+      insert("with_jev", "maybe"),
+      /responses_verdict_check/,
+    );
+    await assert.rejects(
+      insert("with_jev", "correct", -1),
+      /responses_metrics_check/,
+    );
+    await db.query("DELETE FROM messages WHERE id = $1", [message.id]);
+  } finally {
+    await db.query('DELETE FROM "user" WHERE id = $1', ["lab-responses"]);
+    await db.end();
+  }
+});
