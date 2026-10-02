@@ -1,4 +1,7 @@
+import { Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { frustrationLevel } from "@/lib/lab/tickets";
+import { formatScore } from "@/lib/lab/format";
 import type { TicketPriority, TicketStatus } from "@/lib/lab/types";
 
 const PRIORITY: Record<TicketPriority, { label: string; tone: string }> = {
@@ -56,3 +59,20 @@ export function StatusTag({
 }
 
 export const STATUS_LABEL = STATUS;
+
+const FRUSTRATION_TONE = {
+  tinggi: "border-danger/40 bg-danger/12 text-danger-text",
+  sedang: "border-warning/45 bg-warning/14 text-warning-text",
+  rendah: "bg-muted text-foreground/80",
+} as const;
+
+/** Frustration as words plus the score, so it reads without color. */
+export function FrustrationTag({ score }: { score: number }) {
+  const level = frustrationLevel(score);
+  return (
+    <span className={cn(base, "gap-1 tabular-nums", FRUSTRATION_TONE[level])}>
+      {level === "tinggi" && <Flame className="size-3" aria-hidden="true" />}
+      Frustrasi {level} · {formatScore(score)}
+    </span>
+  );
+}

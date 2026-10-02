@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import type { SupportTicket } from "@/lib/lab/types";
 import { formatClock, formatScore } from "@/lib/lab/format";
-import { PriorityTag, StatusTag } from "./ticket-tags";
+import { FrustrationTag, PriorityTag, StatusTag } from "./ticket-tags";
 
 /** Everything an agent needs to pick up a ticket without reading the whole chat. */
 export function TicketDetail({
@@ -34,6 +34,7 @@ export function TicketDetail({
           </h2>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <PriorityTag priority={ticket.priority} />
+            <FrustrationTag score={ticket.frustrationScore} />
             <StatusTag status={ticket.status} claimedBy={ticket.claimedBy} />
             <span className="inline-flex items-center rounded-full border bg-muted px-2.5 py-0.5 text-xs font-semibold">
               Percakapan {ticket.conversationCode}

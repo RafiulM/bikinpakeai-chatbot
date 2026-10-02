@@ -2,7 +2,7 @@ import { MessageSquareReply } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SupportTicket } from "@/lib/lab/types";
 import { formatScore } from "@/lib/lab/format";
-import { PriorityTag, StatusTag } from "./ticket-tags";
+import { FrustrationTag, PriorityTag, StatusTag } from "./ticket-tags";
 
 const ageFormat = new Intl.RelativeTimeFormat("id-ID", { numeric: "auto" });
 
@@ -59,6 +59,7 @@ export function TicketCard({
       <span className="flex flex-wrap items-center gap-1.5">
         <span className="text-sm font-semibold">{ticket.code}</span>
         <PriorityTag priority={ticket.priority} />
+        <FrustrationTag score={ticket.frustrationScore} />
         {ticket.status !== "open" && (
           <StatusTag status={ticket.status} claimedBy={ticket.claimedBy} />
         )}
@@ -73,8 +74,7 @@ export function TicketCard({
         {ticket.conversationCode} · {ticket.product} · {ticket.issueLabel}
       </span>
       <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-foreground/80">
-        <Meter label="Frustrasi" value={ticket.frustrationScore} />
-        <Meter label="Churn" value={ticket.churnRisk} />
+        <Meter label="Risiko churn" value={ticket.churnRisk} />
         {ticket.replies.length > 0 && (
           <span className="ml-auto inline-flex items-center gap-1 text-muted-foreground">
             <MessageSquareReply className="size-3.5" aria-hidden="true" />
