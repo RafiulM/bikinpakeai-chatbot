@@ -20,3 +20,13 @@ export const createTestSetSchema = z
   .strict();
 
 export type CreateTestSetInput = z.infer<typeof createTestSetSchema>;
+
+export const testRunIdSchema = z.string().uuid();
+
+export const startTestRunSchema = z
+  .object({ testSetId: z.string().uuid() })
+  .strict();
+
+export const listTestRunsSchema = z
+  .object({ limit: z.coerce.number().int().min(1).max(50).default(10) })
+  .strict();

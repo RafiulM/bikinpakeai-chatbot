@@ -84,6 +84,19 @@ export async function getTestRunState(
   return readState(runId);
 }
 
+/** The account's most recent runs, newest first. */
+export async function listTestRuns(userId: string, limit: number) {
+  const rows = await db
+    .select({ id: testRuns.id, status: testRuns.status })
+    .from(testRuns)
+    .where(eq(testRuns.userId, userId))
+    .orderBy(desc(testRuns.startedAt))
+    .limit(limit);
+  for (const row of rows)
+    if (row.status === "running") await closeOrphan(row.id);
+  return Promise.all(rows.map((row) => readState(row.id)));
+}
+
 async function readState(runId: string): Promise<TestRunState> {
   const [[run], tallies] = await Promise.all([
     db

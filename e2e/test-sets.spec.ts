@@ -144,3 +144,106 @@ test("uploading a labelled set validates it and keeps it private", async ({
     expect(rejected.status()).toBe(422);
   }
 });
+
+test("a test run processes every message on both versions and stays private", async ({
+  request,
+}) => {
+  const setId = (await (await owner.get("/api/test-sets")).json()).data[0].id;
+  expect(
+    (
+      await request.post("/api/test-runs", {
+        headers,
+        data: { testSetId: setId },
+      })
+    ).status(),
+  ).toBe(401);
+  expect(
+    (
+      await owner.post("/api/test-runs", {
+        headers: { Origin: "https://evil.example" },
+        data: { testSetId: setId },
+      })
+    ).status(),
+  ).toBe(403);
+  expect(
+    (
+      await owner.post("/api/test-runs", {
+        headers,
+        data: { testSetId: "not-a-uuid" },
+      })
+    ).status(),
+  ).toBe(422);
+  expect(
+    (
+      await owner.post("/api/test-runs", {
+        headers,
+        data: { testSetId: "00000000-0000-4000-8000-000000000000" },
+      })
+    ).status(),
+  ).toBe(404);
+
+  const started = await owner.post("/api/test-runs", {
+    headers,
+    data: { testSetId: setId },
+  });
+  expect(started.status()).toBe(202);
+  const { data: run } = await started.json();
+  expect(run).toMatchObject({
+    testSetId: setId,
+    testSetName: "Support umum",
+    total: 60,
+  });
+
+  let state = run;
+  for (let tries = 0; state.status === "running" && tries < 100; tries += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    state = (await (await owner.get(`/api/test-runs/${run.runId}`)).json())
+      .data;
+  }
+  expect(state.status).toBe("done");
+  expect(state.processed).toBe(60);
+  for (const tally of [state.withJev, state.withoutJev])
+    expect(tally.correct + tally.wrong + tally.escalated).toBe(60);
+
+  // The finished stream sends the final state once and ends.
+  const events = await owner.get(`/api/test-runs/${run.runId}/events`);
+  expect(events.headers()["content-type"]).toContain("text/event-stream");
+  const body = await events.text();
+  expect(body).toContain("event: progress");
+  expect(body).toContain('"status":"done"');
+
+  expect(
+    (
+      await owner.post(`/api/test-runs/${run.runId}/cancel`, { headers })
+    ).status(),
+  ).toBe(409);
+  const recent = await (await owner.get("/api/test-runs?limit=5")).json();
+  expect(recent.data[0].runId).toBe(run.runId);
+
+  expect((await other.get(`/api/test-runs/${run.runId}`)).status()).toBe(404);
+  expect((await other.get(`/api/test-runs/${run.runId}/events`)).status()).toBe(
+    404,
+  );
+  expect(
+    (
+      await other.post(`/api/test-runs/${run.runId}/cancel`, { headers })
+    ).status(),
+  ).toBe(404);
+  await expect(
+    (await other.get("/api/test-runs")).json(),
+  ).resolves.toMatchObject({
+    meta: { total: 0 },
+  });
+
+  // A mass test never writes conversations or tickets.
+  const db = testDb();
+  try {
+    const touched = await db.query(
+      'SELECT (SELECT count(*)::int FROM conversations c JOIN "user" u ON u.id = c.user_id WHERE u.id = $1) AS conversations, (SELECT count(*)::int FROM test_results WHERE test_run_id = $2) AS results',
+      [await userId(owner), run.runId],
+    );
+    expect(touched.rows[0]).toEqual({ conversations: 0, results: 120 });
+  } finally {
+    await db.end();
+  }
+});
