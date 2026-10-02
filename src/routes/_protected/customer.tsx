@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
 import { ChatComposer } from "@/components/lab/chat-composer";
 import { ChatWidget } from "@/components/lab/chat-widget";
@@ -114,6 +114,17 @@ function CustomerPage() {
           turns={turns}
           greeting={conversation.fresh ? GREETING : undefined}
           pendingReply={busy}
+          renderBotFooter={(turn) =>
+            turn.withoutJev && (
+              <Link
+                to="/compare"
+                hash={`turn-${turn.message.id}`}
+                className="font-semibold text-foreground/80 underline underline-offset-3 hover:text-signal-text"
+              >
+                Bandingkan
+              </Link>
+            )
+          }
           banner={
             notice && (
               <p

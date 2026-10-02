@@ -15,6 +15,7 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
+import { Route as ProtectedCompareRouteImport } from './routes/_protected/compare'
 import { Route as ProtectedCustomerRouteImport } from './routes/_protected/customer'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiNotesIndexRouteImport } from './routes/api/notes/index'
@@ -48,6 +49,11 @@ const AuthSignUpRoute = AuthSignUpRouteImport.update({
 const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedCompareRoute = ProtectedCompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedCustomerRoute = ProtectedCustomerRouteImport.update({
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/admin': typeof ProtectedAdminRoute
+  '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/admin': typeof ProtectedAdminRoute
+  '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_protected/admin': typeof ProtectedAdminRoute
+  '/_protected/compare': typeof ProtectedCompareRoute
   '/_protected/customer': typeof ProtectedCustomerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/admin'
+    | '/compare'
     | '/customer'
     | '/api/auth/$'
     | '/api/notes/$id'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/admin'
+    | '/compare'
     | '/customer'
     | '/api/auth/$'
     | '/api/notes/$id'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/_auth/sign-in'
     | '/_auth/sign-up'
     | '/_protected/admin'
+    | '/_protected/compare'
     | '/_protected/customer'
     | '/api/auth/$'
     | '/api/notes/$id'
@@ -216,6 +228,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAdminRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/compare': {
+      id: '/_protected/compare'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof ProtectedCompareRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/_protected/customer': {
       id: '/_protected/customer'
       path: '/customer'
@@ -275,11 +294,13 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface ProtectedRouteChildren {
   ProtectedAdminRoute: typeof ProtectedAdminRoute
+  ProtectedCompareRoute: typeof ProtectedCompareRoute
   ProtectedCustomerRoute: typeof ProtectedCustomerRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedAdminRoute: ProtectedAdminRoute,
+  ProtectedCompareRoute: ProtectedCompareRoute,
   ProtectedCustomerRoute: ProtectedCustomerRoute,
 }
 
