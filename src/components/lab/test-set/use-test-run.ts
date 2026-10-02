@@ -4,7 +4,7 @@ import type {
   TestSetSummary,
   VerdictTally,
 } from "@/lib/lab/types";
-import { mockLastReport, sampleCases } from "@/lib/lab/mock-test-sets";
+import { mockLastReport, sampleReport } from "@/lib/lab/mock-test-sets";
 
 // Drives one mass test run. This preview version simulates progress from the
 // sample report; the API version reports the same shape from the server.
@@ -51,31 +51,22 @@ export function useTestRun(onFinished: (report: TestRunReport) => void) {
       if (timer.current) return;
       const total = set.caseCount;
       const sample = mockLastReport;
-      const ratioOf = (processed: number) =>
-        (processed / total) * (total / sample.total);
+      const ratioOf = (processed: number) => processed / sample.total;
       let processed = 0;
       runNumber.current += 1;
       const finish = () => {
         stopTimer();
         finishRef.current = null;
-        const ratio = ratioOf(total);
-        const report: TestRunReport = {
-          ...sample,
+        const now = new Date().toISOString();
+        const report = sampleReport({
           runId: `local-run-${runNumber.current}`,
           runNumber: runNumber.current,
           testSetId: set.id,
           testSetName: set.name,
           total,
-          progress: total,
-          startedAt: new Date().toISOString(),
-          finishedAt: new Date().toISOString(),
-          withJev: { ...sample.withJev, ...scaled(sample.withJev, ratio) },
-          withoutJev: {
-            ...sample.withoutJev,
-            ...scaled(sample.withoutJev, ratio),
-          },
-        };
-        report.cases = sampleCases(report);
+          startedAt: now,
+          finishedAt: now,
+        });
         setProgress({
           status: "done",
           processed: total,

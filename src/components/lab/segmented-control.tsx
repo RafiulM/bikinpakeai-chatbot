@@ -8,18 +8,26 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
   className,
+  nowrap = false,
 }: {
   legend: string;
   options: { value: T; label: string; count?: number }[];
   value: T;
   onChange: (value: T) => void;
   className?: string;
+  /** Keep one row; the caller wraps it in a horizontal scroller. */
+  nowrap?: boolean;
 }) {
   const name = useId();
   return (
     <fieldset className={cn("m-0 border-0 p-0", className)}>
       <legend className="sr-only">{legend}</legend>
-      <div className="inline-flex flex-wrap rounded-full border bg-card p-[3px]">
+      <div
+        className={cn(
+          "inline-flex rounded-full border bg-card p-[3px]",
+          nowrap ? "flex-nowrap whitespace-nowrap" : "flex-wrap",
+        )}
+      >
         {options.map((option) => (
           <label key={option.value} className="relative">
             <input

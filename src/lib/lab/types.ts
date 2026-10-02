@@ -212,8 +212,9 @@ export interface TestRunReport {
   finishedAt: string | null;
   withJev: VerdictTally & { averageLatencyMs: number; totalCostUsd: number };
   withoutJev: VerdictTally & { averageLatencyMs: number; totalCostUsd: number };
-  /** Correct answers per category: [label, jevCorrect, baseCorrect, total]. */
+  /** Correct answers per issue category, for the report's category filter. */
   categories: {
+    id: IssueType;
     label: string;
     withJev: number;
     withoutJev: number;
@@ -232,6 +233,8 @@ export interface TestCaseOutcome {
 
 export interface TestCaseResult {
   caseId: string;
+  /** Issue category the message belongs to, for filtering the report. */
+  category: IssueType;
   inputText: string;
   expectedLabel: string;
   withJev: TestCaseOutcome;

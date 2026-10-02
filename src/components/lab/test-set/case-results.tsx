@@ -2,7 +2,11 @@ import { useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Headset, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/lab/segmented-control";
-import type { TestCaseOutcome, TestCaseResult } from "@/lib/lab/types";
+import type {
+  IssueType,
+  TestCaseOutcome,
+  TestCaseResult,
+} from "@/lib/lab/types";
 import { formatSeconds } from "@/lib/lab/format";
 
 const PAGE_SIZE = 20;
@@ -28,20 +32,39 @@ function Verdict({ outcome }: { outcome: TestCaseOutcome }) {
 const right = (outcome: TestCaseOutcome) => outcome.verdict !== "wrong";
 
 /** Every test message with both outcomes, filterable and paged. */
-export function CaseResults({ cases }: { cases: TestCaseResult[] }) {
+export function CaseResults({
+  cases,
+  category,
+}: {
+  cases: TestCaseResult[];
+  /** Limits the table to one issue category. */
+  category: IssueType | "all";
+}) {
   const [filter, setFilter] = useState<CaseFilter>("all");
   const [page, setPage] = useState(0);
 
+  // Row numbers stay those of the whole test set while filtered.
+  const numbers = useMemo(
+    () => new Map(cases.map((item, index) => [item.caseId, index + 1])),
+    [cases],
+  );
+  const scoped = useMemo(
+    () =>
+      category === "all"
+        ? cases
+        : cases.filter((item) => item.category === category),
+    [cases, category],
+  );
   const shown = useMemo(
     () =>
-      cases.filter((item) =>
+      scoped.filter((item) =>
         filter === "differs"
           ? right(item.withJev) !== right(item.withoutJev)
           : filter === "jev_wrong"
             ? !right(item.withJev)
             : true,
       ),
-    [cases, filter],
+    [scoped, filter],
   );
   const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const current = Math.min(page, pages - 1);
@@ -74,7 +97,7 @@ export function CaseResults({ cases }: { cases: TestCaseResult[] }) {
             ]}
           />
           <p role="status" className="text-sm text-muted-foreground">
-            {shown.length} dari {cases.length} pesan
+            {shown.length} dari {scoped.length} pesan
           </p>
         </div>
       </div>
@@ -114,7 +137,7 @@ export function CaseResults({ cases }: { cases: TestCaseResult[] }) {
               {slice.map((item) => (
                 <tr key={item.caseId}>
                   <td className="py-2 pr-2 text-muted-foreground tabular-nums">
-                    {cases.indexOf(item) + 1}
+                    {numbers.get(item.caseId)}
                   </td>
                   <td className="max-w-[320px] py-2 pr-3">
                     <span className="line-clamp-2">{item.inputText}</span>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
-import { CaseResults } from "@/components/lab/test-set/case-results";
+import { ReportSummary } from "@/components/lab/test-set/report-summary";
 import { RunPanel } from "@/components/lab/test-set/run-panel";
 import { StepCard } from "@/components/lab/test-set/step-card";
 import { useTestRun } from "@/components/lab/test-set/use-test-run";
@@ -15,7 +15,6 @@ import {
 } from "@/components/lab/test-set/upload-form";
 import type { TestRunReport, TestSetSummary } from "@/lib/lab/types";
 import { mockLastReport, mockTestSets } from "@/lib/lab/mock-test-sets";
-import { formatPercent } from "@/lib/lab/format";
 
 export const Route = createFileRoute("/_protected/test-set")({
   head: () => ({ meta: [{ title: `Uji Test Set | ${siteConfig.name}` }] }),
@@ -109,27 +108,7 @@ function TestSetPage() {
         title="Laporan hasil"
         description={`Run #${report.runNumber} · ${report.testSetName} · ${report.total} pesan`}
       >
-        <dl className="grid grid-cols-2 gap-4 sm:max-w-md">
-          <div>
-            <dt className="text-xs font-semibold text-muted-foreground">
-              Skor akhir · Dengan Jev
-            </dt>
-            <dd className="text-[40px] font-medium tracking-tight tabular-nums">
-              {formatPercent(report.withJev.correct, report.total)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold text-muted-foreground">
-              Skor akhir · Tanpa Jev
-            </dt>
-            <dd className="text-[40px] font-medium tracking-tight text-muted-foreground tabular-nums">
-              {formatPercent(report.withoutJev.correct, report.total)}
-            </dd>
-          </div>
-        </dl>
-        {report.cases && (
-          <CaseResults key={report.runId} cases={report.cases} />
-        )}
+        <ReportSummary key={report.runId} report={report} />
       </StepCard>
     </div>
   );
