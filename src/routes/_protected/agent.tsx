@@ -1,17 +1,25 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
-import { useLabConversation } from "@/components/lab/conversation-store";
+import { TicketDetail } from "@/components/lab/agent/ticket-detail";
+import { TicketList } from "@/components/lab/agent/ticket-list";
+import { mockTickets } from "@/lib/lab/mock-tickets";
 
 export const Route = createFileRoute("/_protected/agent")({
   head: () => ({ meta: [{ title: `Agent | ${siteConfig.name}` }] }),
   component: AgentPage,
 });
 
-// Placeholder view: the support queue arrives in phase 2. It lists the
-// escalations from the shared conversation so the context carries over.
+// Reference time for relative ages in the sample data, so server and browser
+// render the same text.
+const SAMPLE_NOW = Date.UTC(2026, 9, 1, 7, 11);
+
 function AgentPage() {
-  const { conversation } = useLabConversation();
-  const escalated = conversation.turns.filter((turn) => turn.ticketId);
+  const [tickets] = useState(mockTickets);
+  const [selectedId, setSelectedId] = useState(tickets[0]?.id);
+  const selected =
+    tickets.find((ticket) => ticket.id === selectedId) ?? tickets[0];
+
   return (
     <div className="grid max-w-[1200px] gap-6">
       <div>
@@ -19,33 +27,31 @@ function AgentPage() {
           Agent
         </h1>
         <p className="text-sm text-muted-foreground">
-          Antrean tiket untuk tim support manusia
+          Antrean tiket yang dieskalasi Jev ke tim support manusia
         </p>
       </div>
-      <p className="rounded-[10px] border border-signal bg-signal-soft px-4 py-3 text-sm">
-        Tampilan tiruan. Antrean lengkap dengan prioritas, ringkasan, balas, dan
-        tutup tiket dibangun di fase berikutnya.
-      </p>
-      {escalated.length === 0 ? (
-        <p className="rounded-2xl border border-dashed p-6 text-center text-muted-foreground">
+      {!selected ? (
+        <p className="rounded-[20px] border border-dashed p-6 text-center text-muted-foreground">
           Belum ada kasus yang dieskalasi.
         </p>
       ) : (
-        <ul className="grid gap-3">
-          {escalated.map((turn) => (
-            <li
-              key={turn.message.id}
-              className="grid gap-1 rounded-2xl border bg-card p-4"
-            >
-              <p className="text-sm font-semibold">
-                {turn.ticketId} · Percakapan {conversation.code}
-              </p>
-              <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
-                “{turn.message.content}”
-              </p>
-            </li>
-          ))}
-        </ul>
+        <div className="grid items-start gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
+          <section
+            aria-labelledby="ticket-queue-title"
+            className="grid gap-2 rounded-[20px] border bg-card p-3"
+          >
+            <h2 id="ticket-queue-title" className="sr-only">
+              Daftar tiket
+            </h2>
+            <TicketList
+              tickets={tickets}
+              selectedId={selected.id}
+              onSelect={setSelectedId}
+              now={SAMPLE_NOW}
+            />
+          </section>
+          <TicketDetail ticket={selected} />
+        </div>
       )}
     </div>
   );

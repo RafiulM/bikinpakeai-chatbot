@@ -136,3 +136,49 @@ export interface LabConversation {
   activeView?: ViewId;
   turns: ConversationTurn[];
 }
+
+export const TICKET_PRIORITIES = ["urgent", "high", "medium", "low"] as const;
+export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
+export const TICKET_STATUSES = ["open", "claimed", "closed"] as const;
+export type TicketStatus = (typeof TICKET_STATUSES)[number];
+
+export interface TicketReply {
+  id: string;
+  ticketId: string;
+  agentName: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface TicketExcerptLine {
+  sender: "customer" | "bot" | "agent";
+  label: string;
+  content: string;
+  createdAt: string;
+}
+
+/** A conversation escalated to the human support team (Agent view). */
+export interface SupportTicket {
+  id: string;
+  code: string;
+  conversationId: string;
+  conversationCode: string;
+  messageId: string;
+  title: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  claimedBy: string | null;
+  product: string;
+  issueLabel: string;
+  frustrationScore: number;
+  churnRisk: number;
+  /** One-line summary for the queue. */
+  summary: string;
+  /** Jev's short briefing for the agent. */
+  summaryPoints: string[];
+  nextStep: string;
+  escalationReason: string;
+  excerpt: TicketExcerptLine[];
+  replies: TicketReply[];
+  createdAt: string;
+}
