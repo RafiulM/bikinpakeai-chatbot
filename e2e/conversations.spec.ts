@@ -142,11 +142,8 @@ test("history endpoints return the caller's conversations as ordered turns", asy
       (turn: { message: { content: string } }) => turn.message.content,
     ),
   ).toEqual(["Pesan pertama", "Pesan kedua"]);
-  expect(conversation.turns[0]).toMatchObject({
-    analysis: null,
-    withJev: null,
-    withoutJev: null,
-  });
+  // Every stored message is answered by the Jev path right away.
+  expect(conversation.turns[0].withJev?.mode).toBe("with_jev");
 
   const page1 = await (await owner.get("/api/conversations?limit=1")).json();
   expect(page1.meta).toEqual({ limit: 1, offset: 0, hasMore: true });

@@ -27,8 +27,14 @@ async function answer(
   const db = testDb();
   try {
     await db.query(
+      // The live pipeline answers every message too; the fixture replaces
+      // whatever it stored so the numbers below are exact.
       `INSERT INTO responses (message_id, mode, content, latency_ms, cost_usd, is_verified, verdict, verdict_label, issues, flags, takeaway)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       ON CONFLICT (message_id, mode) DO UPDATE SET content = EXCLUDED.content, latency_ms = EXCLUDED.latency_ms,
+         cost_usd = EXCLUDED.cost_usd, is_verified = EXCLUDED.is_verified, verdict = EXCLUDED.verdict,
+         verdict_label = EXCLUDED.verdict_label, issues = EXCLUDED.issues, flags = EXCLUDED.flags,
+         takeaway = EXCLUDED.takeaway, highlight = NULL, highlight_tone = NULL`,
       [
         messageId,
         mode,
@@ -186,7 +192,12 @@ test("conversation detail carries Jev readings and failed readings", async () =>
   try {
     await db.query(
       `INSERT INTO jev_analyses (message_id, status, product, issue_type, urgency, frustration_score, churn_risk, confidence, labels, decision, route, route_label, route_reason, rules, steps)
-       VALUES ($1, 'done', 'DesainPakeAI', 'pembayaran', 'mendesak', 0.86, 0.78, 0.91, $2, 'escalated', 'escalate', 'Eskalasi', 'Frustrasi tinggi.', $3, $4)`,
+       VALUES ($1, 'done', 'DesainPakeAI', 'pembayaran', 'mendesak', 0.86, 0.78, 0.91, $2, 'escalated', 'escalate', 'Eskalasi', 'Frustrasi tinggi.', $3, $4)
+       ON CONFLICT (message_id) DO UPDATE SET status = 'done', error = NULL, product = EXCLUDED.product,
+         issue_type = EXCLUDED.issue_type, urgency = EXCLUDED.urgency, frustration_score = EXCLUDED.frustration_score,
+         churn_risk = EXCLUDED.churn_risk, confidence = EXCLUDED.confidence, labels = EXCLUDED.labels,
+         decision = EXCLUDED.decision, route = EXCLUDED.route, route_label = EXCLUDED.route_label,
+         route_reason = EXCLUDED.route_reason, rules = EXCLUDED.rules, steps = EXCLUDED.steps`,
       [
         ids[0],
         JSON.stringify([
@@ -199,7 +210,9 @@ test("conversation detail carries Jev readings and failed readings", async () =>
       ],
     );
     await db.query(
-      "INSERT INTO jev_analyses (message_id, status, error) VALUES ($1, 'failed', 'Model klasifikasi tidak merespons.')",
+      `INSERT INTO jev_analyses (message_id, status, error) VALUES ($1, 'failed', 'Model klasifikasi tidak merespons.')
+       ON CONFLICT (message_id) DO UPDATE SET status = 'failed', error = EXCLUDED.error, decision = NULL,
+         route = NULL, issue_type = NULL, labels = '[]', rules = '[]', steps = '[]'`,
       [ids[1]],
     );
   } finally {

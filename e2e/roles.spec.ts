@@ -146,6 +146,17 @@ test("the admin page renders only for a permitted role", async ({ page }) => {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill("Roles-test-password-123!");
   await page.getByRole("button", { name: "Create account" }).click();
+  // The real auth server limits rapid signups; earlier specs create accounts
+  // too. Wait out the window once instead of weakening the limit.
+  const limited = page.getByText("Too many requests");
+  const outcome = await Promise.race([
+    page.waitForURL(/\/customer/, { timeout: 8000 }).then(() => "signed-up"),
+    limited.waitFor({ state: "visible", timeout: 8000 }).then(() => "limited"),
+  ]);
+  if (outcome === "limited") {
+    await page.waitForTimeout(10_500);
+    await page.getByRole("button", { name: "Create account" }).click();
+  }
   await expect(page).toHaveURL(/\/customer(\?.*)?$/);
 
   await page.goto("/admin");
