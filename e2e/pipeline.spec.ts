@@ -72,7 +72,11 @@ test("a frustrated refund request is escalated with Jev and judged on both paths
       [turn.message.id],
     );
     expect(rows).toEqual([
-      { priority: "urgent", status: "open", issue_label: "Pembayaran · refund" },
+      {
+        priority: "urgent",
+        status: "open",
+        issue_label: "Pembayaran · refund",
+      },
     ]);
   } finally {
     await db.end();
