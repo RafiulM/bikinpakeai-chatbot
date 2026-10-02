@@ -35,7 +35,6 @@ const conversation = {
   ],
 };
 
-const outcome = (verdict) => ({ verdict, latencyMs: 400, costUsd: 0.001 });
 const report = {
   runId: "r-1",
   runNumber: 7,

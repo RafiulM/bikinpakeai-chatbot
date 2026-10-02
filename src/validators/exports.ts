@@ -14,3 +14,16 @@ export const summaryExportSchema = z
   });
 
 export type SummaryExportInput = z.infer<typeof summaryExportSchema>;
+
+export const transcriptExportSchema = z
+  .object({
+    conversationId: z.string().uuid(),
+    format: z.enum(["text", "markdown"]).default("text"),
+    labels: z.enum(["full", "brief"]).default("full"),
+    baseline: z.enum(["true", "false"]).default("true"),
+    /** "1" asks the browser to save the file instead of showing it. */
+    download: z.literal("1").optional(),
+  })
+  .strict();
+
+export type TranscriptExportInput = z.infer<typeof transcriptExportSchema>;

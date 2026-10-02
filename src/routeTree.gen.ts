@@ -27,6 +27,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiConversationsIndexRouteImport } from './routes/api/conversations/index'
 import { Route as ApiConversationsCurrentRouteImport } from './routes/api/conversations/current'
 import { Route as ApiExportsSummaryRouteImport } from './routes/api/exports/summary'
+import { Route as ApiExportsTranscriptRouteImport } from './routes/api/exports/transcript'
 import { Route as ApiNotesIndexRouteImport } from './routes/api/notes/index'
 import { Route as ApiNotesIdRouteImport } from './routes/api/notes/$id'
 import { Route as ApiScenariosIndexRouteImport } from './routes/api/scenarios/index'
@@ -138,6 +139,11 @@ const ApiConversationsCurrentRoute = ApiConversationsCurrentRouteImport.update({
 const ApiExportsSummaryRoute = ApiExportsSummaryRouteImport.update({
   id: '/api/exports/summary',
   path: '/api/exports/summary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiExportsTranscriptRoute = ApiExportsTranscriptRouteImport.update({
+  id: '/api/exports/transcript',
+  path: '/api/exports/transcript',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiNotesIndexRoute = ApiNotesIndexRouteImport.update({
@@ -281,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
   '/api/exports/summary': typeof ApiExportsSummaryRoute
+  '/api/exports/transcript': typeof ApiExportsTranscriptRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/scenarios/batch': typeof ApiScenariosBatchRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
@@ -323,6 +330,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
   '/api/exports/summary': typeof ApiExportsSummaryRoute
+  '/api/exports/transcript': typeof ApiExportsTranscriptRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/scenarios/batch': typeof ApiScenariosBatchRoute
   '/api/conversations': typeof ApiConversationsIndexRoute
@@ -368,6 +376,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
   '/api/exports/summary': typeof ApiExportsSummaryRoute
+  '/api/exports/transcript': typeof ApiExportsTranscriptRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/scenarios/batch': typeof ApiScenariosBatchRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
@@ -412,6 +421,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/conversations/current'
     | '/api/exports/summary'
+    | '/api/exports/transcript'
     | '/api/notes/$id'
     | '/api/scenarios/batch'
     | '/api/conversations/'
@@ -454,6 +464,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/conversations/current'
     | '/api/exports/summary'
+    | '/api/exports/transcript'
     | '/api/notes/$id'
     | '/api/scenarios/batch'
     | '/api/conversations'
@@ -498,6 +509,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/conversations/current'
     | '/api/exports/summary'
+    | '/api/exports/transcript'
     | '/api/notes/$id'
     | '/api/scenarios/batch'
     | '/api/conversations/'
@@ -533,6 +545,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiConversationsCurrentRoute: typeof ApiConversationsCurrentRoute
   ApiExportsSummaryRoute: typeof ApiExportsSummaryRoute
+  ApiExportsTranscriptRoute: typeof ApiExportsTranscriptRoute
   ApiNotesIdRoute: typeof ApiNotesIdRoute
   ApiScenariosBatchRoute: typeof ApiScenariosBatchRoute
   ApiConversationsIndexRoute: typeof ApiConversationsIndexRoute
@@ -686,6 +699,13 @@ declare module '@tanstack/react-router' {
       path: '/api/exports/summary'
       fullPath: '/api/exports/summary'
       preLoaderRoute: typeof ApiExportsSummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/exports/transcript': {
+      id: '/api/exports/transcript'
+      path: '/api/exports/transcript'
+      fullPath: '/api/exports/transcript'
+      preLoaderRoute: typeof ApiExportsTranscriptRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/notes/': {
@@ -905,6 +925,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiConversationsCurrentRoute: ApiConversationsCurrentRoute,
   ApiExportsSummaryRoute: ApiExportsSummaryRoute,
+  ApiExportsTranscriptRoute: ApiExportsTranscriptRoute,
   ApiNotesIdRoute: ApiNotesIdRoute,
   ApiScenariosBatchRoute: ApiScenariosBatchRoute,
   ApiConversationsIndexRoute: ApiConversationsIndexRoute,

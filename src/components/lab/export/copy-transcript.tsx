@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, ClipboardCopy } from "lucide-react";
+import { Check, ClipboardCopy, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/lab/segmented-control";
 import { buildTranscript, type TranscriptOptions } from "@/lib/lab/transcript";
@@ -12,7 +12,7 @@ export function CopyTranscript({
   conversation,
   onCopied,
 }: {
-  conversation: Pick<LabConversation, "code" | "title" | "turns">;
+  conversation: Pick<LabConversation, "id" | "code" | "title" | "turns">;
   /** Called with the number of messages once the text is on the clipboard. */
   onCopied?: (messages: number) => void;
 }) {
@@ -112,19 +112,37 @@ export function CopyTranscript({
           {text}
         </pre>
       )}
-      <Button
-        onClick={() => void copy()}
-        disabled={empty}
-        variant="outline"
-        className="w-fit"
-      >
-        {state === "copied" ? (
-          <Check className="text-positive" aria-hidden="true" />
-        ) : (
-          <ClipboardCopy aria-hidden="true" />
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          onClick={() => void copy()}
+          disabled={empty}
+          variant="outline"
+          className="w-fit"
+        >
+          {state === "copied" ? (
+            <Check className="text-positive" aria-hidden="true" />
+          ) : (
+            <ClipboardCopy aria-hidden="true" />
+          )}
+          {state === "copied" ? "Tersalin" : "Salin transkrip"}
+        </Button>
+        {!empty && (
+          <a
+            href={`/api/exports/transcript?${new URLSearchParams({
+              conversationId: conversation.id,
+              format,
+              labels: brief ? "brief" : "full",
+              baseline: String(includeBaseline),
+              download: "1",
+            })}`}
+            download
+            className="inline-flex items-center gap-1.5 text-sm font-semibold underline underline-offset-3"
+          >
+            <Download className="size-4" aria-hidden="true" />
+            Unduh sebagai berkas
+          </a>
         )}
-        {state === "copied" ? "Tersalin" : "Salin transkrip"}
-      </Button>
+      </div>
       <p role="status" className="text-sm text-muted-foreground">
         {state === "manual"
           ? "Browser menolak salin otomatis. Teks sudah dipilih, tekan Ctrl+C atau Cmd+C."

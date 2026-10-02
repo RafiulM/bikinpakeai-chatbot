@@ -1,5 +1,9 @@
 import { buildSummaryFile } from "@/lib/lab/summary-export";
-import type { SummaryExportInput } from "@/validators/exports";
+import { buildTranscript } from "@/lib/lab/transcript";
+import type {
+  SummaryExportInput,
+  TranscriptExportInput,
+} from "@/validators/exports";
 import { getConversation } from "./conversations.service.server";
 import {
   getTestRunReport,
@@ -38,5 +42,25 @@ export async function buildSummaryExport(
   return {
     kind: "file",
     ...buildSummaryFile({ conversation, report, runs }, input.format),
+  };
+}
+
+/** The labelled transcript of one of the caller's conversations. */
+export async function buildTranscriptExport(
+  userId: string,
+  input: TranscriptExportInput,
+) {
+  const conversation = await getConversation(userId, input.conversationId);
+  if (!conversation) return undefined;
+  const markdown = input.format === "markdown";
+  const code = conversation.code.replace(/[^A-Za-z0-9-]/g, "");
+  return {
+    fileName: `transkrip-bikinpakeai-${code}.${markdown ? "md" : "txt"}`,
+    mimeType: markdown ? "text/markdown" : "text/plain",
+    content: buildTranscript(conversation, {
+      format: input.format,
+      labels: input.labels,
+      includeBaseline: input.baseline === "true",
+    }),
   };
 }
