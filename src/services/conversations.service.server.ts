@@ -1,8 +1,9 @@
-import { and, asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/index.server";
-import { conversations, messages } from "@/db/schema";
+import { conversations, messages, responses } from "@/db/schema";
 import { maskSensitive } from "@/lib/lab/mask";
 import type {
+  BotResponse,
   ConversationTurn,
   LabConversation,
   LabMessage,
@@ -175,16 +176,53 @@ export async function listConversations(
  * Groups stored messages into turns: each customer message opens a turn, and
  * human-agent messages attach to the turn they answer.
  */
-export function buildTurns(rows: LabMessage[]): ConversationTurn[] {
+export function toBotResponse(row: typeof responses.$inferSelect): BotResponse {
+  return {
+    id: row.id,
+    messageId: row.messageId,
+    mode: row.mode === "without_jev" ? "without_jev" : "with_jev",
+    content: row.content,
+    latencyMs: row.latencyMs,
+    costUsd: Number(row.costUsd),
+    isVerified: row.isVerified,
+    review: {
+      verdict: row.verdict as BotResponse["review"]["verdict"],
+      verdictLabel: row.verdictLabel,
+      issues: row.issues,
+      flags: row.flags,
+      highlight: row.highlight ?? undefined,
+      highlightTone:
+        row.highlightTone === "good" || row.highlightTone === "bad"
+          ? row.highlightTone
+          : undefined,
+    },
+  };
+}
+
+export function buildTurns(
+  rows: LabMessage[],
+  answers: (typeof responses.$inferSelect)[] = [],
+): ConversationTurn[] {
+  const byMessage = new Map<string, (typeof responses.$inferSelect)[]>();
+  for (const answer of answers) {
+    byMessage.set(answer.messageId, [
+      ...(byMessage.get(answer.messageId) ?? []),
+      answer,
+    ]);
+  }
   const turns: ConversationTurn[] = [];
   for (const message of rows) {
     if (message.sender === "customer") {
+      const pair = byMessage.get(message.id) ?? [];
+      const jev = pair.find((answer) => answer.mode === "with_jev");
+      const base = pair.find((answer) => answer.mode === "without_jev");
       turns.push({
         message,
         analysis: null,
-        withJev: null,
-        withoutJev: null,
+        withJev: jev ? toBotResponse(jev) : null,
+        withoutJev: base ? toBotResponse(base) : null,
         ticketId: null,
+        ...(jev?.takeaway && { takeaway: jev.takeaway }),
       });
       continue;
     }
@@ -225,8 +263,19 @@ export async function getConversation(
     .from(messages)
     .where(eq(messages.conversationId, conversationId))
     .orderBy(asc(messages.createdAt), asc(messages.id));
+  const answers = rows.length
+    ? await db
+        .select()
+        .from(responses)
+        .where(
+          inArray(
+            responses.messageId,
+            rows.map((row) => row.id),
+          ),
+        )
+    : [];
   return {
     ...toConversationSummary(conversation),
-    turns: buildTurns(rows.map(toLabMessage)),
+    turns: buildTurns(rows.map(toLabMessage), answers),
   };
 }
