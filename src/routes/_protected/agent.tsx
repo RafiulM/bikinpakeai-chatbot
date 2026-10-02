@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
 import { TicketDetail } from "@/components/lab/agent/ticket-detail";
@@ -12,7 +12,7 @@ import {
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/lab/segmented-control";
-import { AGENT_NAME, useTickets } from "@/components/lab/ticket-store";
+import { useTickets } from "@/components/lab/ticket-store";
 import { ReplyForm } from "@/components/lab/agent/reply-form";
 import { TicketActions } from "@/components/lab/agent/ticket-actions";
 import { useLabConversation } from "@/components/lab/conversation-store";
@@ -22,19 +22,29 @@ export const Route = createFileRoute("/_protected/agent")({
   component: AgentPage,
 });
 
-// Reference time for relative ages in the sample data, so server and browser
-// render the same text.
-const SAMPLE_NOW = Date.UTC(2026, 9, 1, 7, 11);
-
 function AgentPage() {
   const {
     tickets: allTickets,
     counts,
+    loading,
+    error,
+    refresh,
     claim,
     close,
     reopen,
     reply,
   } = useTickets();
+  // Opening the queue always shows the latest tickets.
+  useEffect(() => {
+    const timer = setTimeout(() => void refresh(), 0);
+    return () => clearTimeout(timer);
+  }, [refresh]);
+  // Reference time for "x minutes ago", refreshed every minute.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
   const [notice, setNotice] = useState<string | null>(null);
   const { conversations } = useLabConversation();
   const [sort, setSort] = useState<TicketSort>("urgency");
@@ -47,6 +57,16 @@ function AgentPage() {
   // filter (e.g. right after closing it), so it can be reopened at once.
   const selected =
     allTickets.find((ticket) => ticket.id === selectedId) ?? tickets[0];
+
+  /** Runs a ticket action and reports the outcome in the notice area. */
+  async function act(action: () => Promise<void>, success: string) {
+    try {
+      await action();
+      setNotice(success);
+    } catch {
+      setNotice("Aksi gagal. Muat ulang antrean lalu coba lagi.");
+    }
+  }
 
   function select(id: string) {
     setSelectedId(id);
@@ -94,9 +114,25 @@ function AgentPage() {
           />
         </div>
       </div>
+      {error && (
+        <p
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-danger/35 bg-danger/8 px-4 py-3 text-sm"
+        >
+          {error}
+          <Button variant="outline" size="sm" onClick={() => void refresh()}>
+            Coba lagi
+          </Button>
+        </p>
+      )}
       {allTickets.length === 0 ? (
-        <p className="rounded-[20px] border border-dashed p-6 text-center text-muted-foreground">
-          Belum ada kasus yang dieskalasi.
+        <p
+          role="status"
+          className="rounded-[20px] border border-dashed p-6 text-center text-muted-foreground"
+        >
+          {loading
+            ? "Memuat antrean tiket…"
+            : "Belum ada kasus yang dieskalasi. Tiket muncul otomatis saat Jev meneruskan percakapan ke tim support."}
         </p>
       ) : (
         <div className="grid items-start gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
@@ -153,7 +189,7 @@ function AgentPage() {
               tickets={tickets}
               selectedId={selected.id}
               onSelect={select}
-              now={SAMPLE_NOW}
+              now={now}
             />
           </section>
           {!selected ? (
@@ -179,36 +215,37 @@ function AgentPage() {
               actions={
                 <TicketActions
                   ticket={selected}
-                  onClaim={() => {
-                    claim(selected.id, AGENT_NAME);
-                    setNotice(
+                  onClaim={() =>
+                    act(
+                      () => claim(selected.id),
                       `${selected.code} kamu klaim dan pindah ke tab Diklaim.`,
-                    );
-                  }}
-                  onClose={() => {
-                    close(selected.id);
-                    setNotice(
-                      `${selected.code} ditutup dan pindah ke tab Ditutup.`,
-                    );
-                  }}
-                  onReopen={() => {
-                    reopen(selected.id);
-                    setNotice(`${selected.code} dibuka lagi.`);
-                  }}
+                    )
+                  }
+                  onClose={() =>
+                    act(
+                      () => close(selected.id),
+                      `${selected.code} ditutup dan pindah ke Selesai.`,
+                    )
+                  }
+                  onReopen={() =>
+                    act(
+                      () => reopen(selected.id),
+                      `${selected.code} dibuka lagi.`,
+                    )
+                  }
                 />
               }
             >
               <ReplyForm
                 disabled={selected.status === "closed"}
-                onSend={(content, closeAfter) => {
-                  reply(selected.id, content, AGENT_NAME);
-                  if (closeAfter) close(selected.id);
-                  setNotice(
+                onSend={(content, closeAfter) =>
+                  act(
+                    () => reply(selected.id, content, closeAfter),
                     closeAfter
                       ? `Balasan terkirim dan ${selected.code} ditutup.`
                       : "Balasan terkirim ke pelanggan.",
-                  );
-                }}
+                  )
+                }
               />
             </TicketDetail>
           )}

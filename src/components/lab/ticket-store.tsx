@@ -2,99 +2,89 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-import { mockTickets } from "@/lib/lab/mock-tickets";
-import type { SupportTicket, TicketReply, TicketStatus } from "@/lib/lab/types";
+import { labApi } from "@/lib/lab/api-client";
+import type { SupportTicket, TicketStatus } from "@/lib/lab/types";
 import { useLabConversation } from "./conversation-store";
 
-// Tickets for the Agent view, shared with the navigation so the open count is
-// visible from every view.
+// Tickets for the Agent view, loaded from the API and shared with the
+// navigation so the open count is visible from every view. The queue is
+// refreshed periodically and whenever the window regains focus.
 
-/** Name shown on replies written in this session. */
-export const AGENT_NAME = "Kamu";
+const REFRESH_MS = 15_000;
 
 interface TicketValue {
   tickets: SupportTicket[];
   counts: Record<TicketStatus, number>;
-  claim: (id: string, agentName: string) => void;
-  close: (id: string) => void;
-  reopen: (id: string) => void;
-  reply: (id: string, content: string, agentName: string) => TicketReply;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+  claim: (id: string) => Promise<void>;
+  close: (id: string) => Promise<void>;
+  reopen: (id: string) => Promise<void>;
+  reply: (id: string, content: string, close: boolean) => Promise<void>;
 }
 
 const TicketContext = createContext<TicketValue | null>(null);
 
 export function TicketProvider({ children }: { children: ReactNode }) {
-  const [tickets, setTickets] = useState<SupportTicket[]>(mockTickets);
-  // Status before closing, so "Buka lagi" restores exactly what it was.
-  const [previousStatus, setPreviousStatus] = useState<
-    Record<string, TicketStatus>
-  >({});
-  const { addAgentReply } = useLabConversation();
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const updateTicket = useCallback(
-    (id: string, update: (ticket: SupportTicket) => SupportTicket) =>
+  const refresh = useCallback(async () => {
+    try {
+      const { data } = await labApi.listTickets();
+      setTickets(data);
+      setError(null);
+    } catch {
+      setError("Antrean tiket gagal dimuat. Coba lagi sebentar.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // First load right after mount, then on a timer and on window focus.
+    const first = setTimeout(() => void refresh(), 0);
+    const timer = setInterval(() => void refresh(), REFRESH_MS);
+    const onFocus = () => void refresh();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [refresh]);
+
+  // A new escalation in the active conversation means a new ticket.
+  const { conversation } = useLabConversation();
+  const ticketCodes = conversation.turns
+    .map((turn) => turn.ticketId)
+    .filter(Boolean)
+    .join(",");
+  useEffect(() => {
+    if (!ticketCodes) return;
+    const timer = setTimeout(() => void refresh(), 0);
+    return () => clearTimeout(timer);
+  }, [ticketCodes, refresh]);
+
+  const replaceTicket = useCallback(
+    (updated: SupportTicket) =>
       setTickets((current) =>
-        current.map((ticket) => (ticket.id === id ? update(ticket) : ticket)),
+        current.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
       ),
     [],
   );
 
-  const claim = useCallback(
-    (id: string, agentName: string) =>
-      updateTicket(id, (ticket) => ({
-        ...ticket,
-        status: "claimed",
-        claimedBy: agentName,
-      })),
-    [updateTicket],
-  );
-
-  const close = useCallback(
-    (id: string) => {
-      const current = tickets.find((ticket) => ticket.id === id);
-      if (current && current.status !== "closed")
-        setPreviousStatus((map) => ({ ...map, [id]: current.status }));
-      updateTicket(id, (ticket) => ({ ...ticket, status: "closed" }));
-    },
-    [tickets, updateTicket],
-  );
-
-  const reopen = useCallback(
-    (id: string) =>
-      updateTicket(id, (ticket) => ({
-        ...ticket,
-        status: previousStatus[id] ?? (ticket.claimedBy ? "claimed" : "open"),
-      })),
-    [previousStatus, updateTicket],
-  );
-
-  const reply = useCallback(
-    (id: string, content: string, agentName: string) => {
-      const ticket = tickets.find((item) => item.id === id);
-      const created: TicketReply = {
-        id: `local-reply-${Date.now()}`,
-        ticketId: id,
-        agentName,
-        content,
-        createdAt: new Date().toISOString(),
-      };
-      updateTicket(id, (current) => ({
-        ...current,
-        replies: [...current.replies, created],
-      }));
-      // The customer sees the human reply in their own chat.
-      if (ticket)
-        addAgentReply(ticket.conversationId, ticket.messageId, {
-          ...created,
-          ticketId: ticket.code,
-        });
-      return created;
-    },
-    [tickets, updateTicket, addAgentReply],
+  const setStatus = useCallback(
+    async (id: string, status: TicketStatus) =>
+      replaceTicket(await labApi.setTicketStatus(id, status)),
+    [replaceTicket],
   );
 
   const value = useMemo<TicketValue>(() => {
@@ -104,8 +94,19 @@ export function TicketProvider({ children }: { children: ReactNode }) {
       closed: 0,
     };
     for (const ticket of tickets) counts[ticket.status] += 1;
-    return { tickets, counts, claim, close, reopen, reply };
-  }, [tickets, claim, close, reopen, reply]);
+    return {
+      tickets,
+      counts,
+      loading,
+      error,
+      refresh,
+      claim: (id) => setStatus(id, "claimed"),
+      close: (id) => setStatus(id, "closed"),
+      reopen: (id) => setStatus(id, "open"),
+      reply: async (id, content, close) =>
+        replaceTicket(await labApi.replyTicket(id, content, close)),
+    };
+  }, [tickets, loading, error, refresh, setStatus, replaceTicket]);
 
   return (
     <TicketContext.Provider value={value}>{children}</TicketContext.Provider>

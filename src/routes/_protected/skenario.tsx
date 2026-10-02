@@ -28,7 +28,7 @@ const GROUPS = ISSUE_TYPES.map((category) => ({
 })).filter((group) => group.scenarios.length > 0);
 
 function ScenarioPage() {
-  const { conversation, busy, send } = useLabConversation();
+  const { conversation, busy, runScenario } = useLabConversation();
   const [open, setOpen] = useState<Set<IssueType>>(
     () => new Set([GROUPS[0]?.category].filter(Boolean) as IssueType[]),
   );
@@ -87,7 +87,7 @@ function ScenarioPage() {
         continue;
       }
       setState(scenario.id, "running");
-      const messageId = await send(scenario.prompt);
+      const messageId = await runScenario(scenario.id, scenario.prompt);
       setState(scenario.id, messageId ? "done" : "failed");
       lastMessageId = messageId ?? lastMessageId;
     }

@@ -7,7 +7,7 @@ import { useLabConversation } from "@/components/lab/conversation-store";
 import { LastTurnCard } from "@/components/lab/last-turn-card";
 import { NewConversationButton } from "@/components/lab/new-conversation-button";
 import { SuggestedQuestions } from "@/components/lab/suggested-questions";
-import { SUGGESTED_QUESTIONS } from "@/lib/lab/mock-data";
+import { SUGGESTED_QUESTIONS } from "@/lib/lab/suggestions";
 
 export const Route = createFileRoute("/_protected/customer")({
   head: () => ({ meta: [{ title: `Customer | ${siteConfig.name}` }] }),
@@ -28,9 +28,13 @@ function CustomerPage() {
     void send(text);
   }
 
-  function startNewConversation() {
-    const { endedCode, code } = startNew();
-    setNotice(`Percakapan ${code} dimulai. ${endedCode} sudah disimpan.`);
+  async function startNewConversation() {
+    const started = await startNew();
+    setNotice(
+      started
+        ? `Percakapan ${started.code} dimulai. ${started.endedCode} sudah disimpan.`
+        : "Percakapan baru gagal dibuat. Coba lagi.",
+    );
     requestAnimationFrame(() => inputRef.current?.focus());
   }
 
@@ -49,7 +53,7 @@ function CustomerPage() {
           currentCode={conversation.code}
           messageCount={turns.length}
           disabled={busy || turns.length === 0}
-          onConfirm={startNewConversation}
+          onConfirm={() => void startNewConversation()}
         />
       </div>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -83,7 +87,9 @@ function CustomerPage() {
             <>
               {turns.length === 0 && (
                 <SuggestedQuestions
-                  questions={SUGGESTED_QUESTIONS}
+                  questions={SUGGESTED_QUESTIONS.slice(0, 4).map(
+                    (question) => question.text,
+                  )}
                   disabled={busy}
                   onPick={handleSend}
                 />

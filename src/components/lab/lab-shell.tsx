@@ -99,24 +99,28 @@ export function SessionCard({
         {code} · {title}
       </p>
       <p className="text-muted-foreground">
-        {messageCount} pesan · tetap utuh di semua tampilan
+        {conversationId === "draft"
+          ? "Belum ada pesan · kirim pertanyaan untuk memulai"
+          : `${messageCount} pesan · tetap utuh di semua tampilan`}
       </p>
-      <button
-        type="button"
-        onClick={copyLink}
-        className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full text-xs font-semibold underline underline-offset-3"
-      >
-        {copied === "done" ? (
-          <Check className="size-3.5 text-positive" aria-hidden="true" />
-        ) : (
-          <Link2 className="size-3.5" aria-hidden="true" />
-        )}
-        {copied === "done"
-          ? "Tautan tersalin"
-          : copied === "failed"
-            ? "Gagal menyalin"
-            : "Salin tautan tampilan ini"}
-      </button>
+      {conversationId !== "draft" && (
+        <button
+          type="button"
+          onClick={copyLink}
+          className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full text-xs font-semibold underline underline-offset-3"
+        >
+          {copied === "done" ? (
+            <Check className="size-3.5 text-positive" aria-hidden="true" />
+          ) : (
+            <Link2 className="size-3.5" aria-hidden="true" />
+          )}
+          {copied === "done"
+            ? "Tautan tersalin"
+            : copied === "failed"
+              ? "Gagal menyalin"
+              : "Salin tautan tampilan ini"}
+        </button>
+      )}
       <span role="status" className="sr-only">
         {copied === "done" ? "Tautan tampilan ini tersalin." : ""}
       </span>
