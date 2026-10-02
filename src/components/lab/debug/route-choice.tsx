@@ -48,14 +48,6 @@ export function RouteChoice({ analysis }: { analysis: JevAnalysis }) {
           );
         })}
       </ul>
-      <div className="grid gap-1">
-        <p className="text-xs font-semibold text-muted-foreground">
-          Kenapa rute ini
-        </p>
-        <p className="rounded-[10px] bg-surface-subtle px-4 py-3 text-[15px] leading-relaxed">
-          {analysis.routeReason}
-        </p>
-      </div>
       <p className="text-xs text-muted-foreground">
         {ROUTE_LABEL[analysis.route]}: {ROUTE_HINT[analysis.route]}.
       </p>

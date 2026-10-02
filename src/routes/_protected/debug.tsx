@@ -6,6 +6,7 @@ import {
   AnalysisPanel,
   PanelSection,
 } from "@/components/lab/debug/analysis-panel";
+import { DecisionReason } from "@/components/lab/debug/decision-reason";
 import { LabelTable } from "@/components/lab/debug/label-table";
 import { MessageTabs } from "@/components/lab/debug/message-tabs";
 import { RouteChoice } from "@/components/lab/debug/route-choice";
@@ -88,9 +89,14 @@ function DebugPage() {
                   <PanelSection title="Label & skor keyakinan">
                     <LabelTable analysis={selected.analysis} />
                   </PanelSection>
-                  <PanelSection title="Rute penanganan">
-                    <RouteChoice analysis={selected.analysis} />
-                  </PanelSection>
+                  <div className="grid content-start gap-6">
+                    <PanelSection title="Rute penanganan">
+                      <RouteChoice analysis={selected.analysis} />
+                    </PanelSection>
+                    <PanelSection title="Alasan keputusan">
+                      <DecisionReason analysis={selected.analysis} />
+                    </PanelSection>
+                  </div>
                 </div>
                 <PanelSection title="Waktu proses & biaya">
                   <TimingBreakdown turn={selected} />
