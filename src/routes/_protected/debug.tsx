@@ -8,6 +8,7 @@ import {
 } from "@/components/lab/debug/analysis-panel";
 import { LabelTable } from "@/components/lab/debug/label-table";
 import { MessageTabs } from "@/components/lab/debug/message-tabs";
+import { RouteChoice } from "@/components/lab/debug/route-choice";
 import { sortTurns } from "@/lib/lab/conversation";
 
 export const Route = createFileRoute("/_protected/debug")({
@@ -86,12 +87,7 @@ function DebugPage() {
                   <LabelTable analysis={selected.analysis} />
                 </PanelSection>
                 <PanelSection title="Rute penanganan">
-                  <p className="text-[15px] font-semibold">
-                    {selected.analysis.routeLabel}
-                  </p>
-                  <p className="rounded-[10px] bg-surface-subtle px-4 py-3 text-[15px] leading-relaxed">
-                    {selected.analysis.routeReason}
-                  </p>
+                  <RouteChoice analysis={selected.analysis} />
                 </PanelSection>
               </div>
             )}
