@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ClipboardCopy, FileDown, Video } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useLabConversation } from "@/components/lab/conversation-store";
+import { CopyTranscript } from "@/components/lab/export/copy-transcript";
 import { ExportSection } from "@/components/lab/export/export-section";
 import { RecordingToggle } from "@/components/lab/export/recording-toggle";
 import { SourceSummary } from "@/components/lab/export/source-summary";
@@ -80,6 +81,7 @@ function ExportPage() {
             <li>Label Jev, rute, dan alasan keputusan</li>
             <li>Data sensitif tetap tersamarkan</li>
           </ul>
+          <CopyTranscript conversation={conversation} />
         </ExportSection>
         <ExportSection
           id="export-recording"
