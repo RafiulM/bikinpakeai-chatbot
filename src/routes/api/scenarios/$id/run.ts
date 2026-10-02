@@ -1,24 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ApiError, readJson, withApiSession } from "@/lib/api.server";
 import { sendCustomerMessage } from "@/services/messaging.service.server";
-import {
-  conversationIdSchema,
-  sendMessageSchema,
-} from "@/validators/conversations";
+import { getScenario } from "@/services/scenarios.service.server";
+import { runScenarioSchema, scenarioIdSchema } from "@/validators/scenarios";
 
-export const Route = createFileRoute("/api/conversations/$id/messages")({
+// Sends a ready-made scenario into one of the caller's conversations, through
+// exactly the same pipeline as a typed customer message.
+export const Route = createFileRoute("/api/scenarios/$id/run")({
   server: {
     handlers: {
       POST: ({ request, params }) =>
         withApiSession(request, async (session) => {
-          const conversationId = conversationIdSchema.safeParse(params.id);
-          if (!conversationId.success)
-            throw new ApiError(404, "NOT_FOUND", "Conversation not found.");
-          const input = sendMessageSchema.parse(await readJson(request));
+          const id = scenarioIdSchema.safeParse(params.id);
+          const scenario = id.success && (await getScenario(id.data));
+          if (!scenario)
+            throw new ApiError(404, "NOT_FOUND", "Scenario not found.");
+          const { conversationId } = runScenarioSchema.parse(
+            await readJson(request),
+          );
           const result = await sendCustomerMessage(
             session.user.id,
-            conversationId.data,
-            input.content,
+            conversationId,
+            scenario.prompt,
+            scenario.id,
           );
           if (result.kind === "not_found")
             throw new ApiError(404, "NOT_FOUND", "Conversation not found.");
@@ -29,7 +33,7 @@ export const Route = createFileRoute("/api/conversations/$id/messages")({
               "This conversation has ended. Start a new one.",
             );
           return Response.json(
-            { data: { message: result.turn.message, turn: result.turn } },
+            { data: { scenario, turn: result.turn } },
             { status: 201 },
           );
         }),

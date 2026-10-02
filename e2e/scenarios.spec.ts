@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { signUp } from "./support/session";
+import { testDb } from "./support/db";
+import { headers, signUp } from "./support/session";
 
 let client: APIRequestContext;
 
@@ -42,4 +43,74 @@ test("scenarios are listed per category in display order", async ({
   expect((await client.get("/api/scenarios?category=lainnya")).status()).toBe(
     422,
   );
+});
+
+test("running a scenario sends it through the full pipeline", async ({
+  playwright,
+}) => {
+  const { data: conversation } = await (
+    await client.post("/api/conversations", { headers, data: {} })
+  ).json();
+  const response = await client.post("/api/scenarios/promo-injection/run", {
+    headers,
+    data: { conversationId: conversation.id },
+  });
+  expect(response.status()).toBe(201);
+  const { data } = await response.json();
+  expect(data.scenario.id).toBe("promo-injection");
+  expect(data.turn.message.content).toBe(data.scenario.prompt);
+  expect(data.turn.analysis).toMatchObject({ decision: "blocked" });
+
+  const db = testDb();
+  try {
+    const { rows } = await db.query(
+      "SELECT scenario_id FROM messages WHERE id = $1",
+      [data.turn.message.id],
+    );
+    expect(rows[0].scenario_id).toBe("promo-injection");
+  } finally {
+    await db.end();
+  }
+
+  const masked = await (
+    await client.post("/api/scenarios/card-number/run", {
+      headers,
+      data: { conversationId: conversation.id },
+    })
+  ).json();
+  expect(masked.data.turn.message.isMasked).toBe(true);
+
+  expect(
+    (
+      await client.post("/api/scenarios/unknown-case/run", {
+        headers,
+        data: { conversationId: conversation.id },
+      })
+    ).status(),
+  ).toBe(404);
+  expect(
+    (
+      await client.post("/api/scenarios/promo-injection/run", {
+        headers,
+        data: {},
+      })
+    ).status(),
+  ).toBe(422);
+
+  const other = await playwright.request.newContext({
+    baseURL: "http://localhost:3101",
+  });
+  try {
+    await signUp(other, "scenarios-other");
+    expect(
+      (
+        await other.post("/api/scenarios/promo-injection/run", {
+          headers,
+          data: { conversationId: conversation.id },
+        })
+      ).status(),
+    ).toBe(404);
+  } finally {
+    await other.dispose();
+  }
 });

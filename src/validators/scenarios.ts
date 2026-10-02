@@ -6,3 +6,7 @@ export const listScenariosSchema = z
   .strict();
 
 export const scenarioIdSchema = z.string().regex(/^[a-z0-9-]{1,80}$/);
+
+export const runScenarioSchema = z
+  .object({ conversationId: z.string().uuid() })
+  .strict();

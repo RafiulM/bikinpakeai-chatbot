@@ -36,6 +36,7 @@ import { Route as ApiConversationsIdDebugRouteImport } from './routes/api/conver
 import { Route as ApiConversationsIdEventsRouteImport } from './routes/api/conversations/$id/events'
 import { Route as ApiConversationsIdMessagesRouteImport } from './routes/api/conversations/$id/messages'
 import { Route as ApiConversationsIdSummaryRouteImport } from './routes/api/conversations/$id/summary'
+import { Route as ApiScenariosIdRunRouteImport } from './routes/api/scenarios/$id/run'
 import { Route as ApiTicketsIdIndexRouteImport } from './routes/api/tickets/$id/index'
 import { Route as ApiTicketsIdRepliesRouteImport } from './routes/api/tickets/$id/replies'
 import { Route as ApiTicketsIdSummaryRouteImport } from './routes/api/tickets/$id/summary'
@@ -177,6 +178,11 @@ const ApiConversationsIdSummaryRoute =
     path: '/api/conversations/$id/summary',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiScenariosIdRunRoute = ApiScenariosIdRunRouteImport.update({
+  id: '/api/scenarios/$id/run',
+  path: '/api/scenarios/$id/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTicketsIdIndexRoute = ApiTicketsIdIndexRouteImport.update({
   id: '/api/tickets/$id/',
   path: '/api/tickets/$id/',
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/api/conversations/$id/events': typeof ApiConversationsIdEventsRoute
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/conversations/$id/summary': typeof ApiConversationsIdSummaryRoute
+  '/api/scenarios/$id/run': typeof ApiScenariosIdRunRoute
   '/api/tickets/$id/replies': typeof ApiTicketsIdRepliesRoute
   '/api/tickets/$id/summary': typeof ApiTicketsIdSummaryRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
@@ -247,6 +254,7 @@ export interface FileRoutesByTo {
   '/api/conversations/$id/events': typeof ApiConversationsIdEventsRoute
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/conversations/$id/summary': typeof ApiConversationsIdSummaryRoute
+  '/api/scenarios/$id/run': typeof ApiScenariosIdRunRoute
   '/api/tickets/$id/replies': typeof ApiTicketsIdRepliesRoute
   '/api/tickets/$id/summary': typeof ApiTicketsIdSummaryRoute
   '/api/admin/notes': typeof ApiAdminNotesIndexRoute
@@ -280,6 +288,7 @@ export interface FileRoutesById {
   '/api/conversations/$id/events': typeof ApiConversationsIdEventsRoute
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/conversations/$id/summary': typeof ApiConversationsIdSummaryRoute
+  '/api/scenarios/$id/run': typeof ApiScenariosIdRunRoute
   '/api/tickets/$id/replies': typeof ApiTicketsIdRepliesRoute
   '/api/tickets/$id/summary': typeof ApiTicketsIdSummaryRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
@@ -312,6 +321,7 @@ export interface FileRouteTypes {
     | '/api/conversations/$id/events'
     | '/api/conversations/$id/messages'
     | '/api/conversations/$id/summary'
+    | '/api/scenarios/$id/run'
     | '/api/tickets/$id/replies'
     | '/api/tickets/$id/summary'
     | '/api/admin/notes/'
@@ -342,6 +352,7 @@ export interface FileRouteTypes {
     | '/api/conversations/$id/events'
     | '/api/conversations/$id/messages'
     | '/api/conversations/$id/summary'
+    | '/api/scenarios/$id/run'
     | '/api/tickets/$id/replies'
     | '/api/tickets/$id/summary'
     | '/api/admin/notes'
@@ -374,6 +385,7 @@ export interface FileRouteTypes {
     | '/api/conversations/$id/events'
     | '/api/conversations/$id/messages'
     | '/api/conversations/$id/summary'
+    | '/api/scenarios/$id/run'
     | '/api/tickets/$id/replies'
     | '/api/tickets/$id/summary'
     | '/api/admin/notes/'
@@ -399,6 +411,7 @@ export interface RootRouteChildren {
   ApiConversationsIdEventsRoute: typeof ApiConversationsIdEventsRoute
   ApiConversationsIdMessagesRoute: typeof ApiConversationsIdMessagesRoute
   ApiConversationsIdSummaryRoute: typeof ApiConversationsIdSummaryRoute
+  ApiScenariosIdRunRoute: typeof ApiScenariosIdRunRoute
   ApiTicketsIdRepliesRoute: typeof ApiTicketsIdRepliesRoute
   ApiTicketsIdSummaryRoute: typeof ApiTicketsIdSummaryRoute
   ApiAdminNotesIndexRoute: typeof ApiAdminNotesIndexRoute
@@ -597,6 +610,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiConversationsIdSummaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/scenarios/$id/run': {
+      id: '/api/scenarios/$id/run'
+      path: '/api/scenarios/$id/run'
+      fullPath: '/api/scenarios/$id/run'
+      preLoaderRoute: typeof ApiScenariosIdRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tickets/$id/': {
       id: '/api/tickets/$id/'
       path: '/api/tickets/$id'
@@ -673,6 +693,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiConversationsIdEventsRoute: ApiConversationsIdEventsRoute,
   ApiConversationsIdMessagesRoute: ApiConversationsIdMessagesRoute,
   ApiConversationsIdSummaryRoute: ApiConversationsIdSummaryRoute,
+  ApiScenariosIdRunRoute: ApiScenariosIdRunRoute,
   ApiTicketsIdRepliesRoute: ApiTicketsIdRepliesRoute,
   ApiTicketsIdSummaryRoute: ApiTicketsIdSummaryRoute,
   ApiAdminNotesIndexRoute: ApiAdminNotesIndexRoute,

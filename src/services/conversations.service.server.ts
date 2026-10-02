@@ -112,6 +112,7 @@ export async function addCustomerMessage(
   userId: string,
   conversationId: string,
   content: string,
+  scenarioId?: string,
 ): Promise<AddMessageResult> {
   const masked = maskSensitive(content);
   return db.transaction(async (tx) => {
@@ -140,6 +141,7 @@ export async function addCustomerMessage(
         sender: "customer",
         content: masked.text,
         isMasked: masked.masked,
+        scenarioId: scenarioId ?? null,
       })
       .returning();
 

@@ -9,6 +9,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { conversations } from "./conversations";
+import { scenarios } from "./scenarios";
 
 // A message inside a conversation. Content is stored already masked when it
 // contained sensitive data; the original text is never persisted.
@@ -22,6 +23,10 @@ export const messages = pgTable(
     sender: text("sender").notNull(),
     content: text("content").notNull(),
     isMasked: boolean("is_masked").default(false).notNull(),
+    /** Set when the message was sent by a ready-made scenario. */
+    scenarioId: text("scenario_id").references(() => scenarios.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

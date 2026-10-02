@@ -71,6 +71,13 @@
       "when": 1790967907531,
       "tag": "0009_scenarios_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790968063475,
+      "tag": "0010_message_scenario",
+      "breakpoints": true
     }
   ]
 }
