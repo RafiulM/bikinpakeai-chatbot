@@ -108,15 +108,17 @@ function TestSetPage() {
               onChange={setSelectedSet}
               disabled={running}
               extraOption={
-                <TestSetOption
-                  name="test-set"
-                  value="upload"
-                  checked={selectedSet === "upload"}
-                  onChange={() => setSelectedSet("upload")}
-                  title="Unggah berkas sendiri"
-                  badge="1–100 pesan"
-                  description="CSV atau JSONL berisi pesan dan label harapan."
-                />
+                <div className="rekam:hidden">
+                  <TestSetOption
+                    name="test-set"
+                    value="upload"
+                    checked={selectedSet === "upload"}
+                    onChange={() => setSelectedSet("upload")}
+                    title="Unggah berkas sendiri"
+                    badge="1–100 pesan"
+                    description="CSV atau JSONL berisi pesan dan label harapan."
+                  />
+                </div>
               }
             />
           )}
@@ -126,7 +128,9 @@ function TestSetPage() {
             </p>
           )}
           {selectedSet === "upload" && (
-            <UploadForm onSave={saveUpload} saving={saving} />
+            <div className="rekam:hidden">
+              <UploadForm onSave={saveUpload} saving={saving} />
+            </div>
           )}
           {uploadError && (
             <p role="alert" className="text-sm text-danger-text">

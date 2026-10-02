@@ -40,7 +40,7 @@ function ComparePage() {
           variant="outline"
           aria-pressed={highlight}
           onClick={() => setHighlight((on) => !on)}
-          className="aria-pressed:border-foreground aria-pressed:bg-canvas-warm"
+          className="aria-pressed:border-foreground aria-pressed:bg-canvas-warm rekam:hidden"
         >
           <Highlighter aria-hidden="true" />
           Sorot perbedaan
@@ -71,7 +71,10 @@ function ComparePage() {
                   { value: "differs", label: "Hasil berbeda" },
                 ]}
               />
-              <p role="status" className="text-sm text-muted-foreground">
+              <p
+                role="status"
+                className="text-sm text-muted-foreground rekam:hidden"
+              >
                 Menampilkan {shown.length} dari {turns.length} pesan
               </p>
             </div>

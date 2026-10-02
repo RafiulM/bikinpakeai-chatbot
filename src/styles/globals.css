@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+/* rekam: styles apply only in the clean recording mode (?rekam=1). */
+@custom-variant rekam (&:where([data-recording="on"] *));
 
 @theme inline {
   --color-background: var(--background);

@@ -49,12 +49,14 @@ function CustomerPage() {
             Percakapan {conversation.code} · {turns.length} pesan
           </p>
         </div>
-        <NewConversationButton
-          currentCode={conversation.code}
-          messageCount={turns.length}
-          disabled={busy || turns.length === 0}
-          onConfirm={() => void startNewConversation()}
-        />
+        <div className="rekam:hidden">
+          <NewConversationButton
+            currentCode={conversation.code}
+            messageCount={turns.length}
+            disabled={busy || turns.length === 0}
+            onConfirm={() => void startNewConversation()}
+          />
+        </div>
       </div>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         <ChatWidget
@@ -66,7 +68,7 @@ function CustomerPage() {
               <Link
                 to="/compare"
                 hash={`turn-${turn.message.id}`}
-                className="font-semibold text-foreground/80 underline underline-offset-3 hover:text-signal-text"
+                className="font-semibold text-foreground/80 underline underline-offset-3 hover:text-signal-text rekam:hidden"
               >
                 Bandingkan
               </Link>

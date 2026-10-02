@@ -118,7 +118,7 @@ export function ChatComposer({
           {error}
         </p>
       )}
-      <p id={hintId} className="text-xs text-muted-foreground">
+      <p id={hintId} className="text-xs text-muted-foreground rekam:hidden">
         Enter untuk kirim, Shift+Enter untuk baris baru. Jangan bagikan
         password; nomor kartu disamarkan otomatis.
       </p>

@@ -51,7 +51,7 @@ function DebugPage() {
         </div>
         <Link
           to="/compare"
-          className="text-sm font-semibold underline underline-offset-3"
+          className="text-sm font-semibold underline underline-offset-3 rekam:hidden"
         >
           Lihat dua jawabannya di Compare
         </Link>
