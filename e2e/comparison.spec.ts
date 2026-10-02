@@ -105,4 +105,37 @@ test("comparison returns both answers, winners, deltas and totals", async () => 
   expect(data.summary.withJev.latencyMs).toBe(1420);
   expect(data.summary.withoutJev.security).toBe(1);
   expect(data.summary.withJev.costUsd).toBeCloseTo(0.0007, 6);
+
+  const totals = await owner.get(
+    `/api/conversations/${conversation.id}/summary`,
+  );
+  expect(totals.status()).toBe(200);
+  const { data: summary } = await totals.json();
+  expect(summary.conversation.id).toBe(conversation.id);
+  expect(summary).toMatchObject({
+    compared: 2,
+    jevBetterCount: 1,
+    withJev: { answered: 2, correct: 2, latencyMs: 1420, security: 0 },
+    withoutJev: { answered: 2, correct: 1, latencyMs: 6000, security: 1 },
+  });
+  expect(summary.speedup).toBeCloseTo(6000 / 1420, 6);
+  expect(summary.costSaving).toBeCloseTo(1 - 0.0007 / 0.0125, 4);
+  expect(
+    (await owner.get(`/api/conversations/${randomUUID()}/summary`)).status(),
+  ).toBe(404);
+});
+
+test("an empty conversation summarizes to zero without errors", async () => {
+  const { data: conversation } = await (
+    await owner.post("/api/conversations", { headers, data: {} })
+  ).json();
+  const { data } = await (
+    await owner.get(`/api/conversations/${conversation.id}/summary`)
+  ).json();
+  expect(data).toMatchObject({
+    compared: 0,
+    speedup: null,
+    costSaving: null,
+    running: [],
+  });
 });
