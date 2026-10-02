@@ -2,7 +2,8 @@ import { useEffect, useId, useState } from "react";
 import { Check, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/lab/segmented-control";
-import { buildSummaryFile, type SummaryFormat } from "@/lib/lab/summary-export";
+import { labApi } from "@/lib/lab/api-client";
+import type { SummaryFormat } from "@/lib/lab/summary-export";
 import type { LabConversation, TestRunReport } from "@/lib/lab/types";
 
 /** Saves the comparison results as one Markdown or JSON file. */
@@ -11,7 +12,7 @@ export function DownloadSummary({
   report,
   onSaved,
 }: {
-  conversation: Pick<LabConversation, "code" | "title" | "turns">;
+  conversation: Pick<LabConversation, "id" | "code" | "turns">;
   report: TestRunReport | null;
   /** Called with the file name once the download has started. */
   onSaved?: (fileName: string) => void;
@@ -21,6 +22,8 @@ export function DownloadSummary({
   const [withConversation, setWithConversation] = useState(true);
   const [withReport, setWithReport] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!saved) return;
     const timer = setTimeout(() => setSaved(false), 2500);
@@ -31,26 +34,31 @@ export function DownloadSummary({
   const includeReport = withReport && report !== null;
   const ready = includeConversation || includeReport;
 
-  function download() {
-    const file = buildSummaryFile(
-      {
-        conversation: includeConversation ? conversation : null,
-        report: includeReport ? report : null,
-      },
-      format,
-    );
-    const url = URL.createObjectURL(
-      new Blob([file.content], { type: `${file.mimeType};charset=utf-8` }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = file.fileName;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setSaved(true);
-    onSaved?.(file.fileName);
+  // Built on the server from stored results, then saved by the browser.
+  async function download() {
+    setSaving(true);
+    setError(null);
+    try {
+      const file = await labApi.exportSummary({
+        conversationId: includeConversation ? conversation.id : undefined,
+        testRunId: includeReport ? report.runId : undefined,
+        format,
+      });
+      const url = URL.createObjectURL(file.blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.fileName;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setSaved(true);
+      onSaved?.(file.fileName);
+    } catch {
+      setError("Ringkasan gagal dibuat. Periksa koneksi lalu coba lagi.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -104,10 +112,19 @@ export function DownloadSummary({
           { value: "json", label: "JSON" },
         ]}
       />
-      <Button onClick={download} disabled={!ready} className="w-fit">
+      <Button
+        onClick={() => void download()}
+        disabled={!ready || saving}
+        className="w-fit"
+      >
         {saved ? <Check aria-hidden="true" /> : <FileDown aria-hidden="true" />}
-        {saved ? "Tersimpan" : "Unduh ringkasan"}
+        {saving ? "Menyiapkan…" : saved ? "Tersimpan" : "Unduh ringkasan"}
       </Button>
+      {error && (
+        <p role="alert" className="text-sm text-danger-text">
+          {error}
+        </p>
+      )}
       {!ready && (
         <p className="text-sm text-muted-foreground">
           Pilih minimal satu isi yang tersedia.

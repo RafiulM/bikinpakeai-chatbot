@@ -168,4 +168,28 @@ export const labApi = {
     );
     return data;
   },
+
+  /** Downloads a summary file built on the server from stored results. */
+  async exportSummary(params: {
+    conversationId?: string;
+    testRunId?: string;
+    format: "markdown" | "json";
+  }) {
+    const query = new URLSearchParams({ format: params.format });
+    if (params.conversationId)
+      query.set("conversationId", params.conversationId);
+    if (params.testRunId) query.set("testRun", params.testRunId);
+    const response = await fetch(`/api/exports/summary?${query}`);
+    if (!response.ok)
+      throw new LabApiError(
+        response.status,
+        "EXPORT_FAILED",
+        "Ringkasan gagal dibuat. Coba lagi.",
+      );
+    const disposition = response.headers.get("content-disposition") ?? "";
+    return {
+      blob: await response.blob(),
+      fileName: /filename="([^"]+)"/.exec(disposition)?.[1] ?? "ringkasan.md",
+    };
+  },
 };
