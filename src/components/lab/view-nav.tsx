@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Columns2,
+  ListVideo,
   Headset,
   MessageCircle,
   ScanSearch,
@@ -42,6 +43,10 @@ export const VIEW_LINKS: ViewLink[] = [
   },
   { id: "agent", to: "/agent", label: "Agent", shortcut: "4", icon: Headset },
 ];
+
+const TOOL_LINKS = [
+  { to: "/skenario", label: "Skenario", icon: ListVideo },
+] as const;
 
 // The active view gets a filled surface, a bold label, an orange marker and
 // aria-current (set by Link), so it never relies on color alone.
@@ -111,6 +116,30 @@ export function ViewNav() {
                 >
                   {view.shortcut}
                 </kbd>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="grid gap-1 max-lg:flex">
+        <p
+          id="lab-nav-tools"
+          className="px-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase max-lg:sr-only"
+        >
+          Alat demo
+        </p>
+        <ul
+          aria-labelledby="lab-nav-tools"
+          className="grid gap-0.5 max-lg:flex"
+        >
+          {TOOL_LINKS.map((tool) => (
+            <li key={tool.to}>
+              <Link to={tool.to} className={linkClass}>
+                <tool.icon
+                  className="size-[18px] shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                {tool.label}
               </Link>
             </li>
           ))}

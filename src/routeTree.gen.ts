@@ -19,6 +19,7 @@ import { Route as ProtectedAgentRouteImport } from './routes/_protected/agent'
 import { Route as ProtectedCompareRouteImport } from './routes/_protected/compare'
 import { Route as ProtectedCustomerRouteImport } from './routes/_protected/customer'
 import { Route as ProtectedDebugRouteImport } from './routes/_protected/debug'
+import { Route as ProtectedSkenarioRouteImport } from './routes/_protected/skenario'
 import { Route as ApiSuggestionsRouteImport } from './routes/api/suggestions'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiConversationsIndexRouteImport } from './routes/api/conversations/index'
@@ -79,6 +80,11 @@ const ProtectedCustomerRoute = ProtectedCustomerRouteImport.update({
 const ProtectedDebugRoute = ProtectedDebugRouteImport.update({
   id: '/debug',
   path: '/debug',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedSkenarioRoute = ProtectedSkenarioRouteImport.update({
+  id: '/skenario',
+  path: '/skenario',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ApiSuggestionsRoute = ApiSuggestionsRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
+  '/skenario': typeof ProtectedSkenarioRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
+  '/skenario': typeof ProtectedSkenarioRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/_protected/compare': typeof ProtectedCompareRoute
   '/_protected/customer': typeof ProtectedCustomerRoute
   '/_protected/debug': typeof ProtectedDebugRoute
+  '/_protected/skenario': typeof ProtectedSkenarioRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
@@ -234,6 +243,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/customer'
     | '/debug'
+    | '/skenario'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/customer'
     | '/debug'
+    | '/skenario'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
@@ -282,6 +293,7 @@ export interface FileRouteTypes {
     | '/_protected/compare'
     | '/_protected/customer'
     | '/_protected/debug'
+    | '/_protected/skenario'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
@@ -386,6 +398,13 @@ declare module '@tanstack/react-router' {
       path: '/debug'
       fullPath: '/debug'
       preLoaderRoute: typeof ProtectedDebugRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/skenario': {
+      id: '/_protected/skenario'
+      path: '/skenario'
+      fullPath: '/skenario'
+      preLoaderRoute: typeof ProtectedSkenarioRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/api/suggestions': {
@@ -500,6 +519,7 @@ interface ProtectedRouteChildren {
   ProtectedCompareRoute: typeof ProtectedCompareRoute
   ProtectedCustomerRoute: typeof ProtectedCustomerRoute
   ProtectedDebugRoute: typeof ProtectedDebugRoute
+  ProtectedSkenarioRoute: typeof ProtectedSkenarioRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
@@ -508,6 +528,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedCompareRoute: ProtectedCompareRoute,
   ProtectedCustomerRoute: ProtectedCustomerRoute,
   ProtectedDebugRoute: ProtectedDebugRoute,
+  ProtectedSkenarioRoute: ProtectedSkenarioRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
