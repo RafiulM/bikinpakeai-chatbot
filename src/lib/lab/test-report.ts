@@ -1,8 +1,17 @@
 import { CATEGORY_LABEL } from "./scenarios";
-import { ISSUE_TYPES, type TestCaseResult, type TestRunReport } from "./types";
+import {
+  ISSUE_TYPES,
+  type TestCaseResult,
+  type TestRunReport,
+  type VerdictTally,
+} from "./types";
 
 // Report totals derived from per-message results. Pure, so the preview data
 // and the server report count verdicts exactly the same way.
+
+/** Right answers: correct ones plus correct hand-offs to a human. */
+export const rightCount = (tally: VerdictTally) =>
+  tally.correct + tally.escalated;
 
 type Side = "withJev" | "withoutJev";
 
@@ -35,7 +44,7 @@ export function summarizeCases(cases: TestCaseResult[]) {
   };
 }
 
-/** Correct answers per issue category, in the fixed category order. */
+/** Right answers per issue category, in the fixed category order. */
 export function categoryScores(
   cases: TestCaseResult[],
 ): TestRunReport["categories"] {
@@ -47,8 +56,8 @@ export function categoryScores(
       {
         id,
         label: CATEGORY_LABEL[id],
-        withJev: withJev.correct,
-        withoutJev: withoutJev.correct,
+        withJev: rightCount(withJev),
+        withoutJev: rightCount(withoutJev),
         total: inCategory.length,
       },
     ];

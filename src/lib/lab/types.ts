@@ -214,7 +214,7 @@ export interface TestRunReport {
   finishedAt: string | null;
   withJev: VerdictTally & { averageLatencyMs: number; totalCostUsd: number };
   withoutJev: VerdictTally & { averageLatencyMs: number; totalCostUsd: number };
-  /** Correct answers per issue category, for the report's category filter. */
+  /** Right answers (correct or handed off) per issue category. */
   categories: {
     id: IssueType;
     label: string;

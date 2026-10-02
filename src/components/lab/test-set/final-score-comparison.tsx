@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { TestRunReport, VerdictTally } from "@/lib/lab/types";
 import { ratioText } from "@/lib/lab/compare";
+import { rightCount } from "@/lib/lab/test-report";
 import { formatPercent, formatSeconds, formatUsd } from "@/lib/lab/format";
 
 type VersionSummary = TestRunReport["withJev"];
@@ -32,8 +33,8 @@ export function FinalScoreComparison({
   /** Per-category scores; shown when more than one category is in scope. */
   categories?: TestRunReport["categories"];
 }) {
-  const jev = points(withJev.correct, total);
-  const base = points(withoutJev.correct, total);
+  const jev = points(rightCount(withJev), total);
+  const base = points(rightCount(withoutJev), total);
   const fewerWrong = withoutJev.wrong - withJev.wrong;
   const support = [
     ratioText(withJev.averageLatencyMs, withoutJev.averageLatencyMs, "speed"),
@@ -109,6 +110,10 @@ export function FinalScoreComparison({
           </Row>
         </tbody>
       </table>
+      <p className="-mt-2 text-xs text-muted-foreground">
+        Skor akhir menghitung jawaban benar ditambah penyerahan ke tim support
+        yang tepat.
+      </p>
       {categories && categories.length > 1 && (
         <CategoryScores categories={categories} />
       )}
@@ -168,7 +173,7 @@ function Score({
           !strong && "text-muted-foreground",
         )}
       >
-        {formatPercent(tally.correct, total)}
+        {formatPercent(rightCount(tally), total)}
       </span>
       <span
         aria-hidden="true"
