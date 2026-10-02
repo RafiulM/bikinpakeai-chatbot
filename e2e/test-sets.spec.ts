@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { testDb } from "./support/db";
-import { signUp } from "./support/session";
+import { headers, signUp } from "./support/session";
 
 let owner: APIRequestContext;
 let other: APIRequestContext;
@@ -63,5 +63,84 @@ test("test sets list built-in sets and only the caller's uploads", async ({
     );
   } finally {
     await db.end();
+  }
+});
+
+test("uploading a labelled set validates it and keeps it private", async ({
+  request,
+}) => {
+  const body = {
+    name: "  Kasus kartu  ",
+    cases: [
+      { inputText: "Ini nomor kartu saya 4111", expectedLabel: "masked" },
+      { inputText: "Lupa password PRDTask", expectedLabel: "akses_akun" },
+    ],
+  };
+  expect(
+    (await request.post("/api/test-sets", { headers, data: body })).status(),
+  ).toBe(401);
+  expect(
+    (
+      await owner.post("/api/test-sets", {
+        headers: { Origin: "https://evil.example" },
+        data: body,
+      })
+    ).status(),
+  ).toBe(403);
+
+  const response = await owner.post("/api/test-sets", { headers, data: body });
+  expect(response.status()).toBe(201);
+  const { data } = await response.json();
+  expect(data).toMatchObject({
+    name: "Kasus kartu",
+    caseCount: 2,
+    builtIn: false,
+  });
+
+  const db = testDb();
+  try {
+    const rows = await db.query(
+      "SELECT s.user_id, c.position, c.expected_label, c.category FROM test_sets s JOIN test_cases c ON c.test_set_id = s.id WHERE s.id = $1 ORDER BY c.position",
+      [data.id],
+    );
+    expect(rows.rows).toEqual([
+      {
+        user_id: await userId(owner),
+        position: 1,
+        expected_label: "masked",
+        category: null,
+      },
+      {
+        user_id: await userId(owner),
+        position: 2,
+        expected_label: "akses_akun",
+        category: "akses_akun",
+      },
+    ]);
+  } finally {
+    await db.end();
+  }
+
+  const theirs = await (await other.get("/api/test-sets")).json();
+  expect(theirs.data.some((item: { id: string }) => item.id === data.id)).toBe(
+    false,
+  );
+
+  for (const invalid of [
+    { ...body, name: " " },
+    { ...body, cases: [] },
+    { ...body, cases: [{ inputText: "x", expectedLabel: "lainnya" }] },
+    { ...body, cases: [{ inputText: "x".repeat(2001), expectedLabel: "bug" }] },
+    {
+      ...body,
+      cases: Array.from({ length: 101 }, () => body.cases[0]),
+    },
+    { ...body, userId: "someone-else" },
+  ]) {
+    const rejected = await owner.post("/api/test-sets", {
+      headers,
+      data: invalid,
+    });
+    expect(rejected.status()).toBe(422);
   }
 });
