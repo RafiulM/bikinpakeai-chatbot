@@ -1,7 +1,11 @@
 import { buildSummaryFile } from "@/lib/lab/summary-export";
 import type { SummaryExportInput } from "@/validators/exports";
 import { getConversation } from "./conversations.service.server";
-import { getTestRunReport, listTestRuns } from "./test-runs.service.server";
+import {
+  getTestRunReport,
+  listLatestRunPerSet,
+  listTestRuns,
+} from "./test-runs.service.server";
 
 // Export files built from stored data with the same pure builders the browser
 // uses, so a downloaded file matches what the screens show.
@@ -29,8 +33,10 @@ export async function buildSummaryExport(
   if (input.testRun && input.testRun !== "latest" && !report)
     return { kind: "not_found", what: "test_run" };
 
+  // Asking for test results also brings the recap of every test set.
+  const runs = input.testRun ? await listLatestRunPerSet(userId) : [];
   return {
     kind: "file",
-    ...buildSummaryFile({ conversation, report }, input.format),
+    ...buildSummaryFile({ conversation, report, runs }, input.format),
   };
 }

@@ -119,5 +119,49 @@ test("markdown and json files are named by conversation and day", () => {
     exportedAt,
     conversation: null,
     testRun: null,
+    testRunRecap: [],
   });
+});
+
+test("the recap lists the newest run of every test set", () => {
+  const run = (runNumber, testSetName, jevRight, baseRight) => ({
+    runId: `r-${runNumber}`,
+    runNumber,
+    testSetId: testSetName,
+    testSetName,
+    status: "done",
+    processed: 50,
+    total: 50,
+    withJev: { correct: jevRight - 5, wrong: 50 - jevRight, escalated: 5 },
+    withoutJev: { correct: baseRight, wrong: 50 - baseRight, escalated: 0 },
+    error: null,
+    startedAt: exportedAt,
+    finishedAt: exportedAt,
+  });
+  const runs = [
+    run(9, "Keamanan & injeksi", 48, 30),
+    run(8, "Eskalasi & frustrasi", 40, 41),
+  ];
+  const data = summaryData({ report, runs, exportedAt });
+  assert.deepEqual(
+    data.testRunRecap.map((item) => [
+      item.testSetName,
+      item.withJevPercent,
+      item.withoutJevPercent,
+      item.gapPoints,
+    ]),
+    [
+      ["Keamanan & injeksi", 96, 60, 36],
+      ["Eskalasi & frustrasi", 80, 82, -2],
+    ],
+  );
+  const md = buildSummaryFile({ runs, exportedAt }, "markdown").content;
+  assert.ok(md.includes("## Rekap semua test set"));
+  assert.ok(
+    md.includes("| Keamanan & injeksi · Run #9 (50) | 96% | 60% | +36 poin |"),
+  );
+  assert.ok(
+    md.includes("| Eskalasi & frustrasi · Run #8 (50) | 80% | 82% | -2 poin |"),
+  );
+  assert.ok(!md.includes("Belum ada hasil"));
 });

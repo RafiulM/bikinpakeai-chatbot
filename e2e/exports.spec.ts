@@ -85,3 +85,43 @@ test("the summary file is built from the caller's stored results", async ({
     ).status(),
   ).toBe(404);
 });
+
+test("asking for test results adds a recap of every test set", async () => {
+  const sets = (await (await owner.get("/api/test-sets")).json()).data;
+  for (const set of sets.slice(0, 2)) {
+    const { data: run } = await (
+      await owner.post("/api/test-runs", {
+        headers,
+        data: { testSetId: set.id },
+      })
+    ).json();
+    for (let tries = 0; tries < 100; tries += 1) {
+      const { data } = await (
+        await owner.get(`/api/test-runs/${run.runId}`)
+      ).json();
+      if (data.status !== "running") break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
+  const markdown = await (
+    await owner.get("/api/exports/summary?testRun=latest")
+  ).text();
+  expect(markdown).toContain(`## Uji test set · Run #`);
+  expect(markdown).toContain("## Rekap semua test set");
+  expect(markdown).toContain(`| ${sets[0].name} · Run #`);
+  expect(markdown).toContain(`| ${sets[1].name} · Run #`);
+
+  const json = await (
+    await owner.get("/api/exports/summary?testRun=latest&format=json")
+  ).json();
+  expect(json.testRun.testSetName).toBe(sets[1].name);
+  expect(
+    json.testRunRecap.map((item: { testSetName: string }) => item.testSetName),
+  ).toEqual([sets[1].name, sets[0].name]);
+  // Another account's runs never appear in its recap.
+  const theirs = await (
+    await other.get("/api/exports/summary?testRun=latest&format=json")
+  ).json();
+  expect(theirs).toMatchObject({ testRun: null, testRunRecap: [] });
+});

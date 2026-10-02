@@ -12,8 +12,8 @@ import {
   formatSeconds,
   formatUsd,
 } from "./format.ts";
-import { compareScores } from "./test-report.ts";
-import type { LabConversation, TestRunReport } from "./types.ts";
+import { compareScores, rightCount } from "./test-report.ts";
+import type { LabConversation, TestRunReport, TestRunState } from "./types.ts";
 
 // One compact file with the comparison results: the active conversation's
 // cumulative totals and the latest mass test. Pure, so the browser download
@@ -24,6 +24,8 @@ export type SummaryFormat = "markdown" | "json";
 export interface SummaryInput {
   conversation?: Pick<LabConversation, "code" | "title" | "turns"> | null;
   report?: TestRunReport | null;
+  /** Newest finished run of every test set, for the recap table. */
+  runs?: TestRunState[];
   exportedAt?: string;
 }
 
@@ -97,6 +99,22 @@ function testPart(report: TestRunReport) {
   };
 }
 
+function recapPart(runs: TestRunState[]) {
+  return runs.map((run) => {
+    const jev = percent(rightCount(run.withJev), run.total);
+    const base = percent(rightCount(run.withoutJev), run.total);
+    return {
+      runNumber: run.runNumber,
+      testSetName: run.testSetName,
+      messages: run.total,
+      finishedAt: run.finishedAt,
+      withJevPercent: jev,
+      withoutJevPercent: base,
+      gapPoints: jev - base,
+    };
+  });
+}
+
 /** The summary as a plain object; also the JSON file's content. */
 export function summaryData(input: SummaryInput) {
   const exportedAt = input.exportedAt ?? new Date().toISOString();
@@ -107,10 +125,11 @@ export function summaryData(input: SummaryInput) {
       ? conversationPart(input.conversation)
       : null,
     testRun: input.report ? testPart(input.report) : null,
+    testRunRecap: recapPart(input.runs ?? []),
   };
 }
 
-type Row = [label: string, withJev: string, withoutJev: string];
+type Row = string[];
 
 function table(rows: Row[], head = ["", "Dengan Jev", "Tanpa Jev"]) {
   const line = (cells: string[]) => `| ${cells.join(" | ")} |`;
@@ -207,7 +226,22 @@ function markdown(data: ReturnType<typeof summaryData>) {
         ),
       );
   }
-  if (!conversation && !testRun) parts.push("Belum ada hasil untuk diringkas.");
+  if (data.testRunRecap.length > 0)
+    parts.push(
+      "## Rekap semua test set",
+      "Run selesai terbaru dari setiap test set.",
+      table(
+        data.testRunRecap.map((run) => [
+          `${run.testSetName} · Run #${run.runNumber} (${run.messages})`,
+          `${run.withJevPercent}%`,
+          `${run.withoutJevPercent}%`,
+          `${run.gapPoints > 0 ? "+" : ""}${run.gapPoints} poin`,
+        ]),
+        ["Test set (pesan)", "Dengan Jev", "Tanpa Jev", "Selisih"],
+      ),
+    );
+  if (!conversation && !testRun && data.testRunRecap.length === 0)
+    parts.push("Belum ada hasil untuk diringkas.");
   return parts.join("\n\n") + "\n";
 }
 

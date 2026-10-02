@@ -76,6 +76,7 @@ function ExportPage() {
             <li>Skor, waktu, dan biaya dengan dan tanpa Jev</li>
             <li>Total kumulatif percakapan aktif</li>
             <li>Laporan uji test set terakhir per kategori</li>
+            <li>Rekap skor setiap test set yang pernah diuji</li>
           </ul>
           <DownloadSummary
             conversation={conversation}

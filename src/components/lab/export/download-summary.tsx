@@ -92,7 +92,7 @@ export function DownloadSummary({
           />
           <span>
             {report
-              ? `Uji test set Run #${report.runNumber} · ${report.testSetName}`
+              ? `Uji test set Run #${report.runNumber} · ${report.testSetName}, plus rekap semua test set`
               : "Uji test set"}
             {!report && (
               <span className="text-muted-foreground">

@@ -4,8 +4,9 @@ import { buildSummaryExport } from "@/services/exports.service.server";
 import { summaryExportSchema } from "@/validators/exports";
 
 // Downloadable comparison summary: the conversation's cumulative totals and/or
-// a mass test report, as Markdown or JSON. `testRun=latest` picks the newest
-// finished run; with no finished run the file simply leaves that part out.
+// a mass test report plus a recap of every test set, as Markdown or JSON.
+// `testRun=latest` picks the newest finished run; with no finished run the
+// file simply leaves that part out.
 export const Route = createFileRoute("/api/exports/summary")({
   server: {
     handlers: {

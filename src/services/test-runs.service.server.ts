@@ -97,6 +97,20 @@ export async function listTestRuns(
   return Promise.all(rows.map((row) => readState(row.id)));
 }
 
+/** The newest finished run of each test set the account ran, newest first. */
+export async function listLatestRunPerSet(userId: string) {
+  const rows = await db
+    .selectDistinctOn([testRuns.testSetId], {
+      id: testRuns.id,
+      startedAt: testRuns.startedAt,
+    })
+    .from(testRuns)
+    .where(and(eq(testRuns.userId, userId), eq(testRuns.status, "done")))
+    .orderBy(testRuns.testSetId, desc(testRuns.startedAt));
+  rows.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+  return Promise.all(rows.map((row) => readState(row.id)));
+}
+
 async function readState(runId: string): Promise<TestRunState> {
   const [[run], tallies] = await Promise.all([
     db
