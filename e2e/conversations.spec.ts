@@ -203,3 +203,23 @@ test("suggested questions come from the curated list", async () => {
   ).toHaveLength(6);
   expect((await owner.get("/api/suggestions?limit=99")).status()).toBe(422);
 });
+
+test("the current endpoint returns the newest active conversation", async ({
+  request,
+}) => {
+  expect((await request.get("/api/conversations/current")).status()).toBe(401);
+  const { data: started } = await startConversation();
+  await owner.post(`/api/conversations/${started.id}/messages`, {
+    headers,
+    data: { content: "Yang aktif sekarang" },
+  });
+  const response = await owner.get("/api/conversations/current");
+  expect(response.status()).toBe(200);
+  const { data } = await response.json();
+  expect(data.id).toBe(started.id);
+  expect(data.turns).toHaveLength(1);
+  const strangerCurrent = await (
+    await stranger.get("/api/conversations/current")
+  ).json();
+  expect(strangerCurrent.data?.id).not.toBe(started.id);
+});

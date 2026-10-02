@@ -279,3 +279,35 @@ export async function getConversation(
     turns: buildTurns(rows.map(toLabMessage), answers),
   };
 }
+
+/** The caller's newest active conversation, used when no ?c is given. */
+export async function getActiveConversation(userId: string) {
+  const [active] = await db
+    .select({ id: conversations.id })
+    .from(conversations)
+    .where(
+      and(eq(conversations.userId, userId), eq(conversations.status, "active")),
+    )
+    .orderBy(desc(conversations.createdAt), desc(conversations.id))
+    .limit(1);
+  return active ? getConversation(userId, active.id) : undefined;
+}
+
+/**
+ * The conversation a view should open: the requested one when it belongs to
+ * the caller, otherwise the newest active one. `requestedFound` tells the UI
+ * whether a shared link pointed at a conversation it cannot open.
+ */
+export async function resolveConversation(
+  userId: string,
+  requestedId?: string,
+) {
+  if (requestedId) {
+    const requested = await getConversation(userId, requestedId);
+    if (requested) return { conversation: requested, requestedFound: true };
+  }
+  return {
+    conversation: (await getActiveConversation(userId)) ?? null,
+    requestedFound: !requestedId,
+  };
+}

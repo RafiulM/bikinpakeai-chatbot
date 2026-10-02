@@ -22,6 +22,7 @@ import { Route as ProtectedDebugRouteImport } from './routes/_protected/debug'
 import { Route as ApiSuggestionsRouteImport } from './routes/api/suggestions'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiConversationsIndexRouteImport } from './routes/api/conversations/index'
+import { Route as ApiConversationsCurrentRouteImport } from './routes/api/conversations/current'
 import { Route as ApiNotesIndexRouteImport } from './routes/api/notes/index'
 import { Route as ApiNotesIdRouteImport } from './routes/api/notes/$id'
 import { Route as ApiAdminNotesIndexRouteImport } from './routes/api/admin/notes/index'
@@ -95,6 +96,11 @@ const ApiConversationsIndexRoute = ApiConversationsIndexRouteImport.update({
   path: '/api/conversations/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiConversationsCurrentRoute = ApiConversationsCurrentRouteImport.update({
+  id: '/api/conversations/current',
+  path: '/api/conversations/current',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiNotesIndexRoute = ApiNotesIndexRouteImport.update({
   id: '/api/notes/',
   path: '/api/notes/',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/debug': typeof ProtectedDebugRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/conversations/current': typeof ApiConversationsCurrentRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/debug': typeof ProtectedDebugRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/conversations/current': typeof ApiConversationsCurrentRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/conversations': typeof ApiConversationsIndexRoute
   '/api/notes': typeof ApiNotesIndexRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   '/_protected/debug': typeof ProtectedDebugRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/conversations/current': typeof ApiConversationsCurrentRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/debug'
     | '/api/suggestions'
     | '/api/auth/$'
+    | '/api/conversations/current'
     | '/api/notes/$id'
     | '/api/conversations/'
     | '/api/notes/'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/debug'
     | '/api/suggestions'
     | '/api/auth/$'
+    | '/api/conversations/current'
     | '/api/notes/$id'
     | '/api/conversations'
     | '/api/notes'
@@ -273,6 +284,7 @@ export interface FileRouteTypes {
     | '/_protected/debug'
     | '/api/suggestions'
     | '/api/auth/$'
+    | '/api/conversations/current'
     | '/api/notes/$id'
     | '/api/conversations/'
     | '/api/notes/'
@@ -291,6 +303,7 @@ export interface RootRouteChildren {
   ProtectedRoute: typeof ProtectedRouteWithChildren
   ApiSuggestionsRoute: typeof ApiSuggestionsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiConversationsCurrentRoute: typeof ApiConversationsCurrentRoute
   ApiNotesIdRoute: typeof ApiNotesIdRoute
   ApiConversationsIndexRoute: typeof ApiConversationsIndexRoute
   ApiNotesIndexRoute: typeof ApiNotesIndexRoute
@@ -394,6 +407,13 @@ declare module '@tanstack/react-router' {
       path: '/api/conversations'
       fullPath: '/api/conversations/'
       preLoaderRoute: typeof ApiConversationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/conversations/current': {
+      id: '/api/conversations/current'
+      path: '/api/conversations/current'
+      fullPath: '/api/conversations/current'
+      preLoaderRoute: typeof ApiConversationsCurrentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/notes/': {
@@ -500,6 +520,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   ApiSuggestionsRoute: ApiSuggestionsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiConversationsCurrentRoute: ApiConversationsCurrentRoute,
   ApiNotesIdRoute: ApiNotesIdRoute,
   ApiConversationsIndexRoute: ApiConversationsIndexRoute,
   ApiNotesIndexRoute: ApiNotesIndexRoute,
