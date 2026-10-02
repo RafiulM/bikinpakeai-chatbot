@@ -304,3 +304,40 @@ test("tickets number themselves, keep closed_at consistent and cascade replies",
     await db.end();
   }
 });
+
+test("scenario reference data is seeded and matches the shared list", async () => {
+  const db = pool();
+  try {
+    const { SCENARIOS } = await import("../src/lib/lab/scenarios.ts");
+    const categories = await db.query(
+      "SELECT id FROM scenario_categories ORDER BY position",
+    );
+    assert.deepEqual(
+      categories.rows.map((row) => row.id),
+      ["pembayaran", "akses_akun", "cara_pakai", "bug", "saran_fitur"],
+    );
+    const rows = await db.query(
+      "SELECT id, category_id, prompt FROM scenarios ORDER BY position",
+    );
+    assert.deepEqual(
+      rows.rows.map((row) => [row.id, row.category_id, row.prompt]),
+      SCENARIOS.map((scenario) => [
+        scenario.id,
+        scenario.category,
+        scenario.prompt,
+      ]),
+    );
+    await assert.rejects(
+      db.query("DELETE FROM scenario_categories WHERE id = 'bug'"),
+      /scenarios_category_id_scenario_categories_id_fk/,
+    );
+    await assert.rejects(
+      db.query(
+        "INSERT INTO scenarios (id, category_id, name, prompt, position) VALUES ('Bad Id', 'bug', 'x', 'y', 99)",
+      ),
+      /scenarios_id_check/,
+    );
+  } finally {
+    await db.end();
+  }
+});
