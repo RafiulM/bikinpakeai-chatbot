@@ -43,6 +43,7 @@ export async function mockSendMessage(
       createdAt,
     },
     analysis: null,
+    analysisStatus: "pending",
     withJev: {
       id: `${id}-jev`,
       messageId: id,

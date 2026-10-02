@@ -11,6 +11,8 @@ import {
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { maskSensitive } from "@/lib/lab/mask";
 import { mockSendMessage } from "@/lib/lab/mock-api";
+import { createMockStream, playMockPipeline } from "@/lib/lab/mock-stream";
+import type { LabStreamEvent } from "@/lib/lab/stream-events";
 import { mockConversation } from "@/lib/lab/mock-data";
 import type { ConversationTurn, LabConversation } from "@/lib/lab/types";
 
@@ -42,7 +44,8 @@ type Action =
       turn: ConversationTurn;
     }
   | { type: "fail"; conversationId: string; tempId: string }
-  | { type: "remove"; conversationId: string; messageId: string };
+  | { type: "remove"; conversationId: string; messageId: string }
+  | { type: "stream"; conversationId: string; event: LabStreamEvent };
 
 const STORAGE_KEY = "bikinpakeai-support-lab:v1";
 
@@ -133,6 +136,36 @@ function reducer(state: StoreState, action: Action): StoreState {
         ),
         pending: Math.max(0, state.pending - 1),
       };
+    case "stream": {
+      const { event } = action;
+      return updateTurns(state, action.conversationId, (turns) =>
+        turns.map((turn) => {
+          if (turn.message.id !== event.messageId) return turn;
+          switch (event.type) {
+            case "analysis":
+              return {
+                ...turn,
+                analysis: event.analysis,
+                analysisStatus: undefined,
+                analysisError: undefined,
+                ticketId: event.ticketId ?? turn.ticketId,
+              };
+            case "analysis_failed":
+              return {
+                ...turn,
+                analysisStatus: "failed",
+                analysisError: event.error,
+              };
+            case "answer":
+              return event.response.mode === "with_jev"
+                ? { ...turn, withJev: event.response }
+                : { ...turn, withoutJev: event.response };
+            default:
+              return turn;
+          }
+        }),
+      );
+    }
     case "remove":
       return updateTurns(state, action.conversationId, (turns) =>
         turns.filter((turn) => turn.message.id !== action.messageId),
@@ -158,11 +191,17 @@ function readStored(): StoreState | null {
     const parsed = JSON.parse(raw) as StoreState;
     if (!parsed.conversations?.[parsed.activeId]) return null;
     for (const conversation of Object.values(parsed.conversations)) {
-      conversation.turns = conversation.turns.map((turn) =>
-        turn.deliveryStatus === "sending"
-          ? { ...turn, deliveryStatus: "failed" }
-          : turn,
-      );
+      conversation.turns = conversation.turns.map((turn) => {
+        if (turn.deliveryStatus === "sending")
+          return { ...turn, deliveryStatus: "failed" };
+        if (turn.analysisStatus === "pending")
+          return {
+            ...turn,
+            analysisStatus: "failed",
+            analysisError: "Analisis terputus karena halaman ditutup.",
+          };
+        return turn;
+      });
     }
     return { ...parsed, pending: 0, hydrated: true };
   } catch {
@@ -225,6 +264,21 @@ export function LabConversationProvider({ children }: { children: ReactNode }) {
     }
   }, [hydrated, c, state.activeId, state.conversations, navigate]);
 
+  // Live updates: Jev's reading and the baseline answer arrive after the
+  // customer already sees the fast reply.
+  const conversationIds = Object.keys(state.conversations).sort().join(",");
+  useEffect(() => {
+    const unsubscribers = conversationIds
+      .split(",")
+      .filter(Boolean)
+      .map((conversationId) =>
+        createMockStream(conversationId).subscribe((event) =>
+          dispatch({ type: "stream", conversationId, event }),
+        ),
+      );
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, [conversationIds]);
+
   const send = useCallback(
     async (text: string) => {
       const conversationId = state.activeId;
@@ -252,6 +306,7 @@ export function LabConversationProvider({ children }: { children: ReactNode }) {
       try {
         const turn = await mockSendMessage(conversationId, text);
         dispatch({ type: "replace", conversationId, tempId, turn });
+        playMockPipeline(conversationId, turn);
       } catch {
         dispatch({ type: "fail", conversationId, tempId });
       }
