@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Play } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { CategorySection } from "@/components/lab/scenarios/category-accordion";
+import { useLabConversation } from "@/components/lab/conversation-store";
 import { ScenarioCard } from "@/components/lab/scenarios/scenario-card";
 import { Button } from "@/components/ui/button";
-import { CATEGORY_LABEL, SCENARIOS } from "@/lib/lab/scenarios";
+import { CATEGORY_LABEL, SCENARIOS, type Scenario } from "@/lib/lab/scenarios";
 import { ISSUE_TYPES, type IssueType } from "@/lib/lab/types";
 
 export const Route = createFileRoute("/_protected/skenario")({
@@ -24,6 +26,15 @@ function ScenarioPage() {
     () => new Set([GROUPS[0]?.category].filter(Boolean) as IssueType[]),
   );
   const allOpen = open.size === GROUPS.length;
+  const { conversation, busy, send } = useLabConversation();
+  const [lastRun, setLastRun] = useState<{ name: string; code: string } | null>(
+    null,
+  );
+
+  async function run(scenario: Scenario) {
+    setLastRun({ name: scenario.name, code: conversation.code });
+    await send(scenario.prompt);
+  }
 
   function toggle(category: IssueType) {
     setOpen((current) => {
@@ -42,8 +53,9 @@ function ScenarioPage() {
             Skenario Siap Pakai
           </h1>
           <p className="text-sm text-muted-foreground">
-            {SCENARIOS.length} kasus contoh dalam {GROUPS.length} kategori untuk
-            memicu perilaku Jev tertentu saat demo
+            Dikirim ke percakapan aktif {conversation.code} · {SCENARIOS.length}{" "}
+            kasus contoh dalam {GROUPS.length} kategori untuk memicu perilaku
+            Jev tertentu saat demo
           </p>
         </div>
         <Button
@@ -58,6 +70,34 @@ function ScenarioPage() {
           {allOpen ? "Tutup semua" : "Buka semua"}
         </Button>
       </div>
+      <div
+        role="status"
+        className={
+          lastRun
+            ? "flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[10px] border border-signal bg-signal-soft px-4 py-3 text-sm"
+            : "sr-only"
+        }
+      >
+        {lastRun && (
+          <>
+            <span>
+              {busy ? "Mengirim" : "Terkirim"}: <strong>{lastRun.name}</strong>{" "}
+              ke percakapan {lastRun.code}.
+            </span>
+            <span className="flex gap-3 font-semibold">
+              <Link to="/customer" className="underline underline-offset-3">
+                Lihat di Customer
+              </Link>
+              <Link to="/debug" className="underline underline-offset-3">
+                Debug
+              </Link>
+              <Link to="/compare" className="underline underline-offset-3">
+                Compare
+              </Link>
+            </span>
+          </>
+        )}
+      </div>
       <div className="grid gap-3">
         {GROUPS.map((group) => (
           <CategorySection
@@ -70,7 +110,21 @@ function ScenarioPage() {
             <ul className="grid gap-3 md:grid-cols-2">
               {group.scenarios.map((scenario) => (
                 <li key={scenario.id}>
-                  <ScenarioCard scenario={scenario} />
+                  <ScenarioCard
+                    scenario={scenario}
+                    action={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => void run(scenario)}
+                        aria-label={`Jalankan skenario ${scenario.name}`}
+                      >
+                        <Play aria-hidden="true" />
+                        Jalankan
+                      </Button>
+                    }
+                  />
                 </li>
               ))}
             </ul>
