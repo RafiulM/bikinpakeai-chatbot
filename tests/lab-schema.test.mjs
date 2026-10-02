@@ -223,3 +223,84 @@ test("jev analyses keep one reading per message and enforce valid labels", async
     await db.end();
   }
 });
+
+test("tickets number themselves, keep closed_at consistent and cascade replies", async () => {
+  const db = pool();
+  try {
+    await db.query('INSERT INTO "user" (id, name, email) VALUES ($1, $2, $3)', [
+      "lab-tickets",
+      "Lab Tickets",
+      "lab-tickets@example.com",
+    ]);
+    const {
+      rows: [conversation],
+    } = await db.query(
+      "INSERT INTO conversations (user_id) VALUES ($1) RETURNING id",
+      ["lab-tickets"],
+    );
+    const message = async (content) =>
+      (
+        await db.query(
+          "INSERT INTO messages (conversation_id, sender, content) VALUES ($1, 'customer', $2) RETURNING id",
+          [conversation.id, content],
+        )
+      ).rows[0];
+    const insert = (messageId, extra = {}) =>
+      db.query(
+        `INSERT INTO tickets (conversation_id, message_id, title, priority, product, issue_label, summary, next_step, escalation_reason, status, closed_at)
+         VALUES ($1, $2, 'Judul', $3, 'DesainPakeAI', 'Refund', 'Ringkasan', 'Langkah', 'Alasan', $4, $5) RETURNING id, number, status`,
+        [
+          conversation.id,
+          messageId,
+          extra.priority ?? "urgent",
+          extra.status ?? "open",
+          extra.closedAt ?? null,
+        ],
+      );
+    const first = await message("Mau refund");
+    const second = await message("Masih error");
+    const {
+      rows: [ticket],
+    } = await insert(first.id);
+    assert.ok(ticket.number >= 201);
+    await assert.rejects(insert(first.id), /tickets_message_idx/);
+    await assert.rejects(
+      insert(second.id, { priority: "asap" }),
+      /tickets_priority_check/,
+    );
+    await assert.rejects(
+      insert(second.id, { status: "closed" }),
+      /tickets_closed_at_check/,
+    );
+    await assert.rejects(
+      db.query("UPDATE tickets SET status = 'closed' WHERE id = $1", [
+        ticket.id,
+      ]),
+      /tickets_closed_at_check/,
+    );
+    await db.query(
+      "UPDATE tickets SET status = 'closed', closed_at = now() WHERE id = $1",
+      [ticket.id],
+    );
+    await db.query(
+      "INSERT INTO ticket_replies (ticket_id, agent_name, content) VALUES ($1, 'Kamu', 'Sudah kami cek')",
+      [ticket.id],
+    );
+    await assert.rejects(
+      db.query(
+        "INSERT INTO ticket_replies (ticket_id, agent_name, content) VALUES ($1, 'Kamu', '')",
+        [ticket.id],
+      ),
+      /ticket_replies_content_check/,
+    );
+    await db.query("DELETE FROM messages WHERE id = $1", [first.id]);
+    const left = await db.query(
+      "SELECT (SELECT count(*) FROM tickets WHERE id = $1)::int AS t, (SELECT count(*) FROM ticket_replies WHERE ticket_id = $1)::int AS r",
+      [ticket.id],
+    );
+    assert.deepEqual(left.rows[0], { t: 0, r: 0 });
+  } finally {
+    await db.query('DELETE FROM "user" WHERE id = $1', ["lab-tickets"]);
+    await db.end();
+  }
+});
