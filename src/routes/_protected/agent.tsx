@@ -2,10 +2,12 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
 import { TicketDetail } from "@/components/lab/agent/ticket-detail";
+import { STATUS_LABEL } from "@/components/lab/agent/ticket-tags";
 import { TicketList } from "@/components/lab/agent/ticket-list";
-import { mockTickets } from "@/lib/lab/mock-tickets";
 import { sortTickets, type TicketSort } from "@/lib/lab/tickets";
 import { SegmentedControl } from "@/components/lab/segmented-control";
+import { useTickets } from "@/components/lab/ticket-store";
+import type { TicketStatus } from "@/lib/lab/types";
 
 export const Route = createFileRoute("/_protected/agent")({
   head: () => ({ meta: [{ title: `Agent | ${siteConfig.name}` }] }),
@@ -17,9 +19,13 @@ export const Route = createFileRoute("/_protected/agent")({
 const SAMPLE_NOW = Date.UTC(2026, 9, 1, 7, 11);
 
 function AgentPage() {
-  const [allTickets] = useState(mockTickets);
+  const { tickets: allTickets, counts } = useTickets();
   const [sort, setSort] = useState<TicketSort>("urgency");
-  const tickets = sortTickets(allTickets, sort);
+  const [status, setStatus] = useState<TicketStatus>("open");
+  const tickets = sortTickets(
+    allTickets.filter((ticket) => ticket.status === status),
+    sort,
+  );
   const [selectedId, setSelectedId] = useState(tickets[0]?.id);
   const selected =
     tickets.find((ticket) => ticket.id === selectedId) ?? tickets[0];
@@ -32,23 +38,40 @@ function AgentPage() {
             Agent
           </h1>
           <p className="text-sm text-muted-foreground">
-            Antrean tiket yang dieskalasi Jev ke tim support manusia
+            <strong className="font-semibold text-foreground tabular-nums">
+              {counts.open + counts.claimed} tiket aktif
+            </strong>{" "}
+            · {counts.open} terbuka, {counts.claimed} sedang ditangani
           </p>
         </div>
-        <SegmentedControl
-          legend="Urutkan tiket"
-          value={sort}
-          onChange={setSort}
-          options={[
-            { value: "urgency", label: "Paling mendesak" },
-            { value: "frustration", label: "Paling kesal" },
-            { value: "waiting", label: "Terlama menunggu" },
-          ]}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <SegmentedControl
+            legend="Filter status tiket"
+            value={status}
+            onChange={setStatus}
+            options={[
+              { value: "open", label: "Terbuka", count: counts.open },
+              { value: "claimed", label: "Diklaim", count: counts.claimed },
+              { value: "closed", label: "Ditutup", count: counts.closed },
+            ]}
+          />
+          <SegmentedControl
+            legend="Urutkan tiket"
+            value={sort}
+            onChange={setSort}
+            options={[
+              { value: "urgency", label: "Paling mendesak" },
+              { value: "frustration", label: "Paling kesal" },
+              { value: "waiting", label: "Terlama menunggu" },
+            ]}
+          />
+        </div>
       </div>
       {!selected ? (
         <p className="rounded-[20px] border border-dashed p-6 text-center text-muted-foreground">
-          Belum ada kasus yang dieskalasi.
+          {allTickets.length === 0
+            ? "Belum ada kasus yang dieskalasi."
+            : `Tidak ada tiket berstatus ${STATUS_LABEL[status].toLowerCase()}.`}
         </p>
       ) : (
         <div className="grid items-start gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">

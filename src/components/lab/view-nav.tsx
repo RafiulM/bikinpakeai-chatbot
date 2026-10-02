@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { ViewId } from "@/lib/lab/types";
+import { useTickets } from "./ticket-store";
 
 export interface ViewLink {
   id: ViewId;
@@ -59,6 +60,7 @@ export function ViewNav() {
     select: (state) => state.location.pathname,
   });
   const listRef = useRef<HTMLUListElement>(null);
+  const { counts } = useTickets();
 
   // On the narrow top bar, keep the active view visible after navigating.
   useEffect(() => {
@@ -95,9 +97,17 @@ export function ViewNav() {
                   aria-hidden="true"
                 />
                 {view.label}
+                {view.id === "agent" && counts.open > 0 && (
+                  <span
+                    aria-label={`${counts.open} tiket terbuka`}
+                    className="ml-auto rounded-full bg-primary px-2 text-xs leading-[18px] font-semibold text-primary-foreground max-lg:ml-1"
+                  >
+                    {counts.open}
+                  </span>
+                )}
                 <kbd
                   aria-hidden="true"
-                  className="ml-auto min-w-[22px] rounded-md border bg-card px-1.5 text-center font-mono text-xs leading-[18px] text-muted-foreground max-lg:hidden"
+                  className="ml-auto min-w-[22px] rounded-md border bg-card px-1.5 text-center font-mono text-xs leading-[18px] text-muted-foreground max-lg:hidden [span+&]:ml-0"
                 >
                   {view.shortcut}
                 </kbd>

@@ -9,6 +9,7 @@ import {
   useActiveConversationSummary,
 } from "@/components/lab/conversation-store";
 import { LabShell, SessionCard } from "@/components/lab/lab-shell";
+import { TicketProvider } from "@/components/lab/ticket-store";
 import { labSearchSchema } from "@/lib/lab/search";
 
 // Pathless layout for signed-in screens. The check runs on the server during
@@ -29,9 +30,11 @@ function ProtectedLayout() {
   const { user } = Route.useRouteContext().session;
   return (
     <LabConversationProvider>
-      <LabShell userEmail={user.email} session={<ActiveSessionCard />}>
-        <Outlet />
-      </LabShell>
+      <TicketProvider>
+        <LabShell userEmail={user.email} session={<ActiveSessionCard />}>
+          <Outlet />
+        </LabShell>
+      </TicketProvider>
     </LabConversationProvider>
   );
 }
