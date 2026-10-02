@@ -5,9 +5,10 @@ import { ChatComposer } from "@/components/lab/chat-composer";
 import { ChatWidget } from "@/components/lab/chat-widget";
 import { LastTurnCard } from "@/components/lab/last-turn-card";
 import { NewConversationButton } from "@/components/lab/new-conversation-button";
+import { SuggestedQuestions } from "@/components/lab/suggested-questions";
 import { maskSensitive } from "@/lib/lab/mask";
 import { mockSendMessage } from "@/lib/lab/mock-api";
-import { mockConversation } from "@/lib/lab/mock-data";
+import { mockConversation, SUGGESTED_QUESTIONS } from "@/lib/lab/mock-data";
 import type { ConversationTurn } from "@/lib/lab/types";
 
 export const Route = createFileRoute("/_protected/customer")({
@@ -27,6 +28,7 @@ function CustomerPage() {
   const [conversation, setConversation] = useState({
     id: mockConversation.id,
     code: mockConversation.code,
+    fresh: false,
   });
   const [turns, setTurns] = useState<ConversationTurn[]>(
     mockConversation.turns,
@@ -79,7 +81,11 @@ function CustomerPage() {
   function startNewConversation() {
     const ended = conversation.code;
     const code = nextCode(ended);
-    setConversation({ id: `mock-conversation-${Date.now()}`, code });
+    setConversation({
+      id: `mock-conversation-${Date.now()}`,
+      code,
+      fresh: true,
+    });
     setTurns([]);
     setNotice(`Percakapan ${code} dimulai. ${ended} sudah disimpan.`);
     requestAnimationFrame(() => inputRef.current?.focus());
@@ -106,7 +112,7 @@ function CustomerPage() {
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         <ChatWidget
           turns={turns}
-          greeting={GREETING}
+          greeting={conversation.fresh ? GREETING : undefined}
           pendingReply={busy}
           banner={
             notice && (
@@ -125,7 +131,16 @@ function CustomerPage() {
             void send(turn.message.content);
           }}
           composer={
-            <ChatComposer onSend={send} busy={busy} inputRef={inputRef} />
+            <>
+              {turns.length === 0 && (
+                <SuggestedQuestions
+                  questions={SUGGESTED_QUESTIONS}
+                  disabled={busy}
+                  onPick={(question) => void send(question)}
+                />
+              )}
+              <ChatComposer onSend={send} busy={busy} inputRef={inputRef} />
+            </>
           }
         />
         <aside aria-label="Ringkasan perbandingan" className="grid gap-4">

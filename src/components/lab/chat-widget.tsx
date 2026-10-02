@@ -37,7 +37,7 @@ export function ChatWidget({
   banner?: ReactNode;
   /** Shown as a typing bubble while a reply is on its way. */
   pendingReply?: boolean;
-  /** Opening line for an empty conversation. */
+  /** Opening line shown at the top of a freshly started conversation. */
   greeting?: string;
   renderBotFooter?: (turn: ConversationTurn) => ReactNode;
   /** Resend a message whose delivery failed. */
