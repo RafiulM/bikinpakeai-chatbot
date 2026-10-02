@@ -1,3 +1,4 @@
+import { SUGGESTED_QUESTIONS as SUGGESTIONS } from "./suggestions";
 import type { ConversationTurn, LabConversation } from "./types";
 
 // Sample conversation used while the backend is not connected yet. Every view
@@ -386,9 +387,7 @@ export const mockConversation: LabConversation = {
   turns,
 };
 
-export const SUGGESTED_QUESTIONS = [
-  "Cara upgrade ke membership Pro?",
-  "Lupa password akun PRDTask",
-  "Template yang saya beli tidak bisa diunduh",
-  "Cara gabung komunitas Discord?",
-] as const;
+/** Question texts for the offline preview, from the shared curated list. */
+export const SUGGESTED_QUESTIONS = SUGGESTIONS.slice(0, 4).map(
+  (question) => question.text,
+);

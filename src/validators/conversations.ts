@@ -22,3 +22,7 @@ export const listConversationsSchema = z
   .strict();
 
 export type ListConversationsInput = z.infer<typeof listConversationsSchema>;
+
+export const listSuggestionsSchema = z
+  .object({ limit: z.coerce.number().int().min(1).max(12).default(4) })
+  .strict();

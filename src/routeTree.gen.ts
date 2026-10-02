@@ -19,6 +19,7 @@ import { Route as ProtectedAgentRouteImport } from './routes/_protected/agent'
 import { Route as ProtectedCompareRouteImport } from './routes/_protected/compare'
 import { Route as ProtectedCustomerRouteImport } from './routes/_protected/customer'
 import { Route as ProtectedDebugRouteImport } from './routes/_protected/debug'
+import { Route as ApiSuggestionsRouteImport } from './routes/api/suggestions'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiConversationsIndexRouteImport } from './routes/api/conversations/index'
 import { Route as ApiNotesIndexRouteImport } from './routes/api/notes/index'
@@ -76,6 +77,11 @@ const ProtectedDebugRoute = ProtectedDebugRouteImport.update({
   path: '/debug',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ApiSuggestionsRoute = ApiSuggestionsRouteImport.update({
+  id: '/api/suggestions',
+  path: '/api/suggestions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
+  '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
+  '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/conversations': typeof ApiConversationsIndexRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/_protected/compare': typeof ProtectedCompareRoute
   '/_protected/customer': typeof ProtectedCustomerRoute
   '/_protected/debug': typeof ProtectedDebugRoute
+  '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/customer'
     | '/debug'
+    | '/api/suggestions'
     | '/api/auth/$'
     | '/api/notes/$id'
     | '/api/conversations/'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/customer'
     | '/debug'
+    | '/api/suggestions'
     | '/api/auth/$'
     | '/api/notes/$id'
     | '/api/conversations'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/_protected/compare'
     | '/_protected/customer'
     | '/_protected/debug'
+    | '/api/suggestions'
     | '/api/auth/$'
     | '/api/notes/$id'
     | '/api/conversations/'
@@ -238,6 +250,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   ProtectedRoute: typeof ProtectedRouteWithChildren
+  ApiSuggestionsRoute: typeof ApiSuggestionsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiNotesIdRoute: typeof ApiNotesIdRoute
   ApiConversationsIndexRoute: typeof ApiConversationsIndexRoute
@@ -319,6 +332,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/debug'
       preLoaderRoute: typeof ProtectedDebugRouteImport
       parentRoute: typeof ProtectedRoute
+    }
+    '/api/suggestions': {
+      id: '/api/suggestions'
+      path: '/api/suggestions'
+      fullPath: '/api/suggestions'
+      preLoaderRoute: typeof ApiSuggestionsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -415,6 +435,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   ProtectedRoute: ProtectedRouteWithChildren,
+  ApiSuggestionsRoute: ApiSuggestionsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiNotesIdRoute: ApiNotesIdRoute,
   ApiConversationsIndexRoute: ApiConversationsIndexRoute,

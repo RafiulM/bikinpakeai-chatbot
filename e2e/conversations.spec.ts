@@ -1,37 +1,66 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test, type APIRequestContext } from "@playwright/test";
 import { headers, signUp } from "./support/session";
 
+// Two accounts shared by this file keep the real auth server's signup rate
+// limit out of the way. Each test still creates its own conversations.
+let owner: APIRequestContext;
+let stranger: APIRequestContext;
+
+test.beforeAll(async ({ playwright }) => {
+  owner = await playwright.request.newContext({
+    baseURL: "http://localhost:3101",
+  });
+  stranger = await playwright.request.newContext({
+    baseURL: "http://localhost:3101",
+  });
+  await signUp(owner, "conversation-owner");
+  await signUp(stranger, "conversation-stranger");
+});
+
+test.afterAll(async () => {
+  await owner?.dispose();
+  await stranger?.dispose();
+});
+
+async function startConversation() {
+  const response = await owner.post("/api/conversations", {
+    headers,
+    data: {},
+  });
+  expect(response.status()).toBe(201);
+  return (await response.json()) as {
+    data: { id: string; code: string; status: string };
+    meta: { endedIds: string[] };
+  };
+}
+
 test("conversation endpoints require a real session", async ({ request }) => {
-  for (const url of [
-    "/api/conversations",
-    `/api/conversations/${randomUUID()}/messages`,
+  for (const [method, url] of [
+    ["GET", "/api/conversations"],
+    ["POST", "/api/conversations"],
+    ["GET", `/api/conversations/${randomUUID()}`],
+    ["POST", `/api/conversations/${randomUUID()}/messages`],
+    ["GET", "/api/suggestions"],
   ]) {
-    const response = await request.post(url, {
+    const response = await request.fetch(url, {
+      method,
       headers,
-      data: { content: "Halo" },
+      data: method === "POST" ? { content: "Halo" } : undefined,
     });
     expect(response.status()).toBe(401);
     expect(response.headers()["cache-control"]).toContain("no-store");
   }
 });
 
-test("customer messages are stored masked and validated", async ({
-  request,
-}) => {
-  await signUp(request);
-  const created = await request.post("/api/conversations", {
-    headers,
-    data: {},
-  });
-  expect(created.status()).toBe(201);
-  const { data: conversation } = await created.json();
+test("customer messages are stored masked and validated", async () => {
+  const { data: conversation } = await startConversation();
   expect(conversation.code).toMatch(/^#A-\d+$/);
   expect(conversation.status).toBe("active");
   expect(conversation).not.toHaveProperty("userId");
 
   const url = `/api/conversations/${conversation.id}/messages`;
-  const sent = await request.post(url, {
+  const sent = await owner.post(url, {
     headers,
     data: {
       content: "  Ini nomor kartu saya 4111 1111 1111 1111, tolong cek  ",
@@ -39,32 +68,31 @@ test("customer messages are stored masked and validated", async ({
   });
   expect(sent.status()).toBe(201);
   const { data } = await sent.json();
-  expect(data.message.content).toBe(
-    "Ini nomor kartu saya 4111 •••• •••• 1111, tolong cek",
-  );
-  expect(data.message.isMasked).toBe(true);
-  expect(data.message.sender).toBe("customer");
-  expect(data.message.conversationId).toBe(conversation.id);
+  expect(data.message).toMatchObject({
+    content: "Ini nomor kartu saya 4111 •••• •••• 1111, tolong cek",
+    isMasked: true,
+    sender: "customer",
+    conversationId: conversation.id,
+  });
 
   for (const body of [
     { content: "   " },
     { content: "x".repeat(2001) },
     { content: "Halo", userId: "someone" },
   ]) {
-    expect((await request.post(url, { headers, data: body })).status()).toBe(
-      422,
-    );
+    expect((await owner.post(url, { headers, data: body })).status()).toBe(422);
   }
-  const notJson = await request.post(url, {
+  const notJson = await owner.post(url, {
     headers: { ...headers, "Content-Type": "text/plain" },
     data: "Halo",
   });
   expect(notJson.status()).toBe(415);
-  const noOrigin = await request.post(url, { data: { content: "Halo" } });
-  expect(noOrigin.status()).toBe(403);
+  expect((await owner.post(url, { data: { content: "Halo" } })).status()).toBe(
+    403,
+  );
   expect(
     (
-      await request.post("/api/conversations/not-a-uuid/messages", {
+      await owner.post("/api/conversations/not-a-uuid/messages", {
         headers,
         data: { content: "Halo" },
       })
@@ -72,127 +100,78 @@ test("customer messages are stored masked and validated", async ({
   ).toBe(404);
 });
 
-test("another account cannot write into someone else's conversation", async ({
-  playwright,
-}) => {
-  const owner = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
+test("another account cannot read or write someone else's conversation", async () => {
+  const { data: conversation } = await startConversation();
+  const write = await stranger.post(
+    `/api/conversations/${conversation.id}/messages`,
+    { headers, data: { content: "Bukan punyaku" } },
+  );
+  expect(write.status()).toBe(404);
+  expect(await write.json()).toEqual({
+    error: { code: "NOT_FOUND", message: "Conversation not found." },
   });
-  const stranger = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
-  });
-  try {
-    await signUp(owner, "owner");
-    await signUp(stranger, "stranger");
-    const { data: conversation } = await (
-      await owner.post("/api/conversations", { headers, data: {} })
-    ).json();
-    const response = await stranger.post(
-      `/api/conversations/${conversation.id}/messages`,
-      { headers, data: { content: "Bukan punyaku" } },
-    );
-    expect(response.status()).toBe(404);
-    expect(await response.json()).toEqual({
-      error: { code: "NOT_FOUND", message: "Conversation not found." },
-    });
-  } finally {
-    await owner.dispose();
-    await stranger.dispose();
-  }
+  expect(
+    (await stranger.get(`/api/conversations/${conversation.id}`)).status(),
+  ).toBe(404);
+  const list = await (await stranger.get("/api/conversations")).json();
+  expect(list.data.map((item: { id: string }) => item.id)).not.toContain(
+    conversation.id,
+  );
 });
 
-test("history endpoints return the caller's conversations as ordered turns", async ({
-  playwright,
-}) => {
-  const owner = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
-  });
-  const stranger = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
-  });
-  try {
-    await signUp(owner, "history");
-    await signUp(stranger, "history-stranger");
-    const { data: first } = await (
-      await owner.post("/api/conversations", { headers, data: {} })
-    ).json();
-    for (const content of ["Pesan pertama", "Pesan kedua"]) {
-      expect(
-        (
-          await owner.post(`/api/conversations/${first.id}/messages`, {
-            headers,
-            data: { content },
-          })
-        ).status(),
-      ).toBe(201);
-    }
-
-    const { data: second } = await (
-      await owner.post("/api/conversations", { headers, data: {} })
-    ).json();
-
-    const detail = await owner.get(`/api/conversations/${first.id}`);
-    expect(detail.status()).toBe(200);
-    const { data: conversation } = await detail.json();
-    expect(conversation.title).toBe("Pesan pertama");
+test("history endpoints return the caller's conversations as ordered turns", async () => {
+  const { data: first } = await startConversation();
+  for (const content of ["Pesan pertama", "Pesan kedua"]) {
     expect(
-      conversation.turns.map(
-        (turn: { message: { content: string } }) => turn.message.content,
-      ),
-    ).toEqual(["Pesan pertama", "Pesan kedua"]);
-    expect(conversation.turns[0]).toMatchObject({
-      analysis: null,
-      withJev: null,
-      withoutJev: null,
-    });
-
-    const list = await (await owner.get("/api/conversations?limit=1")).json();
-    expect(list.meta).toEqual({ limit: 1, offset: 0, hasMore: true });
-    expect(list.data[0].id).toBe(second.id);
-    const page2 = await (
-      await owner.get("/api/conversations?limit=1&offset=1")
-    ).json();
-    expect(page2.data[0]).toMatchObject({ id: first.id, messageCount: 2 });
-    expect((await owner.get("/api/conversations?limit=0")).status()).toBe(422);
-
-    expect(
-      (await stranger.get(`/api/conversations/${first.id}`)).status(),
-    ).toBe(404);
-    expect(
-      (await (await stranger.get("/api/conversations")).json()).data,
-    ).toEqual([]);
-  } finally {
-    await owner.dispose();
-    await stranger.dispose();
+      (
+        await owner.post(`/api/conversations/${first.id}/messages`, {
+          headers,
+          data: { content },
+        })
+      ).status(),
+    ).toBe(201);
   }
-});
+  const { data: second } = await startConversation();
 
-test("starting a new conversation ends the active one but keeps its history", async ({
-  request,
-}) => {
-  await signUp(request, "reset");
-  const { data: first } = await (
-    await request.post("/api/conversations", { headers, data: {} })
+  const detail = await owner.get(`/api/conversations/${first.id}`);
+  expect(detail.status()).toBe(200);
+  const { data: conversation } = await detail.json();
+  expect(conversation.title).toBe("Pesan pertama");
+  expect(
+    conversation.turns.map(
+      (turn: { message: { content: string } }) => turn.message.content,
+    ),
+  ).toEqual(["Pesan pertama", "Pesan kedua"]);
+  expect(conversation.turns[0]).toMatchObject({
+    analysis: null,
+    withJev: null,
+    withoutJev: null,
+  });
+
+  const page1 = await (await owner.get("/api/conversations?limit=1")).json();
+  expect(page1.meta).toEqual({ limit: 1, offset: 0, hasMore: true });
+  expect(page1.data[0].id).toBe(second.id);
+  const page2 = await (
+    await owner.get("/api/conversations?limit=1&offset=1")
   ).json();
-  await request.post(`/api/conversations/${first.id}/messages`, {
+  expect(page2.data[0]).toMatchObject({ id: first.id, messageCount: 2 });
+  expect((await owner.get("/api/conversations?limit=0")).status()).toBe(422);
+});
+
+test("starting a new conversation ends the active one but keeps its history", async () => {
+  const { data: first } = await startConversation();
+  await owner.post(`/api/conversations/${first.id}/messages`, {
     headers,
     data: { content: "Masih tersimpan?" },
   });
-  const restarted = await request.post("/api/conversations", {
-    headers,
-    data: {},
-  });
-  expect(restarted.status()).toBe(201);
-  const body = await restarted.json();
-  expect(body.meta.endedIds).toEqual([first.id]);
-  expect(body.data.status).toBe("active");
+  const restarted = await startConversation();
+  expect(restarted.meta.endedIds).toEqual([first.id]);
+  expect(restarted.data.status).toBe("active");
 
-  const old = await (
-    await request.get(`/api/conversations/${first.id}`)
-  ).json();
+  const old = await (await owner.get(`/api/conversations/${first.id}`)).json();
   expect(old.data.status).toBe("ended");
   expect(old.data.turns).toHaveLength(1);
-  const late = await request.post(`/api/conversations/${first.id}/messages`, {
+  const late = await owner.post(`/api/conversations/${first.id}/messages`, {
     headers,
     data: { content: "Terlambat" },
   });
@@ -200,10 +179,27 @@ test("starting a new conversation ends the active one but keeps its history", as
   expect((await late.json()).error.code).toBe("CONVERSATION_ENDED");
   expect(
     (
-      await request.post("/api/conversations", {
+      await owner.post("/api/conversations", {
         headers,
         data: { reset: true },
       })
     ).status(),
   ).toBe(422);
+});
+
+test("suggested questions come from the curated list", async () => {
+  const response = await owner.get("/api/suggestions");
+  expect(response.status()).toBe(200);
+  const { data } = await response.json();
+  expect(data).toHaveLength(4);
+  expect(data[0]).toEqual({
+    id: "upgrade-pro",
+    text: "Cara upgrade ke membership Pro?",
+    product: "Membership",
+    category: "pembayaran",
+  });
+  expect(
+    (await (await owner.get("/api/suggestions?limit=6")).json()).data,
+  ).toHaveLength(6);
+  expect((await owner.get("/api/suggestions?limit=99")).status()).toBe(422);
 });
