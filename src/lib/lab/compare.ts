@@ -53,3 +53,31 @@ export function splitHighlight(text: string, phrase: string | undefined) {
     after: text.slice(start + phrase.length),
   };
 }
+
+export interface TurnDelta {
+  /** Positive when Jev was faster. */
+  latencyMs: number;
+  /** Positive when Jev was cheaper. */
+  costUsd: number;
+  accuracy: "jev_better" | "base_better" | "both_right" | "both_wrong";
+}
+
+export function turnDelta(turn: ConversationTurn): TurnDelta | null {
+  const jev = turn.withJev;
+  const base = turn.withoutJev;
+  if (!jev || !base) return null;
+  const jevRight = isCorrect(jev.review.verdict);
+  const baseRight = isCorrect(base.review.verdict);
+  return {
+    latencyMs: base.latencyMs - jev.latencyMs,
+    costUsd: base.costUsd - jev.costUsd,
+    accuracy:
+      jevRight && baseRight
+        ? "both_right"
+        : jevRight
+          ? "jev_better"
+          : baseRight
+            ? "base_better"
+            : "both_wrong",
+  };
+}

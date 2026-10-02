@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Highlighter } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { CompareRow } from "@/components/lab/compare-row";
+import { DeltaStrip } from "@/components/lab/delta-strip";
 import { Button } from "@/components/ui/button";
 import { sortTurns } from "@/lib/lab/conversation";
 import { mockConversation } from "@/lib/lab/mock-data";
@@ -51,6 +52,7 @@ function ComparePage() {
               turn={turn}
               index={index}
               highlight={highlight}
+              footer={<DeltaStrip turn={turn} />}
             />
           ))}
         </section>

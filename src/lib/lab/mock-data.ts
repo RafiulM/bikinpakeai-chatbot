@@ -87,7 +87,7 @@ const turns: ConversationTurn[] = [
       },
     },
     ticketId: null,
-    takeaway: "Sama-sama tepat; Jev lebih spesifik",
+    takeaway: "Jev lebih spesifik",
   },
   {
     message: {
@@ -171,7 +171,7 @@ const turns: ConversationTurn[] = [
       },
     },
     ticketId: null,
-    takeaway: "Hanya Jev yang melindungi data kartu",
+    takeaway: "Data kartu tetap terlindungi",
   },
   {
     message: {

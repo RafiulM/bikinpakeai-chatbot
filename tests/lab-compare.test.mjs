@@ -101,3 +101,24 @@ test("highlights split on the exact phrase only", () => {
   assert.equal(splitHighlight("Halo", "tidak ada"), null);
   assert.equal(splitHighlight("Halo", undefined), null);
 });
+
+test("deltas are written from Jev's side and flag a slower Jev honestly", async () => {
+  const { turnDelta } = await import("../src/lib/lab/compare.ts");
+  const faster = turnDelta(
+    turn(
+      response("with_jev", "correct", 800, 0.0004),
+      response("without_jev", "wrong", 2900, 0.0061),
+    ),
+  );
+  assert.equal(faster.latencyMs, 2100);
+  assert.ok(Math.abs(faster.costUsd - 0.0057) < 1e-9);
+  assert.equal(faster.accuracy, "jev_better");
+  const slower = turnDelta(
+    turn(
+      response("with_jev", "correct", 3000, 0.01),
+      response("without_jev", "correct", 1000, 0.001),
+    ),
+  );
+  assert.ok(slower.latencyMs < 0 && slower.costUsd < 0);
+  assert.equal(slower.accuracy, "both_right");
+});
