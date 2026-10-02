@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { motion } from "motion/react";
 import { AlertCircle, Headset, Lock, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatClock } from "@/lib/lab/format";
@@ -183,12 +184,45 @@ export function AgentBubble({
   );
 }
 
+/** Shown while both answer paths are still being prepared. */
 export function TypingBubble() {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const started = Date.now();
+    const timer = setInterval(
+      () => setSeconds(Math.floor((Date.now() - started) / 1000)),
+      500,
+    );
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <li className="self-start">
-      <p className="inline-flex items-center gap-2 rounded-2xl rounded-bl-md border bg-surface-subtle px-4 py-3 text-[15px] text-muted-foreground italic">
-        Bikinpakeai sedang mengetik…
+    <li className="grid gap-1.5 self-start">
+      <p className="inline-flex items-center gap-3 rounded-2xl rounded-bl-md border bg-surface-subtle px-4 py-3 text-[15px] text-muted-foreground">
+        <span className="flex items-center gap-1" aria-hidden="true">
+          {[0, 1, 2].map((dot) => (
+            <motion.span
+              key={dot}
+              className="size-1.5 rounded-full bg-muted-foreground"
+              animate={{ y: [0, -4, 0] }}
+              transition={{
+                duration: 0.9,
+                repeat: Infinity,
+                delay: dot * 0.15,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
+        </span>
+        Bikinpakeai sedang mengetik
       </p>
+      {seconds >= 3 && (
+        <p className="text-xs text-muted-foreground">
+          Masih memproses · {seconds} dtk. Jev dan pembanding berjalan
+          bersamaan.
+        </p>
+      )}
     </li>
   );
 }

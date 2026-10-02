@@ -85,6 +85,9 @@ export function ChatWidget({
           {pendingReply && <TypingBubble />}
         </ol>
       </div>
+      <p role="status" className="sr-only">
+        {pendingReply ? "Menunggu jawaban…" : ""}
+      </p>
       <div className="grid gap-3 border-t px-5 pt-3 pb-4 max-sm:px-4">
         {composer}
       </div>
