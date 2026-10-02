@@ -45,3 +45,31 @@ test("alternative orders put the angriest or the longest-waiting first", () => {
     ["medium-oldest", "low-angry", "urgent-new"],
   );
 });
+
+test("filters split active from done and search across key fields", async () => {
+  const { filterTickets } = await import("../src/lib/lab/tickets.ts");
+  const base = {
+    product: "PRDTask",
+    issueLabel: "Bug",
+    summary: "Ekspor gagal",
+    conversationCode: "#A-1",
+  };
+  const tickets = [
+    { ...base, code: "T-1", status: "open" },
+    { ...base, code: "T-2", status: "claimed", product: "AndalAI" },
+    { ...base, code: "T-3", status: "closed" },
+  ];
+  assert.deepEqual(
+    filterTickets(tickets, "active", "").map((t) => t.code),
+    ["T-1", "T-2"],
+  );
+  assert.deepEqual(
+    filterTickets(tickets, "done", "").map((t) => t.code),
+    ["T-3"],
+  );
+  assert.deepEqual(
+    filterTickets(tickets, "all", " andal ").map((t) => t.code),
+    ["T-2"],
+  );
+  assert.deepEqual(filterTickets(tickets, "done", "andal"), []);
+});

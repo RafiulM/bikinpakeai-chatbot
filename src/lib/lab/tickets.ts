@@ -48,3 +48,39 @@ export function sortTickets<T extends Sortable>(
             byPriority(a, b) || byFrustration(a, b) || byAge(a, b);
   return [...tickets].sort(compare);
 }
+
+export type TicketFilter = "active" | "done" | "all";
+
+/** Status group plus free-text search over code, product, issue and summary. */
+export function filterTickets<
+  T extends Pick<
+    SupportTicket,
+    | "status"
+    | "code"
+    | "product"
+    | "issueLabel"
+    | "summary"
+    | "conversationCode"
+  >,
+>(tickets: T[], filter: TicketFilter, query: string) {
+  const needle = query.trim().toLowerCase();
+  return tickets.filter((ticket) => {
+    const inGroup =
+      filter === "all" ||
+      (filter === "done"
+        ? ticket.status === "closed"
+        : ticket.status !== "closed");
+    if (!inGroup) return false;
+    if (!needle) return true;
+    return [
+      ticket.code,
+      ticket.product,
+      ticket.issueLabel,
+      ticket.summary,
+      ticket.conversationCode,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(needle);
+  });
+}
