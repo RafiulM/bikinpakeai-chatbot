@@ -9,6 +9,7 @@ import {
 import { LabelTable } from "@/components/lab/debug/label-table";
 import { MessageTabs } from "@/components/lab/debug/message-tabs";
 import { RouteChoice } from "@/components/lab/debug/route-choice";
+import { TimingBreakdown } from "@/components/lab/debug/timing-breakdown";
 import { sortTurns } from "@/lib/lab/conversation";
 
 export const Route = createFileRoute("/_protected/debug")({
@@ -82,14 +83,19 @@ function DebugPage() {
             panelId={PANEL_ID}
           >
             {selected.analysis && (
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-                <PanelSection title="Label & skor keyakinan">
-                  <LabelTable analysis={selected.analysis} />
+              <>
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+                  <PanelSection title="Label & skor keyakinan">
+                    <LabelTable analysis={selected.analysis} />
+                  </PanelSection>
+                  <PanelSection title="Rute penanganan">
+                    <RouteChoice analysis={selected.analysis} />
+                  </PanelSection>
+                </div>
+                <PanelSection title="Waktu proses & biaya">
+                  <TimingBreakdown turn={selected} />
                 </PanelSection>
-                <PanelSection title="Rute penanganan">
-                  <RouteChoice analysis={selected.analysis} />
-                </PanelSection>
-              </div>
+              </>
             )}
           </AnalysisPanel>
         </div>
