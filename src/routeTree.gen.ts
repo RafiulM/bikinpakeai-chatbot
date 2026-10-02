@@ -20,10 +20,12 @@ import { Route as ProtectedCompareRouteImport } from './routes/_protected/compar
 import { Route as ProtectedCustomerRouteImport } from './routes/_protected/customer'
 import { Route as ProtectedDebugRouteImport } from './routes/_protected/debug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiConversationsIndexRouteImport } from './routes/api/conversations/index'
 import { Route as ApiNotesIndexRouteImport } from './routes/api/notes/index'
 import { Route as ApiNotesIdRouteImport } from './routes/api/notes/$id'
 import { Route as ApiAdminNotesIndexRouteImport } from './routes/api/admin/notes/index'
 import { Route as ApiAdminNotesIdRouteImport } from './routes/api/admin/notes/$id'
+import { Route as ApiConversationsIdMessagesRouteImport } from './routes/api/conversations/$id/messages'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -78,6 +80,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiConversationsIndexRoute = ApiConversationsIndexRouteImport.update({
+  id: '/api/conversations/',
+  path: '/api/conversations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiNotesIndexRoute = ApiNotesIndexRouteImport.update({
   id: '/api/notes/',
   path: '/api/notes/',
@@ -98,6 +105,12 @@ const ApiAdminNotesIdRoute = ApiAdminNotesIdRouteImport.update({
   path: '/api/admin/notes/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiConversationsIdMessagesRoute =
+  ApiConversationsIdMessagesRouteImport.update({
+    id: '/api/conversations/$id/messages',
+    path: '/api/conversations/$id/messages',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,8 +123,10 @@ export interface FileRoutesByFullPath {
   '/debug': typeof ProtectedDebugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
+  '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
+  '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -125,8 +140,10 @@ export interface FileRoutesByTo {
   '/debug': typeof ProtectedDebugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
+  '/api/conversations': typeof ApiConversationsIndexRoute
   '/api/notes': typeof ApiNotesIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
+  '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/admin/notes': typeof ApiAdminNotesIndexRoute
 }
 export interface FileRoutesById {
@@ -143,8 +160,10 @@ export interface FileRoutesById {
   '/_protected/debug': typeof ProtectedDebugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
+  '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
   '/api/admin/notes/$id': typeof ApiAdminNotesIdRoute
+  '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
 }
 export interface FileRouteTypes {
@@ -160,8 +179,10 @@ export interface FileRouteTypes {
     | '/debug'
     | '/api/auth/$'
     | '/api/notes/$id'
+    | '/api/conversations/'
     | '/api/notes/'
     | '/api/admin/notes/$id'
+    | '/api/conversations/$id/messages'
     | '/api/admin/notes/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -175,8 +196,10 @@ export interface FileRouteTypes {
     | '/debug'
     | '/api/auth/$'
     | '/api/notes/$id'
+    | '/api/conversations'
     | '/api/notes'
     | '/api/admin/notes/$id'
+    | '/api/conversations/$id/messages'
     | '/api/admin/notes'
   id:
     | '__root__'
@@ -192,8 +215,10 @@ export interface FileRouteTypes {
     | '/_protected/debug'
     | '/api/auth/$'
     | '/api/notes/$id'
+    | '/api/conversations/'
     | '/api/notes/'
     | '/api/admin/notes/$id'
+    | '/api/conversations/$id/messages'
     | '/api/admin/notes/'
   fileRoutesById: FileRoutesById
 }
@@ -203,8 +228,10 @@ export interface RootRouteChildren {
   ProtectedRoute: typeof ProtectedRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiNotesIdRoute: typeof ApiNotesIdRoute
+  ApiConversationsIndexRoute: typeof ApiConversationsIndexRoute
   ApiNotesIndexRoute: typeof ApiNotesIndexRoute
   ApiAdminNotesIdRoute: typeof ApiAdminNotesIdRoute
+  ApiConversationsIdMessagesRoute: typeof ApiConversationsIdMessagesRoute
   ApiAdminNotesIndexRoute: typeof ApiAdminNotesIndexRoute
 }
 
@@ -287,6 +314,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/conversations/': {
+      id: '/api/conversations/'
+      path: '/api/conversations'
+      fullPath: '/api/conversations/'
+      preLoaderRoute: typeof ApiConversationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/notes/': {
       id: '/api/notes/'
       path: '/api/notes'
@@ -313,6 +347,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/notes/$id'
       fullPath: '/api/admin/notes/$id'
       preLoaderRoute: typeof ApiAdminNotesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/conversations/$id/messages': {
+      id: '/api/conversations/$id/messages'
+      path: '/api/conversations/$id/messages'
+      fullPath: '/api/conversations/$id/messages'
+      preLoaderRoute: typeof ApiConversationsIdMessagesRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -356,8 +397,10 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiNotesIdRoute: ApiNotesIdRoute,
+  ApiConversationsIndexRoute: ApiConversationsIndexRoute,
   ApiNotesIndexRoute: ApiNotesIndexRoute,
   ApiAdminNotesIdRoute: ApiAdminNotesIdRoute,
+  ApiConversationsIdMessagesRoute: ApiConversationsIdMessagesRoute,
   ApiAdminNotesIndexRoute: ApiAdminNotesIndexRoute,
 }
 export const routeTree = rootRouteImport
