@@ -6,6 +6,7 @@ import {
   AnalysisPanel,
   PanelSection,
 } from "@/components/lab/debug/analysis-panel";
+import { WithoutJevNote } from "@/components/lab/debug/analysis-state";
 import { DecisionReason } from "@/components/lab/debug/decision-reason";
 import { LabelTable } from "@/components/lab/debug/label-table";
 import { MessageTabs } from "@/components/lab/debug/message-tabs";
@@ -101,6 +102,7 @@ function DebugPage() {
                 <PanelSection title="Waktu proses & biaya">
                   <TimingBreakdown turn={selected} />
                 </PanelSection>
+                <WithoutJevNote turn={selected} />
               </>
             )}
           </AnalysisPanel>

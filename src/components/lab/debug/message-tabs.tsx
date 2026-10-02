@@ -83,9 +83,15 @@ export function MessageTabs({
             <span className="flex flex-wrap gap-1">
               {turn.analysis ? (
                 <DecisionTag decision={turn.analysis.decision} />
+              ) : turn.analysisStatus === "failed" ? (
+                <span className="rounded-full border border-danger/35 bg-danger/10 px-2.5 py-0.5 text-xs font-semibold text-danger-text">
+                  Gagal dibaca
+                </span>
               ) : (
                 <span className="text-xs text-muted-foreground">
-                  Belum dianalisis
+                  {turn.analysisStatus === "pending"
+                    ? "Sedang dianalisis…"
+                    : "Belum dianalisis"}
                 </span>
               )}
               {turn.ticketId && (

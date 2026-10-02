@@ -111,6 +111,10 @@ export interface AgentReply {
 export interface ConversationTurn {
   message: LabMessage;
   analysis: JevAnalysis | null;
+  /** "pending" while Jev reads the message, "failed" when it could not. */
+  analysisStatus?: "pending" | "failed";
+  /** Short, user-safe reason shown when the analysis failed. */
+  analysisError?: string;
   withJev: BotResponse | null;
   withoutJev: BotResponse | null;
   ticketId: string | null;

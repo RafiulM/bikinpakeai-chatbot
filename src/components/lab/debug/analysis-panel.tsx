@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { ConversationTurn } from "@/lib/lab/types";
 import { formatClock } from "@/lib/lab/format";
+import { AnalysisState } from "./analysis-state";
 import { DecisionTag } from "./decision-tag";
 
 /** The selected message and how Jev read it. Sections are passed as children. */
@@ -8,11 +9,14 @@ export function AnalysisPanel({
   turn,
   index,
   panelId,
+  onRetryAnalysis,
   children,
 }: {
   turn: ConversationTurn;
   index: number;
   panelId: string;
+  /** Re-run Jev on a message whose analysis failed. */
+  onRetryAnalysis?: () => void;
   children: ReactNode;
 }) {
   return (
@@ -39,10 +43,7 @@ export function AnalysisPanel({
       {turn.analysis ? (
         children
       ) : (
-        <p className="text-sm text-muted-foreground">
-          Pesan ini belum punya hasil analisis Jev. Hasilnya muncul begitu kedua
-          jalur selesai memproses.
-        </p>
+        <AnalysisState turn={turn} onRetry={onRetryAnalysis} />
       )}
     </section>
   );
