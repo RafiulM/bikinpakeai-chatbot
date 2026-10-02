@@ -69,6 +69,12 @@ test("the queue lists the caller's escalations with filters and counts", async (
   });
   expect(data[0].summaryPoints.length).toBeGreaterThan(1);
 
+  const wildcard = await (await owner.get("/api/tickets?q=%25")).json();
+  expect(wildcard.data).toEqual([]);
+  const byCode = await (await owner.get(`/api/tickets?q=${angry}`)).json();
+  expect(byCode.data.map((ticket: { code: string }) => ticket.code)).toEqual([
+    angry,
+  ]);
   const search = await (await owner.get("/api/tickets?q=andalai")).json();
   expect(search.data.map((ticket: { code: string }) => ticket.code)).toEqual([
     calmer,

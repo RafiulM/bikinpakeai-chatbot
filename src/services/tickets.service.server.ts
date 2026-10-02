@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  or,
+  sql,
+} from "drizzle-orm";
 import { db } from "@/db/index.server";
 import {
   conversations,
@@ -7,12 +17,7 @@ import {
   ticketReplies,
   tickets,
 } from "@/db/schema";
-import {
-  filterTickets,
-  nextTicketStatus,
-  sortTickets,
-  ticketDraft,
-} from "@/lib/lab/tickets";
+import { nextTicketStatus, ticketDraft } from "@/lib/lab/tickets";
 import type {
   JevAnalysis,
   SupportTicket,
@@ -228,30 +233,77 @@ async function hydrate(rows: TicketRow[]): Promise<SupportTicket[]> {
   });
 }
 
+const PRIORITY_RANK = sql<number>`case ${tickets.priority}
+  when 'urgent' then 0 when 'high' then 1 when 'medium' then 2 else 3 end`;
+
+/** Same order as sortTickets() in src/lib/lab/tickets.ts, done in SQL. */
+function orderFor(sort: ListTicketsInput["sort"]) {
+  if (sort === "frustration")
+    return [
+      desc(tickets.frustrationScore),
+      asc(PRIORITY_RANK),
+      asc(tickets.createdAt),
+    ];
+  if (sort === "waiting") return [asc(tickets.createdAt), asc(PRIORITY_RANK)];
+  return [
+    asc(PRIORITY_RANK),
+    desc(tickets.frustrationScore),
+    asc(tickets.createdAt),
+  ];
+}
+
+/** Escapes LIKE wildcards so a search for "100%" matches literally. */
+const likePattern = (text: string) =>
+  `%${text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+
 /**
- * The caller's support queue: tickets from their own conversations, filtered
- * and ordered with the same rules as the Agent view, plus per-status counts.
+ * The caller's support queue: tickets from their own conversations, filtered,
+ * searched and ordered by priority in SQL, plus counts per status.
  */
 export async function listTickets(userId: string, input: ListTicketsInput) {
-  const rows = await db
-    .select(ticketFields)
-    .from(tickets)
-    .innerJoin(conversations, eq(conversations.id, tickets.conversationId))
-    .where(eq(conversations.userId, userId))
-    .orderBy(desc(tickets.createdAt))
-    .limit(500);
+  const owned = eq(conversations.userId, userId);
+  const status =
+    input.filter === "active"
+      ? inArray(tickets.status, ["open", "claimed"])
+      : input.filter === "done"
+        ? eq(tickets.status, "closed")
+        : undefined;
+  const search = input.q
+    ? or(
+        ilike(sql`'T-' || ${tickets.number}`, likePattern(input.q)),
+        ilike(sql`'#A-' || ${conversations.number}`, likePattern(input.q)),
+        ilike(tickets.product, likePattern(input.q)),
+        ilike(tickets.issueLabel, likePattern(input.q)),
+        ilike(tickets.summary, likePattern(input.q)),
+      )
+    : undefined;
+
+  const [rows, totals] = await Promise.all([
+    db
+      .select(ticketFields)
+      .from(tickets)
+      .innerJoin(conversations, eq(conversations.id, tickets.conversationId))
+      .where(and(owned, status, search))
+      .orderBy(...orderFor(input.sort))
+      .limit(input.limit),
+    db
+      .select({ status: tickets.status, count: count() })
+      .from(tickets)
+      .innerJoin(conversations, eq(conversations.id, tickets.conversationId))
+      .where(owned)
+      .groupBy(tickets.status),
+  ]);
   const counts: Record<TicketStatus, number> = {
     open: 0,
     claimed: 0,
     closed: 0,
   };
-  for (const row of rows) counts[row.ticket.status as TicketStatus] += 1;
-  const all = await hydrate(rows);
-  const shown = sortTickets(
-    filterTickets(all, input.filter, input.q),
-    input.sort,
-  ).slice(0, input.limit);
-  return { data: shown, meta: { counts, total: rows.length } };
+  for (const total of totals)
+    counts[total.status as TicketStatus] = total.count;
+  return {
+    data: await hydrate(rows),
+    meta: { counts, total: counts.open + counts.claimed + counts.closed },
+  };
 }
 
 /** One ticket, only when it belongs to one of the caller's conversations. */
