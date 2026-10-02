@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
-import { useConversationParam } from "@/components/lab/use-conversation-param";
+import { useLabConversation } from "@/components/lab/conversation-store";
 import { sortTurns } from "@/lib/lab/conversation";
 import { formatClock, formatSeconds, formatUsd } from "@/lib/lab/format";
-import { mockConversation } from "@/lib/lab/mock-data";
 
 export const Route = createFileRoute("/_protected/debug")({
   head: () => ({ meta: [{ title: `Debug | ${siteConfig.name}` }] }),
@@ -13,8 +12,8 @@ export const Route = createFileRoute("/_protected/debug")({
 // Placeholder view: the full Jev debug panel arrives in phase 2. It already
 // reads the same conversation so switching views keeps the context.
 function DebugPage() {
-  const turns = sortTurns(mockConversation.turns);
-  useConversationParam(mockConversation.id);
+  const { conversation } = useLabConversation();
+  const turns = sortTurns(conversation.turns);
   return (
     <div className="grid max-w-[1200px] gap-6">
       <div>
@@ -22,7 +21,7 @@ function DebugPage() {
           Debug
         </h1>
         <p className="text-sm text-muted-foreground">
-          Percakapan {mockConversation.code} · cara Jev membaca tiap pesan
+          Percakapan {conversation.code} · cara Jev membaca tiap pesan
         </p>
       </div>
       <p className="rounded-[10px] border border-signal bg-signal-soft px-4 py-3 text-sm">

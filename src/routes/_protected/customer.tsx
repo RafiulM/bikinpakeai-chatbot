@@ -1,16 +1,13 @@
 import { useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
-import { useConversationParam } from "@/components/lab/use-conversation-param";
 import { ChatComposer } from "@/components/lab/chat-composer";
 import { ChatWidget } from "@/components/lab/chat-widget";
+import { useLabConversation } from "@/components/lab/conversation-store";
 import { LastTurnCard } from "@/components/lab/last-turn-card";
 import { NewConversationButton } from "@/components/lab/new-conversation-button";
 import { SuggestedQuestions } from "@/components/lab/suggested-questions";
-import { maskSensitive } from "@/lib/lab/mask";
-import { mockSendMessage } from "@/lib/lab/mock-api";
-import { mockConversation, SUGGESTED_QUESTIONS } from "@/lib/lab/mock-data";
-import type { ConversationTurn } from "@/lib/lab/types";
+import { SUGGESTED_QUESTIONS } from "@/lib/lab/mock-data";
 
 export const Route = createFileRoute("/_protected/customer")({
   head: () => ({ meta: [{ title: `Customer | ${siteConfig.name}` }] }),
@@ -20,79 +17,23 @@ export const Route = createFileRoute("/_protected/customer")({
 const GREETING =
   "Halo! Saya asisten Bikinpakeai. Mau tanya soal PRDTask, DesainPakeAI, AndalAI, Template, membership, atau komunitas?";
 
-function nextCode(code: string) {
-  const number = Number(code.replace(/\D/g, "")) || 1000;
-  return `#A-${number + 1}`;
-}
-
 function CustomerPage() {
-  const [conversation, setConversation] = useState({
-    id: mockConversation.id,
-    code: mockConversation.code,
-    fresh: false,
-  });
-  const [turns, setTurns] = useState<ConversationTurn[]>(
-    mockConversation.turns,
-  );
-  const [busy, setBusy] = useState(false);
+  const { conversation, busy, send, retry, startNew } = useLabConversation();
   const [notice, setNotice] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const turns = conversation.turns;
 
-  async function send(text: string) {
-    setBusy(true);
+  function handleSend(text: string) {
     setNotice(null);
-    const optimisticId = `pending-${Date.now()}`;
-    const preview = maskSensitive(text);
-    setTurns((current) => [
-      ...current,
-      {
-        message: {
-          id: optimisticId,
-          conversationId: conversation.id,
-          sender: "customer",
-          content: preview.text,
-          isMasked: preview.masked,
-          createdAt: new Date().toISOString(),
-        },
-        analysis: null,
-        withJev: null,
-        withoutJev: null,
-        ticketId: null,
-        deliveryStatus: "sending",
-      },
-    ]);
-    try {
-      const turn = await mockSendMessage(conversation.id, text);
-      setTurns((current) =>
-        current.map((item) => (item.message.id === optimisticId ? turn : item)),
-      );
-    } catch {
-      setTurns((current) =>
-        current.map((item) =>
-          item.message.id === optimisticId
-            ? { ...item, deliveryStatus: "failed" }
-            : item,
-        ),
-      );
-    } finally {
-      setBusy(false);
-    }
+    void send(text);
   }
 
   function startNewConversation() {
-    const ended = conversation.code;
-    const code = nextCode(ended);
-    setConversation({
-      id: `mock-conversation-${Date.now()}`,
-      code,
-      fresh: true,
-    });
-    setTurns([]);
-    setNotice(`Percakapan ${code} dimulai. ${ended} sudah disimpan.`);
+    const { endedCode, code } = startNew();
+    setNotice(`Percakapan ${code} dimulai. ${endedCode} sudah disimpan.`);
     requestAnimationFrame(() => inputRef.current?.focus());
   }
 
-  useConversationParam(conversation.id);
   return (
     <div className="grid max-w-[1200px] gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -137,22 +78,21 @@ function CustomerPage() {
               </p>
             )
           }
-          onRetry={(turn) => {
-            setTurns((current) =>
-              current.filter((item) => item.message.id !== turn.message.id),
-            );
-            void send(turn.message.content);
-          }}
+          onRetry={retry}
           composer={
             <>
               {turns.length === 0 && (
                 <SuggestedQuestions
                   questions={SUGGESTED_QUESTIONS}
                   disabled={busy}
-                  onPick={(question) => void send(question)}
+                  onPick={handleSend}
                 />
               )}
-              <ChatComposer onSend={send} busy={busy} inputRef={inputRef} />
+              <ChatComposer
+                onSend={handleSend}
+                busy={busy}
+                inputRef={inputRef}
+              />
             </>
           }
         />

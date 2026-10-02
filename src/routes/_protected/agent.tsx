@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
-import { useConversationParam } from "@/components/lab/use-conversation-param";
-import { mockConversation } from "@/lib/lab/mock-data";
+import { useLabConversation } from "@/components/lab/conversation-store";
 
 export const Route = createFileRoute("/_protected/agent")({
   head: () => ({ meta: [{ title: `Agent | ${siteConfig.name}` }] }),
@@ -11,8 +10,8 @@ export const Route = createFileRoute("/_protected/agent")({
 // Placeholder view: the support queue arrives in phase 2. It lists the
 // escalations from the shared conversation so the context carries over.
 function AgentPage() {
-  const escalated = mockConversation.turns.filter((turn) => turn.ticketId);
-  useConversationParam(mockConversation.id);
+  const { conversation } = useLabConversation();
+  const escalated = conversation.turns.filter((turn) => turn.ticketId);
   return (
     <div className="grid max-w-[1200px] gap-6">
       <div>
@@ -39,7 +38,7 @@ function AgentPage() {
               className="grid gap-1 rounded-2xl border bg-card p-4"
             >
               <p className="text-sm font-semibold">
-                {turn.ticketId} · Percakapan {mockConversation.code}
+                {turn.ticketId} · Percakapan {conversation.code}
               </p>
               <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
                 “{turn.message.content}”

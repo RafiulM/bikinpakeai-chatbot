@@ -4,8 +4,11 @@ import {
   redirect,
   retainSearchParams,
 } from "@tanstack/react-router";
+import {
+  LabConversationProvider,
+  useActiveConversationSummary,
+} from "@/components/lab/conversation-store";
 import { LabShell, SessionCard } from "@/components/lab/lab-shell";
-import { mockConversation } from "@/lib/lab/mock-data";
 import { labSearchSchema } from "@/lib/lab/search";
 
 // Pathless layout for signed-in screens. The check runs on the server during
@@ -25,18 +28,22 @@ export const Route = createFileRoute("/_protected")({
 function ProtectedLayout() {
   const { user } = Route.useRouteContext().session;
   return (
-    <LabShell
-      userEmail={user.email}
-      session={
-        <SessionCard
-          code={mockConversation.code}
-          title={mockConversation.title}
-          messageCount={mockConversation.turns.length}
-          conversationId={mockConversation.id}
-        />
-      }
-    >
-      <Outlet />
-    </LabShell>
+    <LabConversationProvider>
+      <LabShell userEmail={user.email} session={<ActiveSessionCard />}>
+        <Outlet />
+      </LabShell>
+    </LabConversationProvider>
+  );
+}
+
+function ActiveSessionCard() {
+  const summary = useActiveConversationSummary();
+  return (
+    <SessionCard
+      code={summary.code}
+      title={summary.title}
+      messageCount={summary.messageCount}
+      conversationId={summary.id}
+    />
   );
 }
