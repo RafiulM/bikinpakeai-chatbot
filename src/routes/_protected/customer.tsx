@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Send } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import { ChatComposer } from "@/components/lab/chat-composer";
 import { ChatWidget } from "@/components/lab/chat-widget";
 import { LastTurnCard } from "@/components/lab/last-turn-card";
-import { Button } from "@/components/ui/button";
+import { maskSensitive } from "@/lib/lab/mask";
+import { mockSendMessage } from "@/lib/lab/mock-api";
 import { mockConversation } from "@/lib/lab/mock-data";
+import type { ConversationTurn } from "@/lib/lab/types";
 
 export const Route = createFileRoute("/_protected/customer")({
   head: () => ({ meta: [{ title: `Customer | ${siteConfig.name}` }] }),
@@ -12,33 +15,68 @@ export const Route = createFileRoute("/_protected/customer")({
 });
 
 function CustomerPage() {
-  const turns = mockConversation.turns;
+  const [turns, setTurns] = useState<ConversationTurn[]>(
+    mockConversation.turns,
+  );
+  const [busy, setBusy] = useState(false);
+
+  async function send(text: string) {
+    setBusy(true);
+    const optimisticId = `pending-${Date.now()}`;
+    const preview = maskSensitive(text);
+    setTurns((current) => [
+      ...current,
+      {
+        message: {
+          id: optimisticId,
+          conversationId: mockConversation.id,
+          sender: "customer",
+          content: preview.text,
+          isMasked: preview.masked,
+          createdAt: new Date().toISOString(),
+        },
+        analysis: null,
+        withJev: null,
+        withoutJev: null,
+        ticketId: null,
+        deliveryStatus: "sending",
+      },
+    ]);
+    try {
+      const turn = await mockSendMessage(mockConversation.id, text);
+      setTurns((current) =>
+        current.map((item) => (item.message.id === optimisticId ? turn : item)),
+      );
+    } catch {
+      setTurns((current) =>
+        current.map((item) =>
+          item.message.id === optimisticId
+            ? { ...item, deliveryStatus: "failed" }
+            : item,
+        ),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="grid max-w-[1200px] items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
       <ChatWidget
         turns={turns}
-        composer={
-          <form className="flex items-end gap-2 max-sm:flex-col max-sm:items-stretch">
-            <label htmlFor="customer-message" className="sr-only">
-              Pertanyaan Anda
-            </label>
-            <textarea
-              id="customer-message"
-              rows={1}
-              disabled
-              placeholder="Tulis pertanyaan…"
-              className="min-h-12 flex-1 resize-y rounded-2xl border border-border-strong bg-card px-4 py-3 text-[15px] disabled:bg-muted"
-            />
-            <Button type="submit" disabled>
-              <Send aria-hidden="true" />
-              Kirim
-            </Button>
-          </form>
-        }
+        pendingReply={busy}
+        onRetry={(turn) => {
+          setTurns((current) =>
+            current.filter((item) => item.message.id !== turn.message.id),
+          );
+          void send(turn.message.content);
+        }}
+        composer={<ChatComposer onSend={send} busy={busy} />}
       />
       <aside aria-label="Ringkasan perbandingan" className="grid gap-4">
-        <LastTurnCard turn={turns.at(-1)} />
+        <LastTurnCard
+          turn={turns.findLast((turn) => turn.withJev && turn.withoutJev)}
+        />
       </aside>
     </div>
   );
