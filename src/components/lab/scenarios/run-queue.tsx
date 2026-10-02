@@ -54,7 +54,7 @@ export function RunQueue({
   return (
     <aside
       aria-labelledby="run-queue-title"
-      className="grid gap-4 rounded-[20px] border bg-card p-5 xl:sticky xl:top-6"
+      className="grid gap-4 rounded-[20px] border bg-card p-5"
     >
       <div>
         <h2 id="run-queue-title" className="text-[17px] font-semibold">

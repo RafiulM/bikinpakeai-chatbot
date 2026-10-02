@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Play } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useLabConversation } from "@/components/lab/conversation-store";
@@ -10,6 +10,7 @@ import {
   type RunState,
 } from "@/components/lab/scenarios/run-queue";
 import { ScenarioCard } from "@/components/lab/scenarios/scenario-card";
+import { SegmentedControl } from "@/components/lab/segmented-control";
 import { Button } from "@/components/ui/button";
 import { CATEGORY_LABEL, SCENARIOS, type Scenario } from "@/lib/lab/scenarios";
 import { ISSUE_TYPES, type IssueType } from "@/lib/lab/types";
@@ -35,6 +36,8 @@ function ScenarioPage() {
   const [queue, setQueue] = useState<RunItem[]>([]);
   const [running, setRunning] = useState(false);
   const stopRef = useRef(false);
+  const [after, setAfter] = useState<"stay" | "compare" | "debug">("stay");
+  const navigate = useNavigate();
   const queueRef = useRef<HTMLDivElement>(null);
   const allOpen = open.size === GROUPS.length;
 
@@ -77,20 +80,25 @@ function ScenarioPage() {
     );
     if (window.matchMedia("(max-width: 1279px)").matches)
       queueRef.current?.scrollIntoView({ block: "start" });
+    let lastMessageId: string | undefined;
     for (const scenario of scenarios) {
       if (stopRef.current) {
         setState(scenario.id, "stopped");
         continue;
       }
       setState(scenario.id, "running");
-      try {
-        await send(scenario.prompt);
-        setState(scenario.id, "done");
-      } catch {
-        setState(scenario.id, "failed");
-      }
+      const messageId = await send(scenario.prompt);
+      setState(scenario.id, messageId ? "done" : "failed");
+      lastMessageId = messageId ?? lastMessageId;
     }
     setRunning(false);
+    // Jump to the result only for a run that was not stopped halfway.
+    if (!stopRef.current && lastMessageId && after !== "stay") {
+      void navigate({
+        to: after === "compare" ? "/compare" : "/debug",
+        hash: `turn-${lastMessageId}`,
+      });
+    }
   }
 
   const pickedScenarios = SCENARIOS.filter((scenario) =>
@@ -199,7 +207,22 @@ function ScenarioPage() {
             </CategorySection>
           ))}
         </div>
-        <div ref={queueRef}>
+        <div ref={queueRef} className="grid gap-3 xl:sticky xl:top-6">
+          <div className="grid gap-2 rounded-[20px] border bg-card p-4">
+            <p id="after-run-label" className="text-sm font-semibold">
+              Setelah antrean selesai, buka:
+            </p>
+            <SegmentedControl
+              legend="Tampilan setelah skenario selesai"
+              value={after}
+              onChange={setAfter}
+              options={[
+                { value: "stay", label: "Tetap di sini" },
+                { value: "compare", label: "Compare" },
+                { value: "debug", label: "Debug" },
+              ]}
+            />
+          </div>
           <RunQueue
             items={queue}
             running={running}

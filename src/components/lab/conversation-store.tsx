@@ -234,7 +234,8 @@ interface LabConversationValue {
   conversation: StoredConversation;
   conversations: StoredConversation[];
   busy: boolean;
-  send: (text: string) => Promise<void>;
+  /** Resolves with the stored message id, or undefined when sending failed. */
+  send: (text: string) => Promise<string | undefined>;
   retry: (turn: ConversationTurn) => void;
   startNew: () => { endedCode: string; code: string };
   select: (id: string) => void;
@@ -333,8 +334,10 @@ export function LabConversationProvider({ children }: { children: ReactNode }) {
         const turn = await mockSendMessage(conversationId, text);
         dispatch({ type: "replace", conversationId, tempId, turn });
         playMockPipeline(conversationId, turn);
+        return turn.message.id;
       } catch {
         dispatch({ type: "fail", conversationId, tempId });
+        return undefined;
       }
     },
     [state.activeId],

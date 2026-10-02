@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
 import { useLabConversation } from "@/components/lab/conversation-store";
 import {
@@ -24,7 +24,11 @@ const PANEL_ID = "debug-analysis-panel";
 function DebugPage() {
   const { conversation } = useLabConversation();
   const turns = sortTurns(conversation.turns);
-  const [selectedId, setSelectedId] = useState<string | undefined>();
+  // Opening /debug#turn-<messageId> preselects that message.
+  const hash = useLocation({ select: (location) => location.hash });
+  const [selectedId, setSelectedId] = useState<string | undefined>(() =>
+    hash.startsWith("turn-") ? hash.slice(5) : undefined,
+  );
   // Default to the latest message; keep the choice while it still exists.
   const selectedIndex = Math.max(
     0,
