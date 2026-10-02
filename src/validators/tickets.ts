@@ -12,3 +12,12 @@ export const listTicketsSchema = z
   .strict();
 
 export type ListTicketsInput = z.infer<typeof listTicketsSchema>;
+
+export const replyTicketSchema = z
+  .object({
+    content: z.string().trim().min(1).max(2000),
+    close: z.boolean().default(false),
+  })
+  .strict();
+
+export type ReplyTicketInput = z.infer<typeof replyTicketSchema>;

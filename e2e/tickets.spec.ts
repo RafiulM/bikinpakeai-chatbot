@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { testDb } from "./support/db";
-import { headers, signUp } from "./support/session";
+import { cookieHeader, headers, readEvents, signUp } from "./support/session";
 
 let owner: APIRequestContext;
 let stranger: APIRequestContext;
@@ -103,4 +103,78 @@ test("the queue lists the caller's escalations with filters and counts", async (
 test("ticket endpoints require a session", async ({ request }) => {
   const response = await request.get("/api/tickets");
   expect(response.status()).toBe(401);
+});
+
+test("agents reply into the customer's conversation and can close in one step", async () => {
+  const { data: conversation } = await (
+    await owner.post("/api/conversations", { headers, data: {} })
+  ).json();
+  const { data: sent } = await (
+    await owner.post(`/api/conversations/${conversation.id}/messages`, {
+      headers,
+      data: { content: "Sudah seminggu error, saya kecewa. Mau refund." },
+    })
+  ).json();
+  const list = await (
+    await owner.get("/api/tickets?filter=all&q=seminggu")
+  ).json();
+  const ticket = list.data[0];
+  expect(ticket.code).toBe(sent.turn.ticketId);
+
+  const stream = readEvents(
+    `http://localhost:3101/api/conversations/${conversation.id}/events`,
+    await cookieHeader(owner),
+    2,
+  );
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const url = `/api/tickets/${ticket.id}/replies`;
+  const replied = await owner.post(url, {
+    headers,
+    data: {
+      content: "Invoice Anda sudah kami cek, akses kami aktifkan manual.",
+    },
+  });
+  expect(replied.status()).toBe(201);
+  const { data: updated } = await replied.json();
+  expect(updated.replies).toHaveLength(1);
+  expect(updated.replies[0]).toMatchObject({ agentName: "Lab Tester" });
+  expect(updated.status).toBe("open");
+
+  const { events } = await stream;
+  expect(events.map((event) => event.event)).toContain("agent_reply");
+
+  const detail = await (
+    await owner.get(`/api/conversations/${conversation.id}`)
+  ).json();
+  expect(detail.data.turns[0].agentReplies[0].content).toContain(
+    "aktifkan manual",
+  );
+
+  const closing = await owner.post(url, {
+    headers,
+    data: { content: "Akses sudah aktif. Tiket kami tutup.", close: true },
+  });
+  expect((await closing.json()).data.status).toBe("closed");
+  const late = await owner.post(url, {
+    headers,
+    data: { content: "Satu lagi" },
+  });
+  expect(late.status()).toBe(409);
+  expect((await late.json()).error.code).toBe("TICKET_CLOSED");
+
+  expect(
+    (await stranger.post(url, { headers, data: { content: "Halo" } })).status(),
+  ).toBe(404);
+  expect((await stranger.get(`/api/tickets/${ticket.id}`)).status()).toBe(404);
+  expect((await owner.get(`/api/tickets/${ticket.id}`)).status()).toBe(200);
+  for (const body of [
+    { content: "" },
+    { content: "x".repeat(2001) },
+    { content: "ok", agentName: "Bos" },
+  ]) {
+    expect((await owner.post(url, { headers, data: body })).status()).toBe(422);
+  }
+  expect(
+    (await owner.post(url, { data: { content: "Tanpa origin" } })).status(),
+  ).toBe(403);
 });

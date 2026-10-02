@@ -166,6 +166,15 @@ function reducer(state: StoreState, action: Action): StoreState {
                 analysisStatus: "failed",
                 analysisError: event.error,
               };
+            case "agent_reply":
+              return turn.agentReplies?.some(
+                (reply) => reply.id === event.reply.id,
+              )
+                ? turn
+                : {
+                    ...turn,
+                    agentReplies: [...(turn.agentReplies ?? []), event.reply],
+                  };
             case "answer":
               return event.response.mode === "with_jev"
                 ? { ...turn, withJev: event.response }

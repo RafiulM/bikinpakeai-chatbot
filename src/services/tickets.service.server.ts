@@ -14,7 +14,8 @@ import type {
   TicketExcerptLine,
   TicketStatus,
 } from "@/lib/lab/types";
-import type { ListTicketsInput } from "@/validators/tickets";
+import { publishLabEvent } from "@/lib/lab/events.server";
+import type { ListTicketsInput, ReplyTicketInput } from "@/validators/tickets";
 
 // Support tickets. Creation is internal (called by the answer pipeline after
 // it verified ownership); agent actions are owner-scoped in their own service
@@ -242,4 +243,79 @@ export async function listTickets(userId: string, input: ListTicketsInput) {
     input.sort,
   ).slice(0, input.limit);
   return { data: shown, meta: { counts, total: rows.length } };
+}
+
+/** One ticket, only when it belongs to one of the caller's conversations. */
+async function ownedTicketRow(userId: string, ticketId: string) {
+  const [row] = await db
+    .select(ticketFields)
+    .from(tickets)
+    .innerJoin(conversations, eq(conversations.id, tickets.conversationId))
+    .where(and(eq(tickets.id, ticketId), eq(conversations.userId, userId)))
+    .limit(1);
+  return row;
+}
+
+export async function getTicket(userId: string, ticketId: string) {
+  const row = await ownedTicketRow(userId, ticketId);
+  return row ? (await hydrate([row]))[0] : undefined;
+}
+
+export type ReplyResult =
+  | { kind: "ok"; ticket: SupportTicket }
+  | { kind: "not_found" }
+  | { kind: "closed" };
+
+/**
+ * Sends an agent reply to the customer. The reply appears in the customer's
+ * conversation through the live stream; "close" also closes the ticket in
+ * the same transaction.
+ */
+export async function replyToTicket(
+  userId: string,
+  ticketId: string,
+  agentName: string,
+  input: ReplyTicketInput,
+): Promise<ReplyResult> {
+  const outcome = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ ticket: tickets })
+      .from(tickets)
+      .innerJoin(conversations, eq(conversations.id, tickets.conversationId))
+      .where(and(eq(tickets.id, ticketId), eq(conversations.userId, userId)))
+      .for("update", { of: tickets })
+      .limit(1);
+    if (!row) return { kind: "not_found" } as const;
+    if (row.ticket.status === "closed") return { kind: "closed" } as const;
+    const [reply] = await tx
+      .insert(ticketReplies)
+      .values({
+        ticketId,
+        agentName: agentName.slice(0, 80),
+        content: input.content,
+      })
+      .returning();
+    if (input.close)
+      await tx
+        .update(tickets)
+        .set({ status: "closed", closedAt: new Date() })
+        .where(eq(tickets.id, ticketId));
+    return { kind: "ok", ticket: row.ticket, reply } as const;
+  });
+  if (outcome.kind !== "ok") return outcome;
+
+  publishLabEvent({
+    type: "agent_reply",
+    conversationId: outcome.ticket.conversationId,
+    messageId: outcome.ticket.messageId,
+    reply: {
+      id: outcome.reply.id,
+      ticketId: ticketCode(outcome.ticket.number),
+      agentName: outcome.reply.agentName,
+      content: outcome.reply.content,
+      createdAt: outcome.reply.createdAt.toISOString(),
+    },
+  });
+  const ticket = await getTicket(userId, ticketId);
+  return ticket ? { kind: "ok", ticket } : { kind: "not_found" };
 }
