@@ -6,6 +6,7 @@ import {
   AnalysisPanel,
   PanelSection,
 } from "@/components/lab/debug/analysis-panel";
+import { LabelTable } from "@/components/lab/debug/label-table";
 import { MessageTabs } from "@/components/lab/debug/message-tabs";
 import { sortTurns } from "@/lib/lab/conversation";
 
@@ -80,14 +81,19 @@ function DebugPage() {
             panelId={PANEL_ID}
           >
             {selected.analysis && (
-              <PanelSection title="Rute penanganan">
-                <p className="text-[15px] font-semibold">
-                  {selected.analysis.routeLabel}
-                </p>
-                <p className="rounded-[10px] bg-surface-subtle px-4 py-3 text-[15px] leading-relaxed">
-                  {selected.analysis.routeReason}
-                </p>
-              </PanelSection>
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+                <PanelSection title="Label & skor keyakinan">
+                  <LabelTable analysis={selected.analysis} />
+                </PanelSection>
+                <PanelSection title="Rute penanganan">
+                  <p className="text-[15px] font-semibold">
+                    {selected.analysis.routeLabel}
+                  </p>
+                  <p className="rounded-[10px] bg-surface-subtle px-4 py-3 text-[15px] leading-relaxed">
+                    {selected.analysis.routeReason}
+                  </p>
+                </PanelSection>
+              </div>
             )}
           </AnalysisPanel>
         </div>
