@@ -106,6 +106,9 @@ export function ViewNav() {
           ))}
         </ul>
       </div>
+      <p className="px-3 text-xs text-muted-foreground max-lg:hidden">
+        Tekan 1–4 untuk pindah tampilan.
+      </p>
     </nav>
   );
 }
