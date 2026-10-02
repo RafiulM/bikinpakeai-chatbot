@@ -58,12 +58,32 @@ export function toLabMessage(row: {
   };
 }
 
-export async function createConversation(userId: string) {
-  const [row] = await db
-    .insert(conversations)
-    .values({ userId })
-    .returning(conversationFields);
-  return toConversationSummary(row);
+/**
+ * Starts a new conversation. Any conversation still active for this account
+ * is ended in the same transaction, so there is exactly one active
+ * conversation and its history stays intact.
+ */
+export async function startConversation(userId: string) {
+  return db.transaction(async (tx) => {
+    const ended = await tx
+      .update(conversations)
+      .set({ status: "ended" })
+      .where(
+        and(
+          eq(conversations.userId, userId),
+          eq(conversations.status, "active"),
+        ),
+      )
+      .returning({ id: conversations.id });
+    const [row] = await tx
+      .insert(conversations)
+      .values({ userId })
+      .returning(conversationFields);
+    return {
+      conversation: toConversationSummary(row),
+      endedIds: ended.map((item) => item.id),
+    };
+  });
 }
 
 export type AddMessageResult =

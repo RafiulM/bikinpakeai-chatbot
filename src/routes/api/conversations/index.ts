@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { readJson, withApiSession } from "@/lib/api.server";
 import {
-  createConversation,
+  startConversation,
   listConversations,
 } from "@/services/conversations.service.server";
 import {
@@ -22,9 +22,11 @@ export const Route = createFileRoute("/api/conversations/")({
       POST: ({ request }) =>
         withApiSession(request, async (session) => {
           createConversationSchema.parse(await readJson(request));
-          const conversation = await createConversation(session.user.id);
+          const { conversation, endedIds } = await startConversation(
+            session.user.id,
+          );
           return Response.json(
-            { data: conversation },
+            { data: conversation, meta: { endedIds } },
             {
               status: 201,
               headers: { Location: `/api/conversations/${conversation.id}` },

@@ -116,9 +116,6 @@ test("history endpoints return the caller's conversations as ordered turns", asy
     const { data: first } = await (
       await owner.post("/api/conversations", { headers, data: {} })
     ).json();
-    const { data: second } = await (
-      await owner.post("/api/conversations", { headers, data: {} })
-    ).json();
     for (const content of ["Pesan pertama", "Pesan kedua"]) {
       expect(
         (
@@ -129,6 +126,10 @@ test("history endpoints return the caller's conversations as ordered turns", asy
         ).status(),
       ).toBe(201);
     }
+
+    const { data: second } = await (
+      await owner.post("/api/conversations", { headers, data: {} })
+    ).json();
 
     const detail = await owner.get(`/api/conversations/${first.id}`);
     expect(detail.status()).toBe(200);
@@ -164,4 +165,45 @@ test("history endpoints return the caller's conversations as ordered turns", asy
     await owner.dispose();
     await stranger.dispose();
   }
+});
+
+test("starting a new conversation ends the active one but keeps its history", async ({
+  request,
+}) => {
+  await signUp(request, "reset");
+  const { data: first } = await (
+    await request.post("/api/conversations", { headers, data: {} })
+  ).json();
+  await request.post(`/api/conversations/${first.id}/messages`, {
+    headers,
+    data: { content: "Masih tersimpan?" },
+  });
+  const restarted = await request.post("/api/conversations", {
+    headers,
+    data: {},
+  });
+  expect(restarted.status()).toBe(201);
+  const body = await restarted.json();
+  expect(body.meta.endedIds).toEqual([first.id]);
+  expect(body.data.status).toBe("active");
+
+  const old = await (
+    await request.get(`/api/conversations/${first.id}`)
+  ).json();
+  expect(old.data.status).toBe("ended");
+  expect(old.data.turns).toHaveLength(1);
+  const late = await request.post(`/api/conversations/${first.id}/messages`, {
+    headers,
+    data: { content: "Terlambat" },
+  });
+  expect(late.status()).toBe(409);
+  expect((await late.json()).error.code).toBe("CONVERSATION_ENDED");
+  expect(
+    (
+      await request.post("/api/conversations", {
+        headers,
+        data: { reset: true },
+      })
+    ).status(),
+  ).toBe(422);
 });
