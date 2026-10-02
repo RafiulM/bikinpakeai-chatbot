@@ -81,6 +81,8 @@ export interface ResponseReview {
   issues: string[];
   /** Exact substring of the response to highlight. */
   highlight?: string;
+  /** Whether the highlight marks a strength or a problem. Defaults from the verdict. */
+  highlightTone?: "good" | "bad";
 }
 
 export interface BotResponse {

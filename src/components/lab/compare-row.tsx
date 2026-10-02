@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
-import type { ConversationTurn } from "@/lib/lab/types";
+import type { BotResponse, ConversationTurn } from "@/lib/lab/types";
+import { pickWinner } from "@/lib/lab/compare";
 import { formatClock } from "@/lib/lab/format";
 import { AnswerCard } from "./answer-card";
+import { BetterBadge, HighlightedAnswer, IssueList } from "./answer-highlight";
 
 const ISSUE_LABEL = {
   pembayaran: "Pembayaran",
@@ -16,11 +18,15 @@ export function CompareRow({
   turn,
   index,
   footer,
+  highlight = true,
 }: {
   turn: ConversationTurn;
   index: number;
   footer?: ReactNode;
+  /** Show marks and problem lists ("Sorot perbedaan"). */
+  highlight?: boolean;
 }) {
+  const winner = pickWinner(turn);
   const questionId = `compare-q-${turn.message.id}`;
   const topic = turn.analysis ? ISSUE_LABEL[turn.analysis.issueType] : null;
   return (
@@ -42,10 +48,48 @@ export function CompareRow({
         </p>
       </header>
       <div className="grid gap-4 md:grid-cols-2">
-        <AnswerCard response={turn.withJev} />
-        <AnswerCard response={turn.withoutJev} />
+        <ComparedAnswer
+          response={turn.withJev}
+          isWinner={winner === "with_jev"}
+          highlight={highlight}
+        />
+        <ComparedAnswer
+          response={turn.withoutJev}
+          isWinner={winner === "without_jev"}
+          highlight={highlight}
+        />
       </div>
       {footer}
     </article>
+  );
+}
+
+function ComparedAnswer({
+  response,
+  isWinner,
+  highlight,
+}: {
+  response: BotResponse | null;
+  isWinner: boolean;
+  highlight: boolean;
+}) {
+  if (!response) return <AnswerCard response={null} />;
+  const tone =
+    response.review.highlightTone ??
+    (response.review.verdict === "wrong" ? "bad" : "good");
+  return (
+    <AnswerCard
+      response={response}
+      emphasized={isWinner}
+      badge={isWinner && <BetterBadge />}
+      extra={highlight && <IssueList issues={response.review.issues} />}
+    >
+      <HighlightedAnswer
+        text={response.content}
+        phrase={response.review.highlight}
+        tone={tone}
+        enabled={highlight}
+      />
+    </AnswerCard>
   );
 }

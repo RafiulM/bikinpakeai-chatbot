@@ -83,6 +83,7 @@ const turns: ConversationTurn[] = [
         verdictLabel: "Tepat, tapi umum",
         issues: [],
         highlight: "Silakan tunggu 1×24 jam",
+        highlightTone: "bad",
       },
     },
     ticketId: null,

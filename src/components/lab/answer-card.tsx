@@ -15,6 +15,7 @@ export function AnswerCard({
   badge,
   emphasized = false,
   children,
+  extra,
 }: {
   response: BotResponse | null;
   /** Optional marker next to the title, e.g. the "better answer" badge. */
@@ -22,6 +23,8 @@ export function AnswerCard({
   emphasized?: boolean;
   /** Replaces the plain answer text, e.g. with highlighted phrases. */
   children?: ReactNode;
+  /** Extra content under the answer, e.g. the list of problems. */
+  extra?: ReactNode;
 }) {
   if (!response) {
     return (
@@ -47,6 +50,7 @@ export function AnswerCard({
         <p className="text-[15px] leading-relaxed [overflow-wrap:anywhere]">
           {children ?? response.content}
         </p>
+        {extra}
       </div>
       <dl className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-3">
         <Metric label="Waktu">{formatSeconds(response.latencyMs)}</Metric>
