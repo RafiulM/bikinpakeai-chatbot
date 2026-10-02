@@ -1,7 +1,12 @@
+import type { ParsedCase } from "./test-set-file";
 import type {
   ConversationTurn,
   LabConversation,
   SupportTicket,
+  TestRunReport,
+  TestRunState,
+  TestRunStatus,
+  TestSetSummary,
   TicketStatus,
   ViewId,
 } from "./types";
@@ -104,6 +109,62 @@ export const labApi = {
     const { data } = await request<{ data: SupportTicket }>(
       `/api/tickets/${id}/replies`,
       { method: "POST", body: json({ content, close }) },
+    );
+    return data;
+  },
+
+  async listTestSets() {
+    const { data } = await request<{ data: TestSetSummary[] }>(
+      "/api/test-sets",
+    );
+    return data;
+  },
+
+  async createTestSet(name: string, cases: ParsedCase[]) {
+    const { data } = await request<{ data: TestSetSummary }>("/api/test-sets", {
+      method: "POST",
+      body: json({ name, cases }),
+    });
+    return data;
+  },
+
+  async listTestRuns(status?: TestRunStatus, limit = 1) {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (status) query.set("status", status);
+    const { data } = await request<{ data: TestRunState[] }>(
+      `/api/test-runs?${query}`,
+    );
+    return data;
+  },
+
+  /** Starts a run; when one is already going, returns that run instead. */
+  async startTestRun(testSetId: string) {
+    try {
+      const { data } = await request<{ data: TestRunState }>("/api/test-runs", {
+        method: "POST",
+        body: json({ testSetId }),
+      });
+      return data;
+    } catch (error) {
+      if (error instanceof LabApiError && error.code === "RUN_IN_PROGRESS") {
+        const [running] = await labApi.listTestRuns("running");
+        if (running) return running;
+      }
+      throw error;
+    }
+  },
+
+  async cancelTestRun(id: string) {
+    const { data } = await request<{ data: TestRunState }>(
+      `/api/test-runs/${id}/cancel`,
+      { method: "POST", body: json({}) },
+    );
+    return data;
+  },
+
+  async getTestRunReport(id: string) {
+    const { data } = await request<{ data: TestRunReport }>(
+      `/api/test-runs/${id}/report`,
     );
     return data;
   },

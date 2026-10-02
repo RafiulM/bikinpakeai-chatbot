@@ -70,3 +70,48 @@ test("a customer question flows through every view", async ({ page }) => {
     page.getByText("Halo, kami sedang mengecek invoice Anda."),
   ).toBeVisible();
 });
+
+test("a mass test runs from the Uji Test Set screen and fills the report", async ({
+  page,
+}) => {
+  await page.goto("/sign-up");
+  await page.getByLabel("Name").fill("Test Set Tester");
+  await page.getByLabel("Email").fill(`ui-set-${randomUUID()}@example.com`);
+  await page.getByLabel("Password").fill("Ui-test-password-123!");
+  await page.getByRole("button", { name: "Create account" }).click();
+  const limited = page.getByText("Too many requests");
+  const outcome = await Promise.race([
+    page.waitForURL(/\/customer/, { timeout: 8000 }).then(() => "ok"),
+    limited.waitFor({ state: "visible", timeout: 8000 }).then(() => "limited"),
+  ]);
+  if (outcome === "limited") {
+    await page.waitForTimeout(10_500);
+    await page.getByRole("button", { name: "Create account" }).click();
+  }
+  await expect(page).toHaveURL(/\/customer/);
+
+  await page.goto("/test-set");
+  await expect(
+    page.getByText("Belum ada laporan. Pilih test set lalu jalankan uji."),
+  ).toBeVisible();
+  await page.getByRole("radio", { name: /Eskalasi & frustrasi/ }).check();
+  await page.getByRole("button", { name: "Jalankan uji" }).click();
+  await expect(
+    page.getByText("Uji selesai: 50 pesan diproses. Laporan hasil diperbarui."),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Run #\d+ · Eskalasi & frustrasi · 50 pesan/),
+  ).toBeVisible();
+  await expect(
+    page.getByText("50 dari 50 pesan", { exact: true }).last(),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Kesimpulan · Semua kategori · 50 pesan/i),
+  ).toBeVisible();
+
+  // The report survives a reload: it comes from the server, not the page.
+  await page.reload();
+  await expect(
+    page.getByText(/Run #\d+ · Eskalasi & frustrasi · 50 pesan/),
+  ).toBeVisible();
+});

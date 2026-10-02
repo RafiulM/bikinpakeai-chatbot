@@ -10,6 +10,7 @@ import type {
   TestCaseOutcome,
   TestCaseResult,
   TestRunReport,
+  TestRunState,
   TestRunStatus,
   Verdict,
   VerdictTally,
@@ -26,21 +27,6 @@ import {
 
 /** Messages answered at the same time; keeps model rate limits comfortable. */
 const CONCURRENCY = 3;
-
-export interface TestRunState {
-  runId: string;
-  runNumber: number;
-  testSetId: string;
-  testSetName: string;
-  status: TestRunStatus;
-  processed: number;
-  total: number;
-  withJev: VerdictTally;
-  withoutJev: VerdictTally;
-  error: string | null;
-  startedAt: string;
-  finishedAt: string | null;
-}
 
 const shared = globalThis as typeof globalThis & {
   __testRuns?: { active: Map<string, AbortController>; bus: EventEmitter };

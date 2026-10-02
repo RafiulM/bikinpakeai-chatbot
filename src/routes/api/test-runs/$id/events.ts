@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ApiError, withApiSession } from "@/lib/api.server";
+import type { TestRunState } from "@/lib/lab/types";
 import {
   getTestRunState,
   subscribeTestRun,
-  type TestRunState,
 } from "@/services/test-runs.service.server";
 import { testRunIdSchema } from "@/validators/test-sets";
 

@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { labApi } from "@/lib/lab/api-client";
 import type {
   TestRunReport,
+  TestRunState,
   TestSetSummary,
   VerdictTally,
 } from "@/lib/lab/types";
-import { mockLastReport, sampleReport } from "@/lib/lab/mock-test-sets";
 
-// Drives one mass test run. This preview version simulates progress from the
-// sample report; the API version reports the same shape from the server.
+// Drives one mass test run on the server. Progress arrives over the run's
+// event stream; the run keeps going if the page is left, and a run still in
+// progress is picked up again when the page opens.
 
 export interface RunProgress {
   status: "idle" | "running" | "done" | "cancelled" | "failed";
@@ -20,12 +22,13 @@ export interface RunProgress {
 
 const EMPTY: VerdictTally = { correct: 0, wrong: 0, escalated: 0 };
 
-function scaled(tally: VerdictTally, ratio: number): VerdictTally {
-  return {
-    correct: Math.round(tally.correct * ratio),
-    wrong: Math.round(tally.wrong * ratio),
-    escalated: Math.round(tally.escalated * ratio),
-  };
+function messageFor(state: TestRunState) {
+  if (state.status === "running") return "Uji berjalan…";
+  if (state.status === "done")
+    return `Uji selesai: ${state.total} pesan diproses. Laporan hasil diperbarui.`;
+  if (state.status === "cancelled")
+    return `Uji dibatalkan di ${state.processed} dari ${state.total} pesan. Laporan sebelumnya tidak berubah.`;
+  return state.error ?? "Uji gagal diproses. Coba jalankan lagi.";
 }
 
 export function useTestRun(onFinished: (report: TestRunReport) => void) {
@@ -37,86 +40,101 @@ export function useTestRun(onFinished: (report: TestRunReport) => void) {
     withoutJev: EMPTY,
     message: null,
   });
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const runNumber = useRef(mockLastReport.runNumber);
-  const finishRef = useRef<(() => void) | null>(null);
+  const [runId, setRunId] = useState<string | null>(null);
+  const finished = useRef(new Set<string>());
+  const onFinishedRef = useRef(onFinished);
+  useEffect(() => {
+    onFinishedRef.current = onFinished;
+  }, [onFinished]);
 
-  const stopTimer = () => {
-    if (timer.current) clearInterval(timer.current);
-    timer.current = null;
-  };
+  /** Shows a run's state; a finished run is reported exactly once. */
+  const apply = useCallback((state: TestRunState) => {
+    setProgress({
+      status: state.status,
+      processed: state.processed,
+      total: state.total,
+      withJev: state.withJev,
+      withoutJev: state.withoutJev,
+      message: messageFor(state),
+    });
+    if (state.status === "running") {
+      setRunId(state.runId);
+      return;
+    }
+    setRunId((current) => (current === state.runId ? null : current));
+    if (finished.current.has(state.runId)) return;
+    finished.current.add(state.runId);
+    if (state.status === "done")
+      labApi
+        .getTestRunReport(state.runId)
+        .then((report) => onFinishedRef.current(report))
+        .catch(() =>
+          setProgress((current) => ({
+            ...current,
+            message:
+              "Uji selesai, tetapi laporannya gagal dimuat. Muat ulang halaman.",
+          })),
+        );
+  }, []);
+
+  // Pick up a run that is still going, e.g. after leaving the page.
+  useEffect(() => {
+    let active = true;
+    labApi
+      .listTestRuns("running")
+      .then(([running]) => {
+        if (active && running) apply(running);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [apply]);
+
+  // Follow the running run's stream until it ends.
+  useEffect(() => {
+    if (!runId) return;
+    const source = new EventSource(`/api/test-runs/${runId}/events`);
+    source.addEventListener("progress", (event) => {
+      const state = JSON.parse(event.data) as TestRunState;
+      if (state.status !== "running") source.close();
+      apply(state);
+    });
+    return () => source.close();
+  }, [runId, apply]);
 
   const start = useCallback(
-    (set: TestSetSummary) => {
-      if (timer.current) return;
-      const total = set.caseCount;
-      const sample = mockLastReport;
-      const ratioOf = (processed: number) => processed / sample.total;
-      let processed = 0;
-      runNumber.current += 1;
-      const finish = () => {
-        stopTimer();
-        finishRef.current = null;
-        const now = new Date().toISOString();
-        const report = sampleReport({
-          runId: `local-run-${runNumber.current}`,
-          runNumber: runNumber.current,
-          testSetId: set.id,
-          testSetName: set.name,
-          total,
-          startedAt: now,
-          finishedAt: now,
-        });
-        setProgress({
-          status: "done",
-          processed: total,
-          total,
-          withJev: report.withJev,
-          withoutJev: report.withoutJev,
-          message: `Uji selesai: ${total} pesan diproses. Laporan hasil diperbarui.`,
-        });
-        onFinished(report);
-      };
-      finishRef.current = finish;
+    async (set: TestSetSummary) => {
+      if (runId) return;
       setProgress({
         status: "running",
         processed: 0,
-        total,
+        total: set.caseCount,
         withJev: EMPTY,
         withoutJev: EMPTY,
-        message: "Uji berjalan…",
+        message: "Memulai uji…",
       });
-      timer.current = setInterval(() => {
-        processed = Math.min(total, processed + 2);
-        if (processed >= total) {
-          finish();
-          return;
-        }
-        const ratio = ratioOf(processed);
+      try {
+        apply(await labApi.startTestRun(set.id));
+      } catch {
         setProgress((current) => ({
           ...current,
-          processed,
-          withJev: scaled(sample.withJev, ratio),
-          withoutJev: scaled(sample.withoutJev, ratio),
+          status: "failed",
+          message: "Uji gagal dimulai. Periksa koneksi lalu coba lagi.",
         }));
-      }, 60);
+      }
     },
-    [onFinished],
+    [runId, apply],
   );
 
-  const cancel = useCallback(() => {
-    if (!timer.current) return;
-    stopTimer();
-    finishRef.current = null;
-    setProgress((current) => ({
-      ...current,
-      status: "cancelled",
-      message: `Uji dibatalkan di ${current.processed} dari ${current.total} pesan. Laporan sebelumnya tidak berubah.`,
-    }));
-  }, []);
-
-  // Leaving the page mid-run completes it, as a server run would.
-  useEffect(() => () => finishRef.current?.(), []);
+  const cancel = useCallback(async () => {
+    if (!runId) return;
+    try {
+      apply(await labApi.cancelTestRun(runId));
+    } catch {
+      // Already finished: the stream reports the final state.
+    }
+  }, [runId, apply]);
 
   return { progress, start, cancel };
 }

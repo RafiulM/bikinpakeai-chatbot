@@ -196,6 +196,22 @@ export interface TestSetSummary {
 
 export type TestRunStatus = "running" | "done" | "failed" | "cancelled";
 
+/** Live state of one mass test run, as the API and its stream report it. */
+export interface TestRunState {
+  runId: string;
+  runNumber: number;
+  testSetId: string;
+  testSetName: string;
+  status: TestRunStatus;
+  processed: number;
+  total: number;
+  withJev: VerdictTally;
+  withoutJev: VerdictTally;
+  error: string | null;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
 export interface VerdictTally {
   correct: number;
   wrong: number;
