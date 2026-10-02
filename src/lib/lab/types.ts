@@ -219,4 +219,21 @@ export interface TestRunReport {
     withoutJev: number;
     total: number;
   }[];
+  /** Per-message outcomes, in test-set order, when loaded. */
+  cases?: TestCaseResult[];
+}
+
+/** How one chatbot version handled one test message. */
+export interface TestCaseOutcome {
+  verdict: Verdict;
+  latencyMs: number;
+  costUsd: number;
+}
+
+export interface TestCaseResult {
+  caseId: string;
+  inputText: string;
+  expectedLabel: string;
+  withJev: TestCaseOutcome;
+  withoutJev: TestCaseOutcome;
 }

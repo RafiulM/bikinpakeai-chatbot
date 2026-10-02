@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
+import { CaseResults } from "@/components/lab/test-set/case-results";
 import { RunPanel } from "@/components/lab/test-set/run-panel";
 import { StepCard } from "@/components/lab/test-set/step-card";
 import { useTestRun } from "@/components/lab/test-set/use-test-run";
@@ -126,6 +127,9 @@ function TestSetPage() {
             </dd>
           </div>
         </dl>
+        {report.cases && (
+          <CaseResults key={report.runId} cases={report.cases} />
+        )}
       </StepCard>
     </div>
   );

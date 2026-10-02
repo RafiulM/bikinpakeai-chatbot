@@ -4,7 +4,7 @@ import type {
   TestSetSummary,
   VerdictTally,
 } from "@/lib/lab/types";
-import { mockLastReport } from "@/lib/lab/mock-test-sets";
+import { mockLastReport, sampleCases } from "@/lib/lab/mock-test-sets";
 
 // Drives one mass test run. This preview version simulates progress from the
 // sample report; the API version reports the same shape from the server.
@@ -75,6 +75,7 @@ export function useTestRun(onFinished: (report: TestRunReport) => void) {
             ...scaled(sample.withoutJev, ratio),
           },
         };
+        report.cases = sampleCases(report);
         setProgress({
           status: "done",
           processed: total,
