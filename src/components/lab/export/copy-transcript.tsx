@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { Check, ClipboardCopy } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { buildTranscript } from "@/lib/lab/transcript";
+import { SegmentedControl } from "@/components/lab/segmented-control";
+import { buildTranscript, type TranscriptOptions } from "@/lib/lab/transcript";
 import type { LabConversation } from "@/lib/lab/types";
 
 type CopyState = "idle" | "copied" | "manual";
@@ -12,14 +13,25 @@ export function CopyTranscript({
 }: {
   conversation: Pick<LabConversation, "code" | "title" | "turns">;
 }) {
+  const id = useId();
   const [state, setState] = useState<CopyState>("idle");
+  const [format, setFormat] = useState<"text" | "markdown">("text");
+  const [brief, setBrief] = useState(false);
+  const [includeBaseline, setIncludeBaseline] = useState(true);
   const preview = useRef<HTMLPreElement>(null);
-  const text = useMemo(() => buildTranscript(conversation), [conversation]);
+  const options = useMemo<TranscriptOptions>(
+    () => ({ format, labels: brief ? "brief" : "full", includeBaseline }),
+    [format, brief, includeBaseline],
+  );
+  const text = useMemo(
+    () => buildTranscript(conversation, options),
+    [conversation, options],
+  );
   const empty = conversation.turns.length === 0;
 
   async function copy() {
     // Built again so the header time is the moment of copying.
-    const fresh = buildTranscript(conversation);
+    const fresh = buildTranscript(conversation, options);
     try {
       await navigator.clipboard.writeText(fresh);
       setState("copied");
@@ -31,8 +43,51 @@ export function CopyTranscript({
     }
   }
 
+  const changed = () => setState("idle");
   return (
     <div className="grid gap-3">
+      <div className="grid gap-2">
+        <SegmentedControl
+          legend="Format transkrip"
+          value={format}
+          onChange={(value) => {
+            setFormat(value);
+            changed();
+          }}
+          options={[
+            { value: "text", label: "Teks biasa" },
+            { value: "markdown", label: "Markdown" },
+          ]}
+        />
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          <label htmlFor={`${id}-baseline`} className="flex items-center gap-2">
+            <input
+              id={`${id}-baseline`}
+              type="checkbox"
+              checked={includeBaseline}
+              onChange={(event) => {
+                setIncludeBaseline(event.target.checked);
+                changed();
+              }}
+              className="size-4 accent-foreground"
+            />
+            Sertakan jawaban tanpa Jev
+          </label>
+          <label htmlFor={`${id}-brief`} className="flex items-center gap-2">
+            <input
+              id={`${id}-brief`}
+              type="checkbox"
+              checked={brief}
+              onChange={(event) => {
+                setBrief(event.target.checked);
+                changed();
+              }}
+              className="size-4 accent-foreground"
+            />
+            Label ringkas
+          </label>
+        </div>
+      </div>
       {empty ? (
         <p className="rounded-[10px] border border-dashed p-4 text-sm text-muted-foreground">
           Belum ada pesan di percakapan aktif. Kirim pertanyaan di tampilan
