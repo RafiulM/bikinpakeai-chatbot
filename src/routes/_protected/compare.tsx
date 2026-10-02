@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Highlighter } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { CompareRow } from "@/components/lab/compare-row";
+import { CumulativeSummary } from "@/components/lab/cumulative-summary";
 import { DeltaStrip } from "@/components/lab/delta-strip";
 import { Button } from "@/components/ui/button";
 import { sortTurns } from "@/lib/lab/conversation";
@@ -39,6 +40,7 @@ function ComparePage() {
           Sorot perbedaan
         </Button>
       </div>
+      <CumulativeSummary turns={turns} code={mockConversation.code} />
       {turns.length === 0 ? (
         <p className="rounded-[20px] border border-dashed p-6 text-center text-muted-foreground">
           Belum ada pesan. Kirim pertanyaan di tampilan Customer untuk melihat

@@ -74,6 +74,8 @@ export interface JevAnalysis {
   steps: PipelineStep[];
 }
 
+export type ReviewFlag = "security" | "policy" | "missed_escalation";
+
 export interface ResponseReview {
   verdict: Verdict;
   /** Short label shown next to the verdict, e.g. "Tepat, tapi umum". */
@@ -83,6 +85,8 @@ export interface ResponseReview {
   highlight?: string;
   /** Whether the highlight marks a strength or a problem. Defaults from the verdict. */
   highlightTone?: "good" | "bad";
+  /** Problem categories counted in the cumulative summary. */
+  flags?: ReviewFlag[];
 }
 
 export interface BotResponse {

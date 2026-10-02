@@ -81,3 +81,74 @@ export function turnDelta(turn: ConversationTurn): TurnDelta | null {
             : "both_wrong",
   };
 }
+
+export interface ModeTotals {
+  answered: number;
+  correct: number;
+  latencyMs: number;
+  costUsd: number;
+  security: number;
+  policy: number;
+  missedEscalation: number;
+}
+
+export interface ConversationSummary {
+  /** Turns where both answers are available. */
+  compared: number;
+  jevBetterCount: number;
+  withJev: ModeTotals;
+  withoutJev: ModeTotals;
+  /** Accuracy (0–1) after each compared message, for both answer paths. */
+  running: { withJev: number; withoutJev: number }[];
+}
+
+function emptyTotals(): ModeTotals {
+  return {
+    answered: 0,
+    correct: 0,
+    latencyMs: 0,
+    costUsd: 0,
+    security: 0,
+    policy: 0,
+    missedEscalation: 0,
+  };
+}
+
+function add(
+  totals: ModeTotals,
+  response: NonNullable<ConversationTurn["withJev"]>,
+) {
+  totals.answered += 1;
+  if (isCorrect(response.review.verdict)) totals.correct += 1;
+  totals.latencyMs += response.latencyMs;
+  totals.costUsd += response.costUsd;
+  const flags = response.review.flags ?? [];
+  if (flags.includes("security")) totals.security += 1;
+  if (flags.includes("policy")) totals.policy += 1;
+  if (flags.includes("missed_escalation")) totals.missedEscalation += 1;
+}
+
+/** Running totals across the conversation; the numbers rise and fall per message. */
+export function summarize(turns: ConversationTurn[]): ConversationSummary {
+  const withJev = emptyTotals();
+  const withoutJev = emptyTotals();
+  const running: ConversationSummary["running"] = [];
+  let jevBetterCount = 0;
+  for (const turn of turns) {
+    if (!turn.withJev || !turn.withoutJev) continue;
+    add(withJev, turn.withJev);
+    add(withoutJev, turn.withoutJev);
+    if (turnDelta(turn)?.accuracy === "jev_better") jevBetterCount += 1;
+    running.push({
+      withJev: withJev.correct / withJev.answered,
+      withoutJev: withoutJev.correct / withoutJev.answered,
+    });
+  }
+  return {
+    compared: running.length,
+    jevBetterCount,
+    withJev,
+    withoutJev,
+    running,
+  };
+}

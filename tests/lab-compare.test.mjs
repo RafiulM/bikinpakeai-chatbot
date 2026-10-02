@@ -122,3 +122,26 @@ test("deltas are written from Jev's side and flag a slower Jev honestly", async 
   assert.ok(slower.latencyMs < 0 && slower.costUsd < 0);
   assert.equal(slower.accuracy, "both_right");
 });
+
+test("summary totals and running accuracy follow the conversation", async () => {
+  const { summarize } = await import("../src/lib/lab/compare.ts");
+  const bad = response("without_jev", "wrong", 3000, 0.006);
+  bad.review.flags = ["security"];
+  const summary = summarize([
+    turn(
+      response("with_jev", "correct", 800, 0.0004),
+      response("without_jev", "correct", 2900, 0.0061),
+    ),
+    turn(response("with_jev", "escalated", 1100, 0.0006), bad),
+    turn(response("with_jev", "correct", 500, 0.0001), null),
+  ]);
+  assert.equal(summary.compared, 2);
+  assert.equal(summary.jevBetterCount, 1);
+  assert.equal(summary.withJev.correct, 2);
+  assert.equal(summary.withoutJev.security, 1);
+  assert.equal(summary.withJev.latencyMs, 1900);
+  assert.deepEqual(
+    summary.running.map((p) => p.withoutJev),
+    [1, 0.5],
+  );
+});
