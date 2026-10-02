@@ -1,23 +1,11 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { ConversationTurn } from "@/lib/lab/types";
-import { summarize, type ModeTotals } from "@/lib/lab/compare";
+import { ratioText, summarize, type ModeTotals } from "@/lib/lab/compare";
 import { formatSeconds, formatUsd } from "@/lib/lab/format";
 
 function percent(value: number) {
   return `${Math.round(value * 100)}%`;
-}
-
-function ratioText(jev: number, base: number, unit: "speed" | "cost") {
-  if (jev <= 0 || base <= 0) return null;
-  if (unit === "speed") {
-    const times = base / jev;
-    return times >= 1.05
-      ? `${times.toLocaleString("id-ID", { maximumFractionDigits: 1 })}× lebih cepat`
-      : null;
-  }
-  const saved = 1 - jev / base;
-  return saved >= 0.01 ? `${Math.floor(saved * 100)}% lebih hemat` : null;
 }
 
 /** Cumulative score for the whole conversation, as a thesis plus a scoreboard. */

@@ -165,3 +165,16 @@ export function summarize(turns: ConversationTurn[]): ConversationSummary {
     running,
   };
 }
+
+/** "4× lebih cepat" or "93% lebih hemat" for Jev, or null when not ahead. */
+export function ratioText(jev: number, base: number, unit: "speed" | "cost") {
+  if (jev <= 0 || base <= 0) return null;
+  if (unit === "speed") {
+    const times = base / jev;
+    return times >= 1.05
+      ? `${times.toLocaleString("id-ID", { maximumFractionDigits: 1 })}× lebih cepat`
+      : null;
+  }
+  const saved = 1 - jev / base;
+  return saved >= 0.01 ? `${Math.floor(saved * 100)}% lebih hemat` : null;
+}
