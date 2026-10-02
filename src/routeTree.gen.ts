@@ -19,6 +19,7 @@ import { Route as ProtectedAgentRouteImport } from './routes/_protected/agent'
 import { Route as ProtectedCompareRouteImport } from './routes/_protected/compare'
 import { Route as ProtectedCustomerRouteImport } from './routes/_protected/customer'
 import { Route as ProtectedDebugRouteImport } from './routes/_protected/debug'
+import { Route as ProtectedEksporRouteImport } from './routes/_protected/ekspor'
 import { Route as ProtectedSkenarioRouteImport } from './routes/_protected/skenario'
 import { Route as ProtectedTestSetRouteImport } from './routes/_protected/test-set'
 import { Route as ApiSuggestionsRouteImport } from './routes/api/suggestions'
@@ -96,6 +97,11 @@ const ProtectedCustomerRoute = ProtectedCustomerRouteImport.update({
 const ProtectedDebugRoute = ProtectedDebugRouteImport.update({
   id: '/debug',
   path: '/debug',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedEksporRoute = ProtectedEksporRouteImport.update({
+  id: '/ekspor',
+  path: '/ekspor',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedSkenarioRoute = ProtectedSkenarioRouteImport.update({
@@ -262,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
+  '/ekspor': typeof ProtectedEksporRoute
   '/skenario': typeof ProtectedSkenarioRoute
   '/test-set': typeof ProtectedTestSetRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
@@ -302,6 +309,7 @@ export interface FileRoutesByTo {
   '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
+  '/ekspor': typeof ProtectedEksporRoute
   '/skenario': typeof ProtectedSkenarioRoute
   '/test-set': typeof ProtectedTestSetRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
@@ -345,6 +353,7 @@ export interface FileRoutesById {
   '/_protected/compare': typeof ProtectedCompareRoute
   '/_protected/customer': typeof ProtectedCustomerRoute
   '/_protected/debug': typeof ProtectedDebugRoute
+  '/_protected/ekspor': typeof ProtectedEksporRoute
   '/_protected/skenario': typeof ProtectedSkenarioRoute
   '/_protected/test-set': typeof ProtectedTestSetRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
@@ -387,6 +396,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/customer'
     | '/debug'
+    | '/ekspor'
     | '/skenario'
     | '/test-set'
     | '/api/suggestions'
@@ -427,6 +437,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/customer'
     | '/debug'
+    | '/ekspor'
     | '/skenario'
     | '/test-set'
     | '/api/suggestions'
@@ -469,6 +480,7 @@ export interface FileRouteTypes {
     | '/_protected/compare'
     | '/_protected/customer'
     | '/_protected/debug'
+    | '/_protected/ekspor'
     | '/_protected/skenario'
     | '/_protected/test-set'
     | '/api/suggestions'
@@ -605,6 +617,13 @@ declare module '@tanstack/react-router' {
       path: '/debug'
       fullPath: '/debug'
       preLoaderRoute: typeof ProtectedDebugRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/ekspor': {
+      id: '/_protected/ekspor'
+      path: '/ekspor'
+      fullPath: '/ekspor'
+      preLoaderRoute: typeof ProtectedEksporRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/skenario': {
@@ -838,6 +857,7 @@ interface ProtectedRouteChildren {
   ProtectedCompareRoute: typeof ProtectedCompareRoute
   ProtectedCustomerRoute: typeof ProtectedCustomerRoute
   ProtectedDebugRoute: typeof ProtectedDebugRoute
+  ProtectedEksporRoute: typeof ProtectedEksporRoute
   ProtectedSkenarioRoute: typeof ProtectedSkenarioRoute
   ProtectedTestSetRoute: typeof ProtectedTestSetRoute
 }
@@ -848,6 +868,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedCompareRoute: ProtectedCompareRoute,
   ProtectedCustomerRoute: ProtectedCustomerRoute,
   ProtectedDebugRoute: ProtectedDebugRoute,
+  ProtectedEksporRoute: ProtectedEksporRoute,
   ProtectedSkenarioRoute: ProtectedSkenarioRoute,
   ProtectedTestSetRoute: ProtectedTestSetRoute,
 }

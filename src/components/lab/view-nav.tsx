@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Columns2,
+  FileDown,
   FlaskConical,
   ListVideo,
   Headset,
@@ -48,6 +49,7 @@ export const VIEW_LINKS: ViewLink[] = [
 const TOOL_LINKS = [
   { to: "/skenario", label: "Skenario", icon: ListVideo },
   { to: "/test-set", label: "Uji Test Set", icon: FlaskConical },
+  { to: "/ekspor", label: "Ekspor & Rekap", icon: FileDown },
 ] as const;
 
 // The active view gets a filled surface, a bold label, an orange marker and
