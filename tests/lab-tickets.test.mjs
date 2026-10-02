@@ -29,3 +29,19 @@ test("frustration levels use fixed thresholds", () => {
   assert.equal(frustrationLevel(0.48), "sedang");
   assert.equal(frustrationLevel(0.1), "rendah");
 });
+
+test("alternative orders put the angriest or the longest-waiting first", () => {
+  const tickets = [
+    ticket("urgent-new", "urgent", 0.5, 9),
+    ticket("low-angry", "low", 0.95, 5),
+    ticket("medium-oldest", "medium", 0.3, 1),
+  ];
+  assert.deepEqual(
+    sortTickets(tickets, "frustration").map((t) => t.code),
+    ["low-angry", "urgent-new", "medium-oldest"],
+  );
+  assert.deepEqual(
+    sortTickets(tickets, "waiting").map((t) => t.code),
+    ["medium-oldest", "low-angry", "urgent-new"],
+  );
+});

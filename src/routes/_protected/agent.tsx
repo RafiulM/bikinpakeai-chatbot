@@ -3,9 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
 import { TicketDetail } from "@/components/lab/agent/ticket-detail";
 import { TicketList } from "@/components/lab/agent/ticket-list";
-import { ArrowDownWideNarrow } from "lucide-react";
 import { mockTickets } from "@/lib/lab/mock-tickets";
-import { sortTickets } from "@/lib/lab/tickets";
+import { sortTickets, type TicketSort } from "@/lib/lab/tickets";
+import { SegmentedControl } from "@/components/lab/segmented-control";
 
 export const Route = createFileRoute("/_protected/agent")({
   head: () => ({ meta: [{ title: `Agent | ${siteConfig.name}` }] }),
@@ -18,7 +18,8 @@ const SAMPLE_NOW = Date.UTC(2026, 9, 1, 7, 11);
 
 function AgentPage() {
   const [allTickets] = useState(mockTickets);
-  const tickets = sortTickets(allTickets);
+  const [sort, setSort] = useState<TicketSort>("urgency");
+  const tickets = sortTickets(allTickets, sort);
   const [selectedId, setSelectedId] = useState(tickets[0]?.id);
   const selected =
     tickets.find((ticket) => ticket.id === selectedId) ?? tickets[0];
@@ -34,10 +35,16 @@ function AgentPage() {
             Antrean tiket yang dieskalasi Jev ke tim support manusia
           </p>
         </div>
-        <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-          <ArrowDownWideNarrow className="size-4" aria-hidden="true" />
-          Urut: prioritas, lalu tingkat frustrasi
-        </p>
+        <SegmentedControl
+          legend="Urutkan tiket"
+          value={sort}
+          onChange={setSort}
+          options={[
+            { value: "urgency", label: "Paling mendesak" },
+            { value: "frustration", label: "Paling kesal" },
+            { value: "waiting", label: "Terlama menunggu" },
+          ]}
+        />
       </div>
       {!selected ? (
         <p className="rounded-[20px] border border-dashed p-6 text-center text-muted-foreground">

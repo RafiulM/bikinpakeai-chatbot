@@ -17,17 +17,34 @@ export function frustrationLevel(score: number): FrustrationLevel {
   return "rendah";
 }
 
+export type TicketSort = "urgency" | "frustration" | "waiting";
+
+type Sortable = Pick<
+  SupportTicket,
+  "priority" | "frustrationScore" | "createdAt"
+>;
+
+const byPriority = (a: Sortable, b: Sortable) =>
+  PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+const byFrustration = (a: Sortable, b: Sortable) =>
+  b.frustrationScore - a.frustrationScore;
+const byAge = (a: Sortable, b: Sortable) =>
+  new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+
 /**
- * Most urgent first; within a priority, the most frustrated customer first;
- * then the oldest ticket, so nobody waits forever.
+ * Queue order. "urgency" (default): most urgent first, then the most
+ * frustrated customer, then the oldest ticket so nobody waits forever.
  */
-export function sortTickets<
-  T extends Pick<SupportTicket, "priority" | "frustrationScore" | "createdAt">,
->(tickets: T[]) {
-  return [...tickets].sort(
-    (a, b) =>
-      PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
-      b.frustrationScore - a.frustrationScore ||
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-  );
+export function sortTickets<T extends Sortable>(
+  tickets: T[],
+  mode: TicketSort = "urgency",
+) {
+  const compare =
+    mode === "frustration"
+      ? (a: T, b: T) => byFrustration(a, b) || byPriority(a, b) || byAge(a, b)
+      : mode === "waiting"
+        ? (a: T, b: T) => byAge(a, b) || byPriority(a, b)
+        : (a: T, b: T) =>
+            byPriority(a, b) || byFrustration(a, b) || byAge(a, b);
+  return [...tickets].sort(compare);
 }
