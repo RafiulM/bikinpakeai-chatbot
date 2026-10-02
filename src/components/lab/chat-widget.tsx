@@ -1,5 +1,16 @@
-import { useEffect, useRef, type ReactNode } from "react";
-import { ShieldCheck } from "lucide-react";
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { ArrowDown, ShieldCheck } from "lucide-react";
+import { useReducedMotion } from "motion/react";
+import { sortTurns } from "@/lib/lab/conversation";
+import { dayKey, formatDay } from "@/lib/lab/format";
 import type { ConversationTurn } from "@/lib/lab/types";
 import {
   AgentBubble,
@@ -34,12 +45,55 @@ export function ChatWidget({
   composer: ReactNode;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const lastId = turns.at(-1)?.withJev?.id ?? turns.at(-1)?.message.id;
+  const atBottomRef = useRef(true);
+  const [hasNew, setHasNew] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const ordered = useMemo(() => sortTurns(turns), [turns]);
+  const last = ordered.at(-1);
+  // Changes whenever something new lands at the end of the conversation.
+  const tailKey = [
+    last?.message.id,
+    last?.withJev?.id,
+    last?.agentReplies?.length,
+    pendingReply,
+  ].join("|");
 
-  useEffect(() => {
+  function scrollToEnd(smooth: boolean) {
     const node = scrollRef.current;
-    if (node) node.scrollTop = node.scrollHeight;
-  }, [lastId, pendingReply, turns.length]);
+    if (!node) return;
+    node.scrollTo({
+      top: node.scrollHeight,
+      behavior: smooth && !reduceMotion ? "smooth" : "auto",
+    });
+    atBottomRef.current = true;
+    setHasNew(false);
+  }
+
+  // Start at the latest message, like any chat app.
+  useLayoutEffect(() => {
+    scrollToEnd(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Follow new messages only when the reader is already at the bottom or just
+  // sent something. Otherwise keep their place and offer a jump button.
+  useEffect(() => {
+    if (atBottomRef.current || last?.deliveryStatus === "sending") {
+      scrollToEnd(true);
+    } else {
+      setHasNew(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tailKey]);
+
+  function handleScroll() {
+    const node = scrollRef.current;
+    if (!node) return;
+    const atBottom =
+      node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+    atBottomRef.current = atBottom;
+    if (atBottom) setHasNew(false);
+  }
 
   return (
     <section
@@ -64,26 +118,49 @@ export function ChatWidget({
         </span>
       </header>
       {banner}
-      <div
-        ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto p-5 max-md:max-h-[70vh] max-sm:p-4"
-      >
-        <ol
-          role="log"
-          aria-label="Riwayat percakapan"
-          className="flex flex-col gap-4"
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="min-h-0 flex-1 overflow-y-auto p-5 max-md:max-h-[70vh] max-sm:p-4"
         >
-          {turns.length === 0 && greeting && <BotBubble content={greeting} />}
-          {turns.map((turn) => (
-            <TurnBubbles
-              key={turn.message.id}
-              turn={turn}
-              footer={renderBotFooter?.(turn)}
-              onRetry={onRetry ? () => onRetry(turn) : undefined}
-            />
-          ))}
-          {pendingReply && <TypingBubble />}
-        </ol>
+          <ol
+            role="log"
+            aria-label="Riwayat percakapan"
+            className="flex flex-col gap-4"
+          >
+            {ordered.length === 0 && greeting && (
+              <BotBubble content={greeting} />
+            )}
+            {ordered.map((turn, index) => {
+              const day = dayKey(turn.message.createdAt);
+              const newDay =
+                index === 0 ||
+                day !== dayKey(ordered[index - 1].message.createdAt);
+              return (
+                <Fragment key={turn.message.id}>
+                  {newDay && <DaySeparator iso={turn.message.createdAt} />}
+                  <TurnBubbles
+                    turn={turn}
+                    footer={renderBotFooter?.(turn)}
+                    onRetry={onRetry ? () => onRetry(turn) : undefined}
+                  />
+                </Fragment>
+              );
+            })}
+            {pendingReply && <TypingBubble />}
+          </ol>
+        </div>
+        {hasNew && (
+          <button
+            type="button"
+            onClick={() => scrollToEnd(true)}
+            className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-foreground px-3.5 py-2 text-sm font-medium text-background shadow-[0_0_14px_rgb(0_0_0/7%)]"
+          >
+            <ArrowDown className="size-4" aria-hidden="true" />
+            Pesan baru
+          </button>
+        )}
       </div>
       <p role="status" className="sr-only">
         {pendingReply ? "Menunggu jawaban…" : ""}
@@ -92,6 +169,14 @@ export function ChatWidget({
         {composer}
       </div>
     </section>
+  );
+}
+
+function DaySeparator({ iso }: { iso: string }) {
+  return (
+    <li className="flex items-center gap-3 text-xs font-semibold text-muted-foreground before:flex-1 before:border-t after:flex-1 after:border-t">
+      <span>{formatDay(iso)}</span>
+    </li>
   );
 }
 
