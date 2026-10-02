@@ -21,3 +21,9 @@ export const replyTicketSchema = z
   .strict();
 
 export type ReplyTicketInput = z.infer<typeof replyTicketSchema>;
+
+export const updateTicketSchema = z
+  .object({ status: z.enum(["open", "claimed", "closed"]) })
+  .strict();
+
+export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;

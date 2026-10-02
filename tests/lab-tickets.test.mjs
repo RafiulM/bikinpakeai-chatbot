@@ -124,3 +124,14 @@ test("escalations become tickets with a priority and a briefing", async () => {
     "low",
   );
 });
+
+test("ticket status changes follow the allowed transitions", async () => {
+  const { nextTicketStatus } = await import("../src/lib/lab/tickets.ts");
+  assert.equal(nextTicketStatus("open", "claimed", null), "claimed");
+  assert.equal(nextTicketStatus("open", "closed", null), "closed");
+  assert.equal(nextTicketStatus("claimed", "closed", "Kamu"), "closed");
+  assert.equal(nextTicketStatus("closed", "open", "Kamu"), "claimed");
+  assert.equal(nextTicketStatus("closed", "open", null), "open");
+  assert.equal(nextTicketStatus("closed", "closed", null), null);
+  assert.equal(nextTicketStatus("open", "open", null), null);
+});

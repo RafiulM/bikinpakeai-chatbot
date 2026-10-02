@@ -178,3 +178,37 @@ test("agents reply into the customer's conversation and can close in one step", 
     (await owner.post(url, { data: { content: "Tanpa origin" } })).status(),
   ).toBe(403);
 });
+
+test("tickets can be claimed, closed and reopened with valid transitions only", async () => {
+  await escalate("Tolong refund, saya kecewa sekali dengan layanannya.");
+  const { data } = await (await owner.get("/api/tickets?q=layanannya")).json();
+  const url = `/api/tickets/${data[0].id}`;
+  const patch = (status: string, client = owner) =>
+    client.patch(url, { headers, data: { status } });
+
+  const claimed = await patch("claimed");
+  expect((await claimed.json()).data).toMatchObject({
+    status: "claimed",
+    claimedBy: "Lab Tester",
+  });
+  const closed = await (await patch("closed")).json();
+  expect(closed.data.status).toBe("closed");
+  const again = await patch("closed");
+  expect(again.status()).toBe(409);
+  expect((await again.json()).error.code).toBe("INVALID_TRANSITION");
+  const reopened = await (await patch("open")).json();
+  expect(reopened.data).toMatchObject({
+    status: "claimed",
+    claimedBy: "Lab Tester",
+  });
+
+  expect((await patch("closed", stranger)).status()).toBe(404);
+  expect(
+    (
+      await owner.patch(url, { headers, data: { status: "archived" } })
+    ).status(),
+  ).toBe(422);
+  expect(
+    (await owner.patch(url, { data: { status: "closed" } })).status(),
+  ).toBe(403);
+});

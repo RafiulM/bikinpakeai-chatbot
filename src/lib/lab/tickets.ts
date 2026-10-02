@@ -158,3 +158,21 @@ export function ticketDraft(input: EscalationInput) {
       : "Butuh keputusan manusia",
   };
 }
+
+/**
+ * Allowed status changes: claim an open ticket, close an active one, reopen
+ * a closed one (back to claimed when someone had claimed it). Returns null
+ * for a change that is not allowed.
+ */
+export function nextTicketStatus(
+  current: SupportTicket["status"],
+  requested: SupportTicket["status"],
+  claimedBy: string | null,
+): SupportTicket["status"] | null {
+  if (current === requested) return null;
+  if (requested === "closed") return current === "closed" ? null : "closed";
+  if (current === "closed") return claimedBy ? "claimed" : "open";
+  if (current === "open" && requested === "claimed") return "claimed";
+  if (current === "claimed" && requested === "open") return "open";
+  return null;
+}

@@ -7,7 +7,12 @@ import {
   ticketReplies,
   tickets,
 } from "@/db/schema";
-import { filterTickets, sortTickets, ticketDraft } from "@/lib/lab/tickets";
+import {
+  filterTickets,
+  nextTicketStatus,
+  sortTickets,
+  ticketDraft,
+} from "@/lib/lab/tickets";
 import type {
   JevAnalysis,
   SupportTicket,
@@ -15,7 +20,11 @@ import type {
   TicketStatus,
 } from "@/lib/lab/types";
 import { publishLabEvent } from "@/lib/lab/events.server";
-import type { ListTicketsInput, ReplyTicketInput } from "@/validators/tickets";
+import type {
+  ListTicketsInput,
+  ReplyTicketInput,
+  UpdateTicketInput,
+} from "@/validators/tickets";
 
 // Support tickets. Creation is internal (called by the answer pipeline after
 // it verified ownership); agent actions are owner-scoped in their own service
@@ -316,6 +325,47 @@ export async function replyToTicket(
       createdAt: outcome.reply.createdAt.toISOString(),
     },
   });
+  const ticket = await getTicket(userId, ticketId);
+  return ticket ? { kind: "ok", ticket } : { kind: "not_found" };
+}
+
+export type UpdateResult =
+  | { kind: "ok"; ticket: SupportTicket }
+  | { kind: "not_found" }
+  | { kind: "invalid"; from: TicketStatus };
+
+/** Claim, close, or reopen a ticket the caller owns. */
+export async function updateTicketStatus(
+  userId: string,
+  ticketId: string,
+  agentName: string,
+  input: UpdateTicketInput,
+): Promise<UpdateResult> {
+  const outcome = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ ticket: tickets })
+      .from(tickets)
+      .innerJoin(conversations, eq(conversations.id, tickets.conversationId))
+      .where(and(eq(tickets.id, ticketId), eq(conversations.userId, userId)))
+      .for("update", { of: tickets })
+      .limit(1);
+    if (!row) return { kind: "not_found" } as const;
+    const current = row.ticket.status as TicketStatus;
+    const next = nextTicketStatus(current, input.status, row.ticket.claimedBy);
+    if (!next) return { kind: "invalid", from: current } as const;
+    await tx
+      .update(tickets)
+      .set({
+        status: next,
+        closedAt: next === "closed" ? new Date() : null,
+        ...(next === "claimed" &&
+          current === "open" && { claimedBy: agentName.slice(0, 80) }),
+        ...(next === "open" && { claimedBy: null }),
+      })
+      .where(eq(tickets.id, ticketId));
+    return { kind: "ok" } as const;
+  });
+  if (outcome.kind !== "ok") return outcome;
   const ticket = await getTicket(userId, ticketId);
   return ticket ? { kind: "ok", ticket } : { kind: "not_found" };
 }
