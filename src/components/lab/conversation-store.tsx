@@ -122,6 +122,23 @@ function applyEvent(
   }
 }
 
+/** One turn from two copies of the same message, keeping whatever either has. */
+function mergeTurns(
+  synced: ConversationTurn,
+  sent: ConversationTurn,
+): ConversationTurn {
+  return {
+    ...sent,
+    analysis: sent.analysis ?? synced.analysis,
+    analysisStatus: sent.analysis ? sent.analysisStatus : synced.analysisStatus,
+    analysisError: sent.analysis ? sent.analysisError : synced.analysisError,
+    withJev: sent.withJev ?? synced.withJev,
+    withoutJev: sent.withoutJev ?? synced.withoutJev,
+    ticketId: sent.ticketId ?? synced.ticketId,
+    agentReplies: synced.agentReplies ?? sent.agentReplies,
+  };
+}
+
 function reducer(state: StoreState, action: Action): StoreState {
   switch (action.type) {
     case "load":
@@ -172,9 +189,19 @@ function reducer(state: StoreState, action: Action): StoreState {
       const turn = early.reduce(applyEvent, action.turn);
       return {
         ...updateTurns(state, action.conversationId, (turns) =>
-          turns.map((item) =>
-            item.message.id === action.tempId ? turn : item,
-          ),
+          // A resync can bring the stored message in before the send call
+          // returns; then drop the placeholder instead of adding a twin.
+          turns.some((item) => item.message.id === turn.message.id)
+            ? turns
+                .filter((item) => item.message.id !== action.tempId)
+                .map((item) =>
+                  item.message.id === turn.message.id
+                    ? mergeTurns(item, turn)
+                    : item,
+                )
+            : turns.map((item) =>
+                item.message.id === action.tempId ? turn : item,
+              ),
         ),
         early: rest,
         pending: Math.max(0, state.pending - 1),
