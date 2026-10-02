@@ -1,0 +1,8 @@
+{
+  "id": "tanstack-postgres",
+  "name": "Base TanStack Postgres",
+  "description": "An AI-friendly foundation with TanStack Start, Drizzle and PostgreSQL.",
+  "baseVersion": "0.1.0",
+  "framework": "tanstack-start",
+  "database": "postgresql"
+}

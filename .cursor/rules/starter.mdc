@@ -1,0 +1,6 @@
+---
+description: Shared starter conventions and project skill entrypoint
+alwaysApply: true
+---
+
+Read `AGENTS.md` at the project root and follow its stack, Context7, and validation guidance. Read the relevant `.agents/skills/*/SKILL.md` directly. Keep beginner explanations practical and the base free of derivative-specific product features.

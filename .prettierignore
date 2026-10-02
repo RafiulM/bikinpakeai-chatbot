@@ -1,0 +1,12 @@
+node_modules
+.output
+.nitro
+.tanstack
+.data
+package-lock.json
+drizzle/meta
+src/routeTree.gen.ts
+playwright-report
+test-results
+*.tsbuildinfo
+.env*

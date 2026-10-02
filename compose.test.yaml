@@ -1,0 +1,17 @@
+# A separate disposable PostgreSQL server; never points at the app database.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: starter_test
+      POSTGRES_PASSWORD: ${STARTER_TEST_PASSWORD:?Run npm test or npm run test:e2e}
+      POSTGRES_DB: starter_test
+    ports:
+      - "127.0.0.1::5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U starter_test -d starter_test"]
+      interval: 1s
+      timeout: 5s
+      retries: 30

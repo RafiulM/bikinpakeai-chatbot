@@ -1,0 +1,6 @@
+# Project-scoped anonymous Context7 access. Trust this project in Codex to load it.
+# For higher limits, configure credentials in personal editor settings, not here.
+[mcp_servers.context7]
+url = "https://mcp.context7.com/mcp"
+startup_timeout_sec = 30
+tool_timeout_sec = 60

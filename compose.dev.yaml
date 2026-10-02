@@ -1,0 +1,22 @@
+# Development database only. The Next.js app runs on the host.
+# Use npm run db:up so .env.local and this copy's project name are loaded.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Run npm run setup first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run npm run setup first}
+      POSTGRES_DB: ${POSTGRES_DB:?Run npm run setup first}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:?Run npm run setup first}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    stop_grace_period: 30s
+
+volumes:
+  postgres-data:

@@ -1,0 +1,50 @@
+# Keep private values, local state, and build output out of the image.
+.env
+.env.*
+node_modules
+.output
+.nitro
+.tanstack
+out
+dist
+coverage
+.data
+*.tsbuildinfo
+
+# Local tooling and CI that the production image never runs.
+.git
+.github
+.vscode
+.cursor
+.codex
+.agents
+.claude
+e2e
+tests
+test-results
+playwright-report
+playwright.config.ts
+compose.dev.yaml
+compose.test.yaml
+Dockerfile
+.dockerignore
+
+# Documentation and editor config.
+docs
+*.md
+!README.md
+.mcp.json
+.prettierrc.json
+.prettierignore
+eslint.config.mjs
+
+# Local database files and logs.
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.log
+.DS_Store
+.vercel

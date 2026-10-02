@@ -1,0 +1,83 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--secondary);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: #fafafa;
+  --foreground: #191919;
+  --card: #ffffff;
+  --card-foreground: #191919;
+  --primary: #bb371e;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f0ef;
+  --muted: #f4f4f3;
+  --muted-foreground: #656561;
+  --border: #e4e4e1;
+  --destructive: #b91c1c;
+}
+
+.dark {
+  --background: #161616;
+  --foreground: #f5f5f4;
+  --card: #202020;
+  --card-foreground: #f5f5f4;
+  --primary: #fb846b;
+  --primary-foreground: #29100a;
+  --secondary: #2d2d2b;
+  --muted: #252525;
+  --muted-foreground: #b0b0aa;
+  --border: #3b3b37;
+  --destructive: #ff8a8a;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:not(:disabled),
+  a {
+    cursor: pointer;
+  }
+  ::selection {
+    background: #bb371e22;
+  }
+}

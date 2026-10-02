@@ -1,0 +1,8 @@
+# .ngodingpakeaiignore — extra paths to keep out of NgodingPakeAI sync.
+# Uses .gitignore syntax. Secrets, node_modules, build output and .env files
+# are ALWAYS blocked by the CLI regardless of what is listed here.
+
+# Examples:
+# docs/internal/
+# *.snap
+# fixtures/
