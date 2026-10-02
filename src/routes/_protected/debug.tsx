@@ -1,61 +1,97 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
 import { useLabConversation } from "@/components/lab/conversation-store";
+import {
+  AnalysisPanel,
+  PanelSection,
+} from "@/components/lab/debug/analysis-panel";
+import { MessageTabs } from "@/components/lab/debug/message-tabs";
 import { sortTurns } from "@/lib/lab/conversation";
-import { formatClock, formatSeconds, formatUsd } from "@/lib/lab/format";
 
 export const Route = createFileRoute("/_protected/debug")({
   head: () => ({ meta: [{ title: `Debug | ${siteConfig.name}` }] }),
   component: DebugPage,
 });
 
-// Placeholder view: the full Jev debug panel arrives in phase 2. It already
-// reads the same conversation so switching views keeps the context.
+const PANEL_ID = "debug-analysis-panel";
+
 function DebugPage() {
   const { conversation } = useLabConversation();
   const turns = sortTurns(conversation.turns);
+  const [selectedId, setSelectedId] = useState<string | undefined>();
+  // Default to the latest message; keep the choice while it still exists.
+  const selectedIndex = Math.max(
+    0,
+    turns.findIndex((turn) => turn.message.id === selectedId),
+  );
+  const selected = turns.length
+    ? turns[selectedId ? selectedIndex : turns.length - 1]
+    : undefined;
+
   return (
     <div className="grid max-w-[1200px] gap-6">
-      <div>
-        <h1 className="text-[22px] leading-tight font-medium tracking-tight">
-          Debug
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Percakapan {conversation.code} · cara Jev membaca tiap pesan
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] leading-tight font-medium tracking-tight">
+            Debug
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Percakapan {conversation.code} · cara Jev membaca tiap pesan
+          </p>
+        </div>
+        <Link
+          to="/compare"
+          className="text-sm font-semibold underline underline-offset-3"
+        >
+          Lihat dua jawabannya di Compare
+        </Link>
       </div>
-      <p className="rounded-[10px] border border-signal bg-signal-soft px-4 py-3 text-sm">
-        Tampilan tiruan. Panel label, skor keyakinan, rute, dan alasan keputusan
-        lengkap dibangun di fase berikutnya.
-      </p>
-      <ol className="grid gap-3">
-        {turns.map((turn, index) => (
-          <li
-            key={turn.message.id}
-            className="grid gap-2 rounded-2xl border bg-card p-4"
+
+      {!selected ? (
+        <p className="rounded-[20px] border border-dashed p-6 text-center text-muted-foreground">
+          Belum ada pesan. Kirim pertanyaan di tampilan Customer untuk melihat
+          hasil pembacaan Jev di sini.
+        </p>
+      ) : (
+        <div className="grid items-start gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
+          <section
+            aria-labelledby="debug-list-title"
+            className="grid gap-3 rounded-[20px] border bg-card p-4"
           >
-            <p className="text-xs font-semibold text-muted-foreground">
-              Pesan {index + 1} · {formatClock(turn.message.createdAt)}
-            </p>
-            <p className="font-medium [overflow-wrap:anywhere]">
-              “{turn.message.content}”
-            </p>
-            {turn.analysis && turn.withJev && (
+            <div className="grid gap-0.5 px-1">
+              <h2 id="debug-list-title" className="text-[17px] font-semibold">
+                Pesan pelanggan
+              </h2>
               <p className="text-sm text-muted-foreground">
-                {turn.analysis.routeLabel} ·{" "}
-                {formatSeconds(turn.withJev.latencyMs)} ·{" "}
-                {formatUsd(turn.withJev.costUsd)}
+                Pilih pesan untuk melihat cara Jev membacanya.
               </p>
+            </div>
+            <MessageTabs
+              turns={turns}
+              selectedId={selected.message.id}
+              onSelect={setSelectedId}
+              panelId={PANEL_ID}
+            />
+          </section>
+          <AnalysisPanel
+            turn={selected}
+            index={turns.indexOf(selected)}
+            panelId={PANEL_ID}
+          >
+            {selected.analysis && (
+              <PanelSection title="Rute penanganan">
+                <p className="text-[15px] font-semibold">
+                  {selected.analysis.routeLabel}
+                </p>
+                <p className="rounded-[10px] bg-surface-subtle px-4 py-3 text-[15px] leading-relaxed">
+                  {selected.analysis.routeReason}
+                </p>
+              </PanelSection>
             )}
-          </li>
-        ))}
-      </ol>
-      <Link
-        to="/compare"
-        className="text-sm font-semibold underline underline-offset-3"
-      >
-        Lihat dua jawabannya di Compare
-      </Link>
+          </AnalysisPanel>
+        </div>
+      )}
     </div>
   );
 }
