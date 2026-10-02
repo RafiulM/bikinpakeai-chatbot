@@ -15,8 +15,10 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
+import { Route as ProtectedAgentRouteImport } from './routes/_protected/agent'
 import { Route as ProtectedCompareRouteImport } from './routes/_protected/compare'
 import { Route as ProtectedCustomerRouteImport } from './routes/_protected/customer'
+import { Route as ProtectedDebugRouteImport } from './routes/_protected/debug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiNotesIndexRouteImport } from './routes/api/notes/index'
 import { Route as ApiNotesIdRouteImport } from './routes/api/notes/$id'
@@ -51,6 +53,11 @@ const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedAgentRoute = ProtectedAgentRouteImport.update({
+  id: '/agent',
+  path: '/agent',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 const ProtectedCompareRoute = ProtectedCompareRouteImport.update({
   id: '/compare',
   path: '/compare',
@@ -59,6 +66,11 @@ const ProtectedCompareRoute = ProtectedCompareRouteImport.update({
 const ProtectedCustomerRoute = ProtectedCustomerRouteImport.update({
   id: '/customer',
   path: '/customer',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedDebugRoute = ProtectedDebugRouteImport.update({
+  id: '/debug',
+  path: '/debug',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -92,8 +104,10 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/admin': typeof ProtectedAdminRoute
+  '/agent': typeof ProtectedAgentRoute
   '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
+  '/debug': typeof ProtectedDebugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/notes/': typeof ApiNotesIndexRoute
@@ -105,8 +119,10 @@ export interface FileRoutesByTo {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/admin': typeof ProtectedAdminRoute
+  '/agent': typeof ProtectedAgentRoute
   '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
+  '/debug': typeof ProtectedDebugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/notes': typeof ApiNotesIndexRoute
@@ -121,8 +137,10 @@ export interface FileRoutesById {
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_protected/admin': typeof ProtectedAdminRoute
+  '/_protected/agent': typeof ProtectedAgentRoute
   '/_protected/compare': typeof ProtectedCompareRoute
   '/_protected/customer': typeof ProtectedCustomerRoute
+  '/_protected/debug': typeof ProtectedDebugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/notes/': typeof ApiNotesIndexRoute
@@ -136,8 +154,10 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/admin'
+    | '/agent'
     | '/compare'
     | '/customer'
+    | '/debug'
     | '/api/auth/$'
     | '/api/notes/$id'
     | '/api/notes/'
@@ -149,8 +169,10 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/admin'
+    | '/agent'
     | '/compare'
     | '/customer'
+    | '/debug'
     | '/api/auth/$'
     | '/api/notes/$id'
     | '/api/notes'
@@ -164,8 +186,10 @@ export interface FileRouteTypes {
     | '/_auth/sign-in'
     | '/_auth/sign-up'
     | '/_protected/admin'
+    | '/_protected/agent'
     | '/_protected/compare'
     | '/_protected/customer'
+    | '/_protected/debug'
     | '/api/auth/$'
     | '/api/notes/$id'
     | '/api/notes/'
@@ -228,6 +252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAdminRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/agent': {
+      id: '/_protected/agent'
+      path: '/agent'
+      fullPath: '/agent'
+      preLoaderRoute: typeof ProtectedAgentRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/_protected/compare': {
       id: '/_protected/compare'
       path: '/compare'
@@ -240,6 +271,13 @@ declare module '@tanstack/react-router' {
       path: '/customer'
       fullPath: '/customer'
       preLoaderRoute: typeof ProtectedCustomerRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/debug': {
+      id: '/_protected/debug'
+      path: '/debug'
+      fullPath: '/debug'
+      preLoaderRoute: typeof ProtectedDebugRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/api/auth/$': {
@@ -294,14 +332,18 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface ProtectedRouteChildren {
   ProtectedAdminRoute: typeof ProtectedAdminRoute
+  ProtectedAgentRoute: typeof ProtectedAgentRoute
   ProtectedCompareRoute: typeof ProtectedCompareRoute
   ProtectedCustomerRoute: typeof ProtectedCustomerRoute
+  ProtectedDebugRoute: typeof ProtectedDebugRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedAdminRoute: ProtectedAdminRoute,
+  ProtectedAgentRoute: ProtectedAgentRoute,
   ProtectedCompareRoute: ProtectedCompareRoute,
   ProtectedCustomerRoute: ProtectedCustomerRoute,
+  ProtectedDebugRoute: ProtectedDebugRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(

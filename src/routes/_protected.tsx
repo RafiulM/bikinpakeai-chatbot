@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { Brand } from "@/components/brand";
-import { SignOutButton } from "@/components/sign-out-button";
+import { LabShell, SessionCard } from "@/components/lab/lab-shell";
+import { mockConversation } from "@/lib/lab/mock-data";
 
 // Pathless layout for signed-in screens. The check runs on the server during
 // SSR and again on client navigation. It protects pages only: API routes and
@@ -14,20 +14,19 @@ export const Route = createFileRoute("/_protected")({
 });
 
 function ProtectedLayout() {
+  const { user } = Route.useRouteContext().session;
   return (
-    <>
-      <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10">
-          <Brand />
-          <SignOutButton />
-        </div>
-      </header>
-      <main
-        id="main-content"
-        className="mx-auto max-w-6xl px-6 py-12 sm:px-10 sm:py-16"
-      >
-        <Outlet />
-      </main>
-    </>
+    <LabShell
+      userEmail={user.email}
+      session={
+        <SessionCard
+          code={mockConversation.code}
+          title={mockConversation.title}
+          messageCount={mockConversation.turns.length}
+        />
+      }
+    >
+      <Outlet />
+    </LabShell>
   );
 }
