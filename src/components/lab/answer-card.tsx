@@ -47,7 +47,7 @@ export function AnswerCard({
         {badge}
       </div>
       <div className="grid content-start gap-3">
-        <p className="text-[15px] leading-relaxed [overflow-wrap:anywhere]">
+        <p className="text-[15px] leading-relaxed [overflow-wrap:anywhere] lg:text-base">
           {children ?? response.content}
         </p>
         {extra}

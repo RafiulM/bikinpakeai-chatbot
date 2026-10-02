@@ -5,7 +5,9 @@ import { siteConfig } from "@/config/site";
 import { CompareRow } from "@/components/lab/compare-row";
 import { CumulativeSummary } from "@/components/lab/cumulative-summary";
 import { DeltaStrip } from "@/components/lab/delta-strip";
+import { SegmentedControl } from "@/components/lab/segmented-control";
 import { Button } from "@/components/ui/button";
+import { verdictsDiffer } from "@/lib/lab/compare";
 import { sortTurns } from "@/lib/lab/conversation";
 import { mockConversation } from "@/lib/lab/mock-data";
 
@@ -17,6 +19,9 @@ export const Route = createFileRoute("/_protected/compare")({
 function ComparePage() {
   const turns = sortTurns(mockConversation.turns);
   const [highlight, setHighlight] = useState(true);
+  const [filter, setFilter] = useState<"all" | "differs">("all");
+  const differing = turns.filter(verdictsDiffer);
+  const shown = filter === "all" ? turns : differing;
 
   return (
     <div className="grid max-w-[1200px] gap-6">
@@ -47,16 +52,44 @@ function ComparePage() {
           dua jawabannya di sini.
         </p>
       ) : (
-        <section aria-label="Jawaban berdampingan" className="grid gap-5">
-          {turns.map((turn, index) => (
+        <section aria-labelledby="compare-rows-title" className="grid gap-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2
+              id="compare-rows-title"
+              className="text-[22px] font-medium tracking-tight"
+            >
+              Jawaban berdampingan
+            </h2>
+            <div className="flex flex-wrap items-center gap-3">
+              <SegmentedControl
+                legend="Tampilkan pesan"
+                value={filter}
+                onChange={setFilter}
+                options={[
+                  { value: "all", label: "Semua pesan" },
+                  { value: "differs", label: "Hasil berbeda" },
+                ]}
+              />
+              <p role="status" className="text-sm text-muted-foreground">
+                Menampilkan {shown.length} dari {turns.length} pesan
+              </p>
+            </div>
+          </div>
+          {shown.map((turn) => (
             <CompareRow
               key={turn.message.id}
               turn={turn}
-              index={index}
+              index={turns.indexOf(turn)}
               highlight={highlight}
               footer={<DeltaStrip turn={turn} />}
             />
           ))}
+          {shown.length === 0 && (
+            <p className="rounded-[20px] border border-dashed p-6 text-center text-muted-foreground">
+              Belum ada pesan dengan hasil berbeda. Pilih “Semua pesan” untuk
+              melihat semuanya.
+            </p>
+          )}
         </section>
       )}
     </div>
