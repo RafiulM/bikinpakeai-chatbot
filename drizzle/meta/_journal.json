@@ -22,6 +22,13 @@
       "when": 1788950762062,
       "tag": "0002_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790962870316,
+      "tag": "0003_conversations_messages",
+      "breakpoints": true
     }
   ]
 }

@@ -4,3 +4,5 @@ export * from "./session";
 export * from "./account";
 export * from "./verification";
 export * from "./notes";
+export * from "./conversations";
+export * from "./messages";
