@@ -2,7 +2,15 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "@/config/site";
 import { StepCard } from "@/components/lab/test-set/step-card";
-import { TestSetPicker } from "@/components/lab/test-set/test-set-picker";
+import {
+  TestSetOption,
+  TestSetPicker,
+} from "@/components/lab/test-set/test-set-picker";
+import {
+  UploadForm,
+  type UploadedTestSet,
+} from "@/components/lab/test-set/upload-form";
+import type { TestSetSummary } from "@/lib/lab/types";
 import { mockLastReport, mockTestSets } from "@/lib/lab/mock-test-sets";
 import { formatPercent } from "@/lib/lab/format";
 
@@ -13,10 +21,23 @@ export const Route = createFileRoute("/_protected/test-set")({
 
 function TestSetPage() {
   const report = mockLastReport;
+  const [sets, setSets] = useState<TestSetSummary[]>(mockTestSets);
   const [selectedSet, setSelectedSet] = useState<string | null>(
     mockTestSets[0]?.id ?? null,
   );
-  const chosen = mockTestSets.find((set) => set.id === selectedSet);
+  const chosen = sets.find((set) => set.id === selectedSet);
+
+  function saveUpload(upload: UploadedTestSet) {
+    const created: TestSetSummary = {
+      id: `local-set-${Date.now()}`,
+      name: upload.name,
+      description: "Diunggah dari berkas.",
+      caseCount: upload.cases.length,
+      categories: [...new Set(upload.cases.map((item) => item.expectedLabel))],
+    };
+    setSets((current) => [...current, created]);
+    setSelectedSet(created.id);
+  }
   return (
     <div className="grid max-w-[1200px] gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -41,10 +62,22 @@ function TestSetPage() {
           description="Kumpulan pesan berlabel. Setiap pesan diproses dengan Jev dan tanpa Jev."
         >
           <TestSetPicker
-            sets={mockTestSets}
+            sets={sets}
             value={selectedSet}
             onChange={setSelectedSet}
+            extraOption={
+              <TestSetOption
+                name="test-set"
+                value="upload"
+                checked={selectedSet === "upload"}
+                onChange={() => setSelectedSet("upload")}
+                title="Unggah berkas sendiri"
+                badge="1–100 pesan"
+                description="CSV atau JSONL berisi pesan dan label harapan."
+              />
+            }
           />
+          {selectedSet === "upload" && <UploadForm onSave={saveUpload} />}
         </StepCard>
         <StepCard
           step={2}
