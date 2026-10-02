@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { testDb } from "./support/db";
-import { headers, signUp } from "./support/session";
+import { cookieHeader, headers, readEvents, signUp } from "./support/session";
 
 let client: APIRequestContext;
 
@@ -113,4 +113,92 @@ test("running a scenario sends it through the full pipeline", async ({
   } finally {
     await other.dispose();
   }
+});
+
+test("a batch runs scenarios in order and reports progress live", async () => {
+  const { data: conversation } = await (
+    await client.post("/api/conversations", { headers, data: {} })
+  ).json();
+  const stream = readEvents(
+    `http://localhost:3101/api/conversations/${conversation.id}/events`,
+    await cookieHeader(client),
+    20,
+    6000,
+  );
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const ids = ["paid-not-active", "promo-injection", "export-deadline"];
+  const response = await client.post("/api/scenarios/batch", {
+    headers,
+    data: { conversationId: conversation.id, scenarioIds: ids },
+  });
+  expect(response.status()).toBe(200);
+  const { data, meta } = await response.json();
+  expect(meta).toEqual({ total: 3, done: 3 });
+  expect(
+    data.results.map((item: { scenarioId: string }) => item.scenarioId),
+  ).toEqual(ids);
+  expect(data.results[1].decision).toBe("blocked");
+  expect(data.results[2]).toMatchObject({
+    decision: "escalated",
+    ticketId: expect.stringMatching(/^T-/),
+  });
+
+  const detail = await (
+    await client.get(`/api/conversations/${conversation.id}`)
+  ).json();
+  expect(
+    detail.data.turns.map(
+      (turn: { message: { id: string } }) => turn.message.id,
+    ),
+  ).toEqual(data.results.map((item: { messageId: string }) => item.messageId));
+
+  const { events } = await stream;
+  const progress = events
+    .filter((event) => event.event === "scenario_run")
+    .map((event) => {
+      const item = event.data as { index: number; state: string };
+      return `${item.index}:${item.state}`;
+    });
+  expect(progress).toEqual([
+    "0:running",
+    "0:done",
+    "1:running",
+    "1:done",
+    "2:running",
+    "2:done",
+  ]);
+});
+
+test("batch input is validated before anything runs", async () => {
+  const { data: conversation } = await (
+    await client.post("/api/conversations", { headers, data: {} })
+  ).json();
+  const post = (data: unknown) =>
+    client.post("/api/scenarios/batch", { headers, data });
+  const unknown = await post({
+    conversationId: conversation.id,
+    scenarioIds: ["dark-mode", "nope"],
+  });
+  expect(unknown.status()).toBe(404);
+  expect((await unknown.json()).error.details).toEqual([
+    { field: "scenarioIds", message: "nope" },
+  ]);
+  for (const body of [
+    { conversationId: conversation.id, scenarioIds: [] },
+    {
+      conversationId: conversation.id,
+      scenarioIds: ["dark-mode", "dark-mode"],
+    },
+    {
+      conversationId: conversation.id,
+      scenarioIds: Array.from({ length: 21 }, (_, i) => `s-${i}`),
+    },
+    { scenarioIds: ["dark-mode"] },
+  ]) {
+    expect((await post(body)).status()).toBe(422);
+  }
+  const detail = await (
+    await client.get(`/api/conversations/${conversation.id}`)
+  ).json();
+  expect(detail.data.turns).toHaveLength(0);
 });

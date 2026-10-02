@@ -14,6 +14,15 @@ export type LabStreamEvent =
   | { type: "answer"; messageId: string; response: BotResponse }
   | { type: "agent_reply"; messageId: string; reply: AgentReply }
   | {
+      type: "scenario_run";
+      /** Empty until the scenario's message is stored. */
+      messageId: string;
+      scenarioId: string;
+      index: number;
+      total: number;
+      state: "running" | "done" | "failed" | "stopped";
+    }
+  | {
       type: "comparison";
       messageId: string;
       delta: TurnDelta | null;

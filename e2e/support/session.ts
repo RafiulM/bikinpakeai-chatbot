@@ -51,8 +51,12 @@ export async function readEvents(
     const decoder = new TextDecoder();
     let buffer = "";
     while (events.length < count) {
-      const { value, done } = await reader.read();
-      if (done) break;
+      // Reaching the timeout simply ends the read with what arrived so far.
+      const chunk = await reader
+        .read()
+        .catch(() => ({ done: true, value: undefined }));
+      const { value, done } = chunk;
+      if (done || !value) break;
       buffer += decoder.decode(value, { stream: true });
       let index: number;
       while ((index = buffer.indexOf("\n\n")) !== -1) {
