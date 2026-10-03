@@ -8,6 +8,7 @@ import {
   Headset,
   MessageCircle,
   ScanSearch,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import type { ViewId } from "@/lib/lab/types";
@@ -147,6 +148,25 @@ export function ViewNav() {
               </Link>
             </li>
           ))}
+        </ul>
+      </div>
+      <div className="grid gap-1 max-lg:flex">
+        <p
+          id="lab-nav-account"
+          className="px-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase max-lg:sr-only"
+        >
+          Akun
+        </p>
+        <ul aria-labelledby="lab-nav-account" className="grid gap-0.5">
+          <li>
+            <Link to="/pengaturan" className={linkClass}>
+              <Settings
+                className="size-[18px] shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+              Pengaturan
+            </Link>
+          </li>
         </ul>
       </div>
       <p className="px-3 text-xs text-muted-foreground max-lg:hidden">

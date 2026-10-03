@@ -67,27 +67,28 @@ The same doc covers **role-based access**: `src/lib/permissions.ts` declares res
 
 ## Commands
 
-| Command                       | What it does                                                             |
-| ----------------------------- | ------------------------------------------------------------------------ |
-| `npm run setup`               | Install, configure, start local PostgreSQL if needed, migrate, diagnose  |
-| `npm run dev`                 | Prepare the database and start the development app                       |
-| `npm run db:up`               | Start this copy's local PostgreSQL; skip for an external connection      |
-| `npm run db:status`           | Inspect this copy's database container                                   |
-| `npm run db:logs`             | Read the last 80 database log lines                                      |
-| `npm run test:setup`          | Verify a fresh setup, retries, and data persistence in a disposable copy |
-| `npm run db:down`             | Stop local containers while preserving the volume                        |
-| `npm run doctor`              | Check config, database connection, auth tables, and AI files             |
-| `npm run db:generate`         | Generate migration SQL after a schema edit                               |
-| `npm run db:migrate`          | Apply committed migrations                                               |
-| `npm run role:set`            | Grant a role: `npm run role:set -- you@example.com admin`                |
-| `npm run db:studio`           | Inspect the database with Drizzle Studio                                 |
-| `npm run check`               | Lint, typecheck, and tests against disposable PostgreSQL                 |
-| `npm run build` / `npm start` | Build and serve the production app                                       |
-| `npm test`                    | Run setup, copying, and real PostgreSQL migration tests                  |
-| `npm run test:e2e`            | Run browser tests against a separate PostgreSQL container                |
-| `npm run format`              | Format source and docs                                                   |
+| Command                       | What it does                                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run setup`               | Install, configure, start local PostgreSQL if needed, migrate, diagnose                                                         |
+| `npm run dev`                 | Prepare the database and start the development app                                                                              |
+| `npm run db:up`               | Start this copy's local PostgreSQL; skip for an external connection                                                             |
+| `npm run db:status`           | Inspect this copy's database container                                                                                          |
+| `npm run db:logs`             | Read the last 80 database log lines                                                                                             |
+| `npm run test:setup`          | Verify a fresh setup, retries, and data persistence in a disposable copy                                                        |
+| `npm run db:down`             | Stop local containers while preserving the volume                                                                               |
+| `npm run doctor`              | Check config, database connection, auth tables, and AI files                                                                    |
+| `npm run db:generate`         | Generate migration SQL after a schema edit                                                                                      |
+| `npm run db:migrate`          | Apply committed migrations                                                                                                      |
+| `npm run db:seed`             | Fill a demo account with conversations, tickets and test runs (app must run; `-- --url http://localhost:3010` for another port) |
+| `npm run role:set`            | Grant a role: `npm run role:set -- you@example.com admin`                                                                       |
+| `npm run db:studio`           | Inspect the database with Drizzle Studio                                                                                        |
+| `npm run check`               | Lint, typecheck, and tests against disposable PostgreSQL                                                                        |
+| `npm run build` / `npm start` | Build and serve the production app                                                                                              |
+| `npm test`                    | Run setup, copying, and real PostgreSQL migration tests                                                                         |
+| `npm run test:e2e`            | Run browser tests against a separate PostgreSQL container                                                                       |
+| `npm run format`              | Format source and docs                                                                                                          |
 
-Tests require Docker even if your app uses a hosted database. They launch a unique disposable PostgreSQL server, inject its URL into the test processes, and remove it afterward. Your app database is never used. Browser tests use port **3101** against the production build in `.output`; first run `npx playwright install chromium`, then `npm run build`.
+Tests require Docker even if your app uses a hosted database. They launch a unique disposable PostgreSQL server, inject its URL into the test processes, and remove it afterward. Your app database is never used. Browser tests use ports **3101/3102** (or the next free pair; set `E2E_PORT` to choose) against the production build in `.output`; first run `npx playwright install chromium`, then `npm run build`.
 
 ## Customize and extend
 

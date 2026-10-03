@@ -21,14 +21,17 @@ The agent can use `npm run predev` then `npm run doctor` when dependencies alrea
 
 ## Database commands
 
-| Command              | Result                                                                   |
-| -------------------- | ------------------------------------------------------------------------ |
-| `npm run db:up`      | Generate missing local settings and start PostgreSQL; wait until healthy |
-| `npm run db:status`  | Show this copy's running or stopped database container                   |
-| `npm run db:logs`    | Show the last 80 database log lines without following indefinitely       |
-| `npm run db:down`    | Remove this copy's container and network, keeping its data volume        |
-| `npm run db:migrate` | Apply committed migrations                                               |
-| `npm run doctor`     | Verify connection, auth tables, and project tooling files                |
+| Command              | Result                                                                     |
+| -------------------- | -------------------------------------------------------------------------- |
+| `npm run db:up`      | Generate missing local settings and start PostgreSQL; wait until healthy   |
+| `npm run db:status`  | Show this copy's running or stopped database container                     |
+| `npm run db:logs`    | Show the last 80 database log lines without following indefinitely         |
+| `npm run db:down`    | Remove this copy's container and network, keeping its data volume          |
+| `npm run db:migrate` | Apply committed migrations                                                 |
+| `npm run db:seed`    | Demo data through the running app; sign-in details in `.demo-account.json` |
+| `npm run doctor`     | Verify connection, auth tables, and project tooling files                  |
+
+Migrations already load the reference data (scenarios and three labelled test sets). `npm run db:seed` adds demo content: it signs in to a demo account (created on first run, details in the git-ignored `.demo-account.json`) and calls the same "Isi data demo" action as the Pengaturan screen. Each account can save its own OpenRouter key in Pengaturan; it is stored encrypted with a key derived from `BETTER_AUTH_SECRET` and wins over `OPENROUTER_API_KEY` for that account.
 
 Use these commands instead of bare `docker compose up`: the wrappers load `.env.local` and `.env` with the same precedence as the app and apply the saved project name. The database listens only on `127.0.0.1`, using a generated high port recorded in `.env.local`. Each fresh derivative has its own project, password, port, and volume.
 

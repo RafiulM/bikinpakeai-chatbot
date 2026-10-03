@@ -1,6 +1,9 @@
 import type { ParsedCase } from "./test-set-file";
 import type {
+  AiSettings,
   ConversationTurn,
+  DemoSeedResult,
+  OpenRouterKeyCheck,
   LabConversation,
   SupportTicket,
   TestRunReport,
@@ -191,5 +194,42 @@ export const labApi = {
       blob: await response.blob(),
       fileName: /filename="([^"]+)"/.exec(disposition)?.[1] ?? "ringkasan.md",
     };
+  },
+
+  async getAiSettings() {
+    const { data } = await request<{ data: AiSettings }>("/api/settings/ai");
+    return data;
+  },
+
+  async saveOpenRouterKey(apiKey: string) {
+    const { data } = await request<{ data: AiSettings }>(
+      "/api/settings/openrouter-key",
+      { method: "PUT", body: json({ apiKey }) },
+    );
+    return data;
+  },
+
+  async deleteOpenRouterKey() {
+    const { data } = await request<{ data: AiSettings }>(
+      "/api/settings/openrouter-key",
+      { method: "DELETE" },
+    );
+    return data;
+  },
+
+  async checkOpenRouterKey() {
+    const { data } = await request<{ data: OpenRouterKeyCheck }>(
+      "/api/settings/openrouter-key/check",
+      { method: "POST", body: json({}) },
+    );
+    return data;
+  },
+
+  async seedDemo() {
+    const { data } = await request<{ data: DemoSeedResult }>("/api/demo/seed", {
+      method: "POST",
+      body: json({}),
+    });
+    return data;
   },
 };

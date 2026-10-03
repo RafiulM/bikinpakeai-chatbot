@@ -92,6 +92,13 @@
       "when": 1790975909450,
       "tag": "0012_test_sets_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791002524344,
+      "tag": "0013_account_ai_settings",
+      "breakpoints": true
     }
   ]
 }

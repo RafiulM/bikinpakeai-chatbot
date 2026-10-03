@@ -1,10 +1,13 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
 
 // Model configuration for both answer paths. Every role is an OpenRouter
-// model id from the environment, never hardcoded in the pipeline. Without
-// OPENROUTER_API_KEY the lab runs in local mode: a deterministic reader and
-// knowledge-base answers, clearly marked as such.
+// model id from the environment, never hardcoded in the pipeline. The API key
+// is the account's own (saved in Pengaturan) when the work runs inside
+// runWithOpenRouterKey, else OPENROUTER_API_KEY. Without either the lab runs
+// in local mode: a deterministic reader and knowledge-base answers, clearly
+// marked as such.
 
 const aiEnv = z
   .object({
@@ -37,8 +40,32 @@ const aiEnv = z
     LAB_MODEL_TIMEOUT_MS: process.env.LAB_MODEL_TIMEOUT_MS || undefined,
   });
 
+const accountKey = new AsyncLocalStorage<{ apiKey: string | null }>();
+
+/**
+ * Runs `work` with an account's own OpenRouter key; null falls back to the
+ * server key. Everything `work` starts, including background answers, sees it.
+ */
+export function runWithOpenRouterKey<T>(apiKey: string | null, work: () => T) {
+  return accountKey.run({ apiKey }, work);
+}
+
+/** The key the work in progress uses: the account's, else the server's. */
+export function activeOpenRouterKey() {
+  return accountKey.getStore()?.apiKey ?? aiEnv.OPENROUTER_API_KEY ?? null;
+}
+
+/** True when OPENROUTER_API_KEY is set for the whole server. */
+export const serverKeyConfigured = Boolean(aiEnv.OPENROUTER_API_KEY);
+
+export const OPENROUTER_BASE_URL =
+  aiEnv.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
+
 export const aiConfig = {
-  enabled: Boolean(aiEnv.OPENROUTER_API_KEY),
+  /** Whether the work in progress can call models (else local mode). */
+  get enabled() {
+    return activeOpenRouterKey() !== null;
+  },
   models: {
     jev: aiEnv.LAB_JEV_MODEL,
     fast: aiEnv.LAB_FAST_MODEL,
@@ -51,19 +78,24 @@ export const aiConfig = {
 
 export const LOCAL_MODEL_ID = "lokal/tanpa-openrouter";
 
-let provider: ReturnType<typeof createOpenRouter> | undefined;
+const providers = new Map<string, ReturnType<typeof createOpenRouter>>();
 
+/** The OpenRouter provider for the active key (one client per key). */
 export function openrouter() {
-  if (!aiEnv.OPENROUTER_API_KEY)
-    throw new Error("OPENROUTER_API_KEY is not configured.");
-  provider ??= createOpenRouter({
-    apiKey: aiEnv.OPENROUTER_API_KEY,
-    appName: "Bikinpakeai Support Lab",
-    ...(aiEnv.OPENROUTER_BASE_URL && {
-      baseURL: aiEnv.OPENROUTER_BASE_URL,
-      decisionsBaseURL: aiEnv.OPENROUTER_BASE_URL,
-    }),
-  });
+  const apiKey = activeOpenRouterKey();
+  if (!apiKey) throw new Error("No OpenRouter key is configured.");
+  let provider = providers.get(apiKey);
+  if (!provider) {
+    provider = createOpenRouter({
+      apiKey,
+      appName: "Bikinpakeai Support Lab",
+      ...(aiEnv.OPENROUTER_BASE_URL && {
+        baseURL: aiEnv.OPENROUTER_BASE_URL,
+        decisionsBaseURL: aiEnv.OPENROUTER_BASE_URL,
+      }),
+    });
+    providers.set(apiKey, provider);
+  }
   return provider;
 }
 

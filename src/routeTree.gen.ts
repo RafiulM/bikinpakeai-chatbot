@@ -20,18 +20,21 @@ import { Route as ProtectedCompareRouteImport } from './routes/_protected/compar
 import { Route as ProtectedCustomerRouteImport } from './routes/_protected/customer'
 import { Route as ProtectedDebugRouteImport } from './routes/_protected/debug'
 import { Route as ProtectedEksporRouteImport } from './routes/_protected/ekspor'
+import { Route as ProtectedPengaturanRouteImport } from './routes/_protected/pengaturan'
 import { Route as ProtectedSkenarioRouteImport } from './routes/_protected/skenario'
 import { Route as ProtectedTestSetRouteImport } from './routes/_protected/test-set'
 import { Route as ApiSuggestionsRouteImport } from './routes/api/suggestions'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiConversationsIndexRouteImport } from './routes/api/conversations/index'
 import { Route as ApiConversationsCurrentRouteImport } from './routes/api/conversations/current'
+import { Route as ApiDemoSeedRouteImport } from './routes/api/demo/seed'
 import { Route as ApiExportsSummaryRouteImport } from './routes/api/exports/summary'
 import { Route as ApiExportsTranscriptRouteImport } from './routes/api/exports/transcript'
 import { Route as ApiNotesIndexRouteImport } from './routes/api/notes/index'
 import { Route as ApiNotesIdRouteImport } from './routes/api/notes/$id'
 import { Route as ApiScenariosIndexRouteImport } from './routes/api/scenarios/index'
 import { Route as ApiScenariosBatchRouteImport } from './routes/api/scenarios/batch'
+import { Route as ApiSettingsAiRouteImport } from './routes/api/settings/ai'
 import { Route as ApiTestRunsIndexRouteImport } from './routes/api/test-runs/index'
 import { Route as ApiTestSetsIndexRouteImport } from './routes/api/test-sets/index'
 import { Route as ApiTicketsIndexRouteImport } from './routes/api/tickets/index'
@@ -44,6 +47,8 @@ import { Route as ApiConversationsIdEventsRouteImport } from './routes/api/conve
 import { Route as ApiConversationsIdMessagesRouteImport } from './routes/api/conversations/$id/messages'
 import { Route as ApiConversationsIdSummaryRouteImport } from './routes/api/conversations/$id/summary'
 import { Route as ApiScenariosIdRunRouteImport } from './routes/api/scenarios/$id/run'
+import { Route as ApiSettingsOpenrouterKeyIndexRouteImport } from './routes/api/settings/openrouter-key/index'
+import { Route as ApiSettingsOpenrouterKeyCheckRouteImport } from './routes/api/settings/openrouter-key/check'
 import { Route as ApiTestRunsIdIndexRouteImport } from './routes/api/test-runs/$id/index'
 import { Route as ApiTestRunsIdCancelRouteImport } from './routes/api/test-runs/$id/cancel'
 import { Route as ApiTestRunsIdComparisonRouteImport } from './routes/api/test-runs/$id/comparison'
@@ -106,6 +111,11 @@ const ProtectedEksporRoute = ProtectedEksporRouteImport.update({
   path: '/ekspor',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedPengaturanRoute = ProtectedPengaturanRouteImport.update({
+  id: '/pengaturan',
+  path: '/pengaturan',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 const ProtectedSkenarioRoute = ProtectedSkenarioRouteImport.update({
   id: '/skenario',
   path: '/skenario',
@@ -136,6 +146,11 @@ const ApiConversationsCurrentRoute = ApiConversationsCurrentRouteImport.update({
   path: '/api/conversations/current',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDemoSeedRoute = ApiDemoSeedRouteImport.update({
+  id: '/api/demo/seed',
+  path: '/api/demo/seed',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiExportsSummaryRoute = ApiExportsSummaryRouteImport.update({
   id: '/api/exports/summary',
   path: '/api/exports/summary',
@@ -164,6 +179,11 @@ const ApiScenariosIndexRoute = ApiScenariosIndexRouteImport.update({
 const ApiScenariosBatchRoute = ApiScenariosBatchRouteImport.update({
   id: '/api/scenarios/batch',
   path: '/api/scenarios/batch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSettingsAiRoute = ApiSettingsAiRouteImport.update({
+  id: '/api/settings/ai',
+  path: '/api/settings/ai',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTestRunsIndexRoute = ApiTestRunsIndexRouteImport.update({
@@ -230,6 +250,18 @@ const ApiScenariosIdRunRoute = ApiScenariosIdRunRouteImport.update({
   path: '/api/scenarios/$id/run',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSettingsOpenrouterKeyIndexRoute =
+  ApiSettingsOpenrouterKeyIndexRouteImport.update({
+    id: '/api/settings/openrouter-key/',
+    path: '/api/settings/openrouter-key/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiSettingsOpenrouterKeyCheckRoute =
+  ApiSettingsOpenrouterKeyCheckRouteImport.update({
+    id: '/api/settings/openrouter-key/check',
+    path: '/api/settings/openrouter-key/check',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiTestRunsIdIndexRoute = ApiTestRunsIdIndexRouteImport.update({
   id: '/api/test-runs/$id/',
   path: '/api/test-runs/$id/',
@@ -281,15 +313,18 @@ export interface FileRoutesByFullPath {
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
   '/ekspor': typeof ProtectedEksporRoute
+  '/pengaturan': typeof ProtectedPengaturanRoute
   '/skenario': typeof ProtectedSkenarioRoute
   '/test-set': typeof ProtectedTestSetRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
+  '/api/demo/seed': typeof ApiDemoSeedRoute
   '/api/exports/summary': typeof ApiExportsSummaryRoute
   '/api/exports/transcript': typeof ApiExportsTranscriptRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/scenarios/batch': typeof ApiScenariosBatchRoute
+  '/api/settings/ai': typeof ApiSettingsAiRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
   '/api/scenarios/': typeof ApiScenariosIndexRoute
@@ -303,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/conversations/$id/summary': typeof ApiConversationsIdSummaryRoute
   '/api/scenarios/$id/run': typeof ApiScenariosIdRunRoute
+  '/api/settings/openrouter-key/check': typeof ApiSettingsOpenrouterKeyCheckRoute
   '/api/test-runs/$id/cancel': typeof ApiTestRunsIdCancelRoute
   '/api/test-runs/$id/comparison': typeof ApiTestRunsIdComparisonRoute
   '/api/test-runs/$id/events': typeof ApiTestRunsIdEventsRoute
@@ -311,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/api/tickets/$id/summary': typeof ApiTicketsIdSummaryRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
   '/api/conversations/$id/': typeof ApiConversationsIdIndexRoute
+  '/api/settings/openrouter-key/': typeof ApiSettingsOpenrouterKeyIndexRoute
   '/api/test-runs/$id/': typeof ApiTestRunsIdIndexRoute
   '/api/tickets/$id/': typeof ApiTicketsIdIndexRoute
 }
@@ -324,15 +361,18 @@ export interface FileRoutesByTo {
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
   '/ekspor': typeof ProtectedEksporRoute
+  '/pengaturan': typeof ProtectedPengaturanRoute
   '/skenario': typeof ProtectedSkenarioRoute
   '/test-set': typeof ProtectedTestSetRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
+  '/api/demo/seed': typeof ApiDemoSeedRoute
   '/api/exports/summary': typeof ApiExportsSummaryRoute
   '/api/exports/transcript': typeof ApiExportsTranscriptRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/scenarios/batch': typeof ApiScenariosBatchRoute
+  '/api/settings/ai': typeof ApiSettingsAiRoute
   '/api/conversations': typeof ApiConversationsIndexRoute
   '/api/notes': typeof ApiNotesIndexRoute
   '/api/scenarios': typeof ApiScenariosIndexRoute
@@ -346,6 +386,7 @@ export interface FileRoutesByTo {
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/conversations/$id/summary': typeof ApiConversationsIdSummaryRoute
   '/api/scenarios/$id/run': typeof ApiScenariosIdRunRoute
+  '/api/settings/openrouter-key/check': typeof ApiSettingsOpenrouterKeyCheckRoute
   '/api/test-runs/$id/cancel': typeof ApiTestRunsIdCancelRoute
   '/api/test-runs/$id/comparison': typeof ApiTestRunsIdComparisonRoute
   '/api/test-runs/$id/events': typeof ApiTestRunsIdEventsRoute
@@ -354,6 +395,7 @@ export interface FileRoutesByTo {
   '/api/tickets/$id/summary': typeof ApiTicketsIdSummaryRoute
   '/api/admin/notes': typeof ApiAdminNotesIndexRoute
   '/api/conversations/$id': typeof ApiConversationsIdIndexRoute
+  '/api/settings/openrouter-key': typeof ApiSettingsOpenrouterKeyIndexRoute
   '/api/test-runs/$id': typeof ApiTestRunsIdIndexRoute
   '/api/tickets/$id': typeof ApiTicketsIdIndexRoute
 }
@@ -370,15 +412,18 @@ export interface FileRoutesById {
   '/_protected/customer': typeof ProtectedCustomerRoute
   '/_protected/debug': typeof ProtectedDebugRoute
   '/_protected/ekspor': typeof ProtectedEksporRoute
+  '/_protected/pengaturan': typeof ProtectedPengaturanRoute
   '/_protected/skenario': typeof ProtectedSkenarioRoute
   '/_protected/test-set': typeof ProtectedTestSetRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
+  '/api/demo/seed': typeof ApiDemoSeedRoute
   '/api/exports/summary': typeof ApiExportsSummaryRoute
   '/api/exports/transcript': typeof ApiExportsTranscriptRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/scenarios/batch': typeof ApiScenariosBatchRoute
+  '/api/settings/ai': typeof ApiSettingsAiRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
   '/api/scenarios/': typeof ApiScenariosIndexRoute
@@ -392,6 +437,7 @@ export interface FileRoutesById {
   '/api/conversations/$id/messages': typeof ApiConversationsIdMessagesRoute
   '/api/conversations/$id/summary': typeof ApiConversationsIdSummaryRoute
   '/api/scenarios/$id/run': typeof ApiScenariosIdRunRoute
+  '/api/settings/openrouter-key/check': typeof ApiSettingsOpenrouterKeyCheckRoute
   '/api/test-runs/$id/cancel': typeof ApiTestRunsIdCancelRoute
   '/api/test-runs/$id/comparison': typeof ApiTestRunsIdComparisonRoute
   '/api/test-runs/$id/events': typeof ApiTestRunsIdEventsRoute
@@ -400,6 +446,7 @@ export interface FileRoutesById {
   '/api/tickets/$id/summary': typeof ApiTicketsIdSummaryRoute
   '/api/admin/notes/': typeof ApiAdminNotesIndexRoute
   '/api/conversations/$id/': typeof ApiConversationsIdIndexRoute
+  '/api/settings/openrouter-key/': typeof ApiSettingsOpenrouterKeyIndexRoute
   '/api/test-runs/$id/': typeof ApiTestRunsIdIndexRoute
   '/api/tickets/$id/': typeof ApiTicketsIdIndexRoute
 }
@@ -415,15 +462,18 @@ export interface FileRouteTypes {
     | '/customer'
     | '/debug'
     | '/ekspor'
+    | '/pengaturan'
     | '/skenario'
     | '/test-set'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
+    | '/api/demo/seed'
     | '/api/exports/summary'
     | '/api/exports/transcript'
     | '/api/notes/$id'
     | '/api/scenarios/batch'
+    | '/api/settings/ai'
     | '/api/conversations/'
     | '/api/notes/'
     | '/api/scenarios/'
@@ -437,6 +487,7 @@ export interface FileRouteTypes {
     | '/api/conversations/$id/messages'
     | '/api/conversations/$id/summary'
     | '/api/scenarios/$id/run'
+    | '/api/settings/openrouter-key/check'
     | '/api/test-runs/$id/cancel'
     | '/api/test-runs/$id/comparison'
     | '/api/test-runs/$id/events'
@@ -445,6 +496,7 @@ export interface FileRouteTypes {
     | '/api/tickets/$id/summary'
     | '/api/admin/notes/'
     | '/api/conversations/$id/'
+    | '/api/settings/openrouter-key/'
     | '/api/test-runs/$id/'
     | '/api/tickets/$id/'
   fileRoutesByTo: FileRoutesByTo
@@ -458,15 +510,18 @@ export interface FileRouteTypes {
     | '/customer'
     | '/debug'
     | '/ekspor'
+    | '/pengaturan'
     | '/skenario'
     | '/test-set'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
+    | '/api/demo/seed'
     | '/api/exports/summary'
     | '/api/exports/transcript'
     | '/api/notes/$id'
     | '/api/scenarios/batch'
+    | '/api/settings/ai'
     | '/api/conversations'
     | '/api/notes'
     | '/api/scenarios'
@@ -480,6 +535,7 @@ export interface FileRouteTypes {
     | '/api/conversations/$id/messages'
     | '/api/conversations/$id/summary'
     | '/api/scenarios/$id/run'
+    | '/api/settings/openrouter-key/check'
     | '/api/test-runs/$id/cancel'
     | '/api/test-runs/$id/comparison'
     | '/api/test-runs/$id/events'
@@ -488,6 +544,7 @@ export interface FileRouteTypes {
     | '/api/tickets/$id/summary'
     | '/api/admin/notes'
     | '/api/conversations/$id'
+    | '/api/settings/openrouter-key'
     | '/api/test-runs/$id'
     | '/api/tickets/$id'
   id:
@@ -503,15 +560,18 @@ export interface FileRouteTypes {
     | '/_protected/customer'
     | '/_protected/debug'
     | '/_protected/ekspor'
+    | '/_protected/pengaturan'
     | '/_protected/skenario'
     | '/_protected/test-set'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
+    | '/api/demo/seed'
     | '/api/exports/summary'
     | '/api/exports/transcript'
     | '/api/notes/$id'
     | '/api/scenarios/batch'
+    | '/api/settings/ai'
     | '/api/conversations/'
     | '/api/notes/'
     | '/api/scenarios/'
@@ -525,6 +585,7 @@ export interface FileRouteTypes {
     | '/api/conversations/$id/messages'
     | '/api/conversations/$id/summary'
     | '/api/scenarios/$id/run'
+    | '/api/settings/openrouter-key/check'
     | '/api/test-runs/$id/cancel'
     | '/api/test-runs/$id/comparison'
     | '/api/test-runs/$id/events'
@@ -533,6 +594,7 @@ export interface FileRouteTypes {
     | '/api/tickets/$id/summary'
     | '/api/admin/notes/'
     | '/api/conversations/$id/'
+    | '/api/settings/openrouter-key/'
     | '/api/test-runs/$id/'
     | '/api/tickets/$id/'
   fileRoutesById: FileRoutesById
@@ -544,10 +606,12 @@ export interface RootRouteChildren {
   ApiSuggestionsRoute: typeof ApiSuggestionsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiConversationsCurrentRoute: typeof ApiConversationsCurrentRoute
+  ApiDemoSeedRoute: typeof ApiDemoSeedRoute
   ApiExportsSummaryRoute: typeof ApiExportsSummaryRoute
   ApiExportsTranscriptRoute: typeof ApiExportsTranscriptRoute
   ApiNotesIdRoute: typeof ApiNotesIdRoute
   ApiScenariosBatchRoute: typeof ApiScenariosBatchRoute
+  ApiSettingsAiRoute: typeof ApiSettingsAiRoute
   ApiConversationsIndexRoute: typeof ApiConversationsIndexRoute
   ApiNotesIndexRoute: typeof ApiNotesIndexRoute
   ApiScenariosIndexRoute: typeof ApiScenariosIndexRoute
@@ -561,6 +625,7 @@ export interface RootRouteChildren {
   ApiConversationsIdMessagesRoute: typeof ApiConversationsIdMessagesRoute
   ApiConversationsIdSummaryRoute: typeof ApiConversationsIdSummaryRoute
   ApiScenariosIdRunRoute: typeof ApiScenariosIdRunRoute
+  ApiSettingsOpenrouterKeyCheckRoute: typeof ApiSettingsOpenrouterKeyCheckRoute
   ApiTestRunsIdCancelRoute: typeof ApiTestRunsIdCancelRoute
   ApiTestRunsIdComparisonRoute: typeof ApiTestRunsIdComparisonRoute
   ApiTestRunsIdEventsRoute: typeof ApiTestRunsIdEventsRoute
@@ -569,6 +634,7 @@ export interface RootRouteChildren {
   ApiTicketsIdSummaryRoute: typeof ApiTicketsIdSummaryRoute
   ApiAdminNotesIndexRoute: typeof ApiAdminNotesIndexRoute
   ApiConversationsIdIndexRoute: typeof ApiConversationsIdIndexRoute
+  ApiSettingsOpenrouterKeyIndexRoute: typeof ApiSettingsOpenrouterKeyIndexRoute
   ApiTestRunsIdIndexRoute: typeof ApiTestRunsIdIndexRoute
   ApiTicketsIdIndexRoute: typeof ApiTicketsIdIndexRoute
 }
@@ -652,6 +718,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedEksporRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/pengaturan': {
+      id: '/_protected/pengaturan'
+      path: '/pengaturan'
+      fullPath: '/pengaturan'
+      preLoaderRoute: typeof ProtectedPengaturanRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/_protected/skenario': {
       id: '/_protected/skenario'
       path: '/skenario'
@@ -694,6 +767,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiConversationsCurrentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/demo/seed': {
+      id: '/api/demo/seed'
+      path: '/api/demo/seed'
+      fullPath: '/api/demo/seed'
+      preLoaderRoute: typeof ApiDemoSeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/exports/summary': {
       id: '/api/exports/summary'
       path: '/api/exports/summary'
@@ -734,6 +814,13 @@ declare module '@tanstack/react-router' {
       path: '/api/scenarios/batch'
       fullPath: '/api/scenarios/batch'
       preLoaderRoute: typeof ApiScenariosBatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings/ai': {
+      id: '/api/settings/ai'
+      path: '/api/settings/ai'
+      fullPath: '/api/settings/ai'
+      preLoaderRoute: typeof ApiSettingsAiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/test-runs/': {
@@ -820,6 +907,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiScenariosIdRunRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/settings/openrouter-key/': {
+      id: '/api/settings/openrouter-key/'
+      path: '/api/settings/openrouter-key'
+      fullPath: '/api/settings/openrouter-key/'
+      preLoaderRoute: typeof ApiSettingsOpenrouterKeyIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings/openrouter-key/check': {
+      id: '/api/settings/openrouter-key/check'
+      path: '/api/settings/openrouter-key/check'
+      fullPath: '/api/settings/openrouter-key/check'
+      preLoaderRoute: typeof ApiSettingsOpenrouterKeyCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/test-runs/$id/': {
       id: '/api/test-runs/$id/'
       path: '/api/test-runs/$id'
@@ -898,6 +999,7 @@ interface ProtectedRouteChildren {
   ProtectedCustomerRoute: typeof ProtectedCustomerRoute
   ProtectedDebugRoute: typeof ProtectedDebugRoute
   ProtectedEksporRoute: typeof ProtectedEksporRoute
+  ProtectedPengaturanRoute: typeof ProtectedPengaturanRoute
   ProtectedSkenarioRoute: typeof ProtectedSkenarioRoute
   ProtectedTestSetRoute: typeof ProtectedTestSetRoute
 }
@@ -909,6 +1011,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedCustomerRoute: ProtectedCustomerRoute,
   ProtectedDebugRoute: ProtectedDebugRoute,
   ProtectedEksporRoute: ProtectedEksporRoute,
+  ProtectedPengaturanRoute: ProtectedPengaturanRoute,
   ProtectedSkenarioRoute: ProtectedSkenarioRoute,
   ProtectedTestSetRoute: ProtectedTestSetRoute,
 }
@@ -924,10 +1027,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSuggestionsRoute: ApiSuggestionsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiConversationsCurrentRoute: ApiConversationsCurrentRoute,
+  ApiDemoSeedRoute: ApiDemoSeedRoute,
   ApiExportsSummaryRoute: ApiExportsSummaryRoute,
   ApiExportsTranscriptRoute: ApiExportsTranscriptRoute,
   ApiNotesIdRoute: ApiNotesIdRoute,
   ApiScenariosBatchRoute: ApiScenariosBatchRoute,
+  ApiSettingsAiRoute: ApiSettingsAiRoute,
   ApiConversationsIndexRoute: ApiConversationsIndexRoute,
   ApiNotesIndexRoute: ApiNotesIndexRoute,
   ApiScenariosIndexRoute: ApiScenariosIndexRoute,
@@ -941,6 +1046,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiConversationsIdMessagesRoute: ApiConversationsIdMessagesRoute,
   ApiConversationsIdSummaryRoute: ApiConversationsIdSummaryRoute,
   ApiScenariosIdRunRoute: ApiScenariosIdRunRoute,
+  ApiSettingsOpenrouterKeyCheckRoute: ApiSettingsOpenrouterKeyCheckRoute,
   ApiTestRunsIdCancelRoute: ApiTestRunsIdCancelRoute,
   ApiTestRunsIdComparisonRoute: ApiTestRunsIdComparisonRoute,
   ApiTestRunsIdEventsRoute: ApiTestRunsIdEventsRoute,
@@ -949,6 +1055,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTicketsIdSummaryRoute: ApiTicketsIdSummaryRoute,
   ApiAdminNotesIndexRoute: ApiAdminNotesIndexRoute,
   ApiConversationsIdIndexRoute: ApiConversationsIdIndexRoute,
+  ApiSettingsOpenrouterKeyIndexRoute: ApiSettingsOpenrouterKeyIndexRoute,
   ApiTestRunsIdIndexRoute: ApiTestRunsIdIndexRoute,
   ApiTicketsIdIndexRoute: ApiTicketsIdIndexRoute,
 }

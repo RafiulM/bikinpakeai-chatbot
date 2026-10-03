@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node scripts/migrate.mjs",
+    "db:seed": "node scripts/seed.mjs",
     "role:set": "node scripts/set-role.mjs",
     "db:studio": "drizzle-kit studio",
     "doctor": "node scripts/doctor.mjs",

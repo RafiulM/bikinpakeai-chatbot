@@ -15,6 +15,7 @@ import type {
   Verdict,
   VerdictTally,
 } from "@/lib/lab/types";
+import { withAccountAi } from "./ai-settings.service.server";
 import {
   answerWithJevForTest,
   answerWithoutJevForTest,
@@ -300,13 +301,14 @@ export async function startTestRun(
 
   const controller = new AbortController();
   registry.active.set(result.runId, controller);
-  void processRun(result.runId, result.cases, controller.signal);
+  void processRun(userId, result.runId, result.cases, controller.signal);
   return { kind: "started", run: await readState(result.runId) };
 }
 
 type CaseRow = { id: string; inputText: string; expectedLabel: string };
 
 async function processRun(
+  userId: string,
   runId: string,
   cases: CaseRow[],
   signal: AbortSignal,
@@ -326,7 +328,10 @@ async function processRun(
         await publish(runId);
       }
     };
-    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+    // The account's own OpenRouter key, if saved, answers every message.
+    await withAccountAi(userId, () =>
+      Promise.all(Array.from({ length: CONCURRENCY }, worker)),
+    );
     if (!signal.aborted)
       await db
         .update(testRuns)
@@ -413,4 +418,28 @@ export async function cancelTestRun(
   registry.active.get(runId)?.abort();
   await publish(runId);
   return { kind: "cancelled", run: await readState(runId) };
+}
+
+/**
+ * Runs several test sets one after another in the background (one run per
+ * account at a time). A set whose start fails is skipped.
+ */
+export async function runTestSetsInOrder(userId: string, testSetIds: string[]) {
+  for (const testSetId of testSetIds) {
+    let started = await startTestRun(userId, testSetId);
+    // Wait out a run the account already had going, then start this one.
+    if (started.kind === "busy") {
+      await waitForRun(userId, started.runId);
+      started = await startTestRun(userId, testSetId);
+    }
+    if (started.kind === "started") await waitForRun(userId, started.run.runId);
+  }
+}
+
+async function waitForRun(userId: string, runId: string) {
+  for (;;) {
+    const state = await getTestRunState(userId, runId);
+    if (!state || state.status !== "running") return;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
 }

@@ -26,6 +26,7 @@ import type {
   TicketStatus,
 } from "@/lib/lab/types";
 import { publishLabEvent } from "@/lib/lab/events.server";
+import { withAccountAi } from "./ai-settings.service.server";
 import { ticketBriefing } from "./pipeline/ticket-summary.server";
 import type { SummaryMessage } from "@/lib/lab/ticket-summary";
 import type {
@@ -487,7 +488,9 @@ export async function regenerateTicketSummary(
       frustrationScore: row.ticket.frustrationScore,
     },
   );
-  const summaryPoints = await ticketBriefing(history);
+  const summaryPoints = await withAccountAi(userId, () =>
+    ticketBriefing(history),
+  );
   await db
     .update(tickets)
     .set({ summaryPoints })

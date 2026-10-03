@@ -258,3 +258,39 @@ export interface TestCaseResult {
   withJev: TestCaseOutcome;
   withoutJev: TestCaseOutcome;
 }
+
+/** Where the OpenRouter key for an account's work comes from. */
+export type OpenRouterKeySource = "account" | "server" | "none";
+
+/** AI settings as the Pengaturan screen sees them; never the key itself. */
+export interface AiSettings {
+  source: OpenRouterKeySource;
+  /** The account's saved key, shown only by its last characters. */
+  accountKey: { hint: string; updatedAt: string } | null;
+  /** A saved key that can no longer be decrypted (server secret changed). */
+  accountKeyUnreadable: boolean;
+  serverKey: boolean;
+  models: { jev: string; fast: string; reasoning: string; baseline: string };
+}
+
+export type OpenRouterKeyCheck =
+  | { status: "none" }
+  | {
+      status: "ok";
+      source: OpenRouterKeySource;
+      label: string | null;
+      usageUsd: number;
+      limitRemainingUsd: number | null;
+      freeTier: boolean;
+    }
+  | { status: "rejected" | "unreachable"; source: OpenRouterKeySource };
+
+/** What "Isi data demo" made for the account. */
+export interface DemoSeedResult {
+  conversation: { id: string; code: string };
+  messages: number;
+  tickets: number;
+  failed: number;
+  /** Built-in test sets now running one after another in the background. */
+  testSets: string[];
+}

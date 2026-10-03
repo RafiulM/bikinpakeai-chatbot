@@ -11,3 +11,4 @@ export * from "./jev-analyses";
 export * from "./tickets";
 export * from "./scenarios";
 export * from "./test-sets";
+export * from "./ai-settings";
