@@ -26,9 +26,22 @@ export const Route = createFileRoute("/_protected")({
   },
   // The conversation to open, rendered on the server. Later switches are
   // handled by the conversation store, so the loader runs only once.
-  loader: ({ location }) => {
+  loader: async ({ location }) => {
     const c = (location.search as { c?: string }).c;
-    return loadConversationFn({ data: { id: c } });
+    const result = await loadConversationFn({ data: { id: c } });
+    // Put the opened conversation in the address before rendering, so the
+    // server HTML already has the ?c= every link carries; adding it later in
+    // the browser made links render differently during hydration.
+    const id = result.conversation?.id;
+    if (id && id !== c) {
+      const search = new URLSearchParams(location.searchStr);
+      search.set("c", id);
+      throw redirect({
+        href: `${location.pathname}?${search}`,
+        replace: true,
+      });
+    }
+    return result;
   },
   shouldReload: false,
   component: ProtectedLayout,

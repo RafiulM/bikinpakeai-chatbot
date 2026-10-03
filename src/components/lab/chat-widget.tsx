@@ -46,6 +46,7 @@ export function ChatWidget({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
+  const lastScrollTop = useRef(0);
   const [hasNew, setHasNew] = useState(false);
   const reduceMotion = useReducedMotion();
   const ordered = useMemo(() => sortTurns(turns), [turns]);
@@ -61,9 +62,13 @@ export function ChatWidget({
   function scrollToEnd(smooth: boolean) {
     const node = scrollRef.current;
     if (!node) return;
+    // A hidden tab never runs a smooth scroll, so jump instead: the latest
+    // message is in place when the reader comes back.
+    const animate =
+      smooth && !reduceMotion && document.visibilityState === "visible";
     node.scrollTo({
       top: node.scrollHeight,
-      behavior: smooth && !reduceMotion ? "smooth" : "auto",
+      behavior: animate ? "smooth" : "auto",
     });
     atBottomRef.current = true;
     setHasNew(false);
@@ -86,13 +91,20 @@ export function ChatWidget({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tailKey]);
 
+  // Only scrolling up leaves the bottom. A smooth scroll toward a new message
+  // passes through positions above the end, and must not stop the following
+  // when the answer lands mid-animation.
   function handleScroll() {
     const node = scrollRef.current;
     if (!node) return;
     const atBottom =
       node.scrollHeight - node.scrollTop - node.clientHeight < 80;
-    atBottomRef.current = atBottom;
-    if (atBottom) setHasNew(false);
+    const movedUp = node.scrollTop < lastScrollTop.current;
+    lastScrollTop.current = node.scrollTop;
+    if (atBottom) {
+      atBottomRef.current = true;
+      setHasNew(false);
+    } else if (movedUp) atBottomRef.current = false;
   }
 
   return (

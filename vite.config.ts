@@ -5,6 +5,15 @@ import viteReact from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
 
+function authPort() {
+  try {
+    const url = new URL(process.env.BETTER_AUTH_URL || "http://localhost:3000");
+    return Number(url.port) || (url.protocol === "https:" ? 443 : 80);
+  } catch {
+    return 3000;
+  }
+}
+
 export default defineConfig(({ command, mode }) => {
   // Server modules read process.env. In development Vite only exposes VITE_*
   // to the browser, so loading the whole file here never leaks a secret.
@@ -13,7 +22,10 @@ export default defineConfig(({ command, mode }) => {
       if (process.env[key] === undefined) process.env[key] = value;
   }
   return {
-    server: { port: 3000 },
+    // Serve on BETTER_AUTH_URL's port so sign-in cookies and the API Origin
+    // check match the URL you open. strictPort fails loudly instead of moving
+    // to another port where sign-in would break.
+    server: { port: authPort(), strictPort: true },
     // node-server emits .output/server/index.mjs, a portable Node server that
     // honors PORT and HOST. The Dockerfile ships only that folder.
     nitro: { preset: "node-server" },
