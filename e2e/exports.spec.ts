@@ -1,11 +1,11 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { headers, signUp } from "./support/session";
+import { headers, origin, signUp } from "./support/session";
 
 let owner: APIRequestContext;
 let other: APIRequestContext;
 
 test.beforeAll(async ({ playwright }) => {
-  const baseURL = "http://localhost:3101";
+  const baseURL = origin;
   owner = await playwright.request.newContext({ baseURL });
   other = await playwright.request.newContext({ baseURL });
   await signUp(owner, "exports-owner");

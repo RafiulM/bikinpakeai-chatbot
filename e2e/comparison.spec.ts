@@ -1,13 +1,19 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { testDb } from "./support/db";
-import { cookieHeader, headers, readEvents, signUp } from "./support/session";
+import {
+  cookieHeader,
+  headers,
+  origin,
+  readEvents,
+  signUp,
+} from "./support/session";
 
 let owner: APIRequestContext;
 
 test.beforeAll(async ({ playwright }) => {
   owner = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
+    baseURL: origin,
   });
   await signUp(owner, "comparison");
 });
@@ -152,12 +158,12 @@ test("the events stream opens with the current totals and stays private", async 
   const { data: conversation } = await (
     await owner.post("/api/conversations", { headers, data: {} })
   ).json();
-  const url = `http://localhost:3101/api/conversations/${conversation.id}/events`;
+  const url = `${origin}/api/conversations/${conversation.id}/events`;
   expect((await request.get(url)).status()).toBe(401);
   expect(
     (
       await readEvents(
-        `http://localhost:3101/api/conversations/${randomUUID()}/events`,
+        `${origin}/api/conversations/${randomUUID()}/events`,
         await cookieHeader(owner),
         1,
       )

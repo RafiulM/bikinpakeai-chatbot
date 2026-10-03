@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, test, type APIRequestContext } from "@playwright/test";
+import { origin } from "./support/session";
 
-const origin = "http://localhost:3101";
 const headers = { Origin: origin };
 
 async function signUp(client: APIRequestContext) {

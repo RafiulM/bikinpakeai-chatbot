@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { headers, signUp } from "./support/session";
+import { headers, origin, signUp } from "./support/session";
 
 // Two accounts shared by this file keep the real auth server's signup rate
 // limit out of the way. Each test still creates its own conversations.
@@ -9,10 +9,10 @@ let stranger: APIRequestContext;
 
 test.beforeAll(async ({ playwright }) => {
   owner = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
+    baseURL: origin,
   });
   stranger = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
+    baseURL: origin,
   });
   await signUp(owner, "conversation-owner");
   await signUp(stranger, "conversation-stranger");

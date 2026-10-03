@@ -1,16 +1,22 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { testDb } from "./support/db";
-import { cookieHeader, headers, readEvents, signUp } from "./support/session";
+import {
+  cookieHeader,
+  headers,
+  origin,
+  readEvents,
+  signUp,
+} from "./support/session";
 
 let owner: APIRequestContext;
 let stranger: APIRequestContext;
 
 test.beforeAll(async ({ playwright }) => {
   owner = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
+    baseURL: origin,
   });
   stranger = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
+    baseURL: origin,
   });
   await signUp(owner, "tickets-owner");
   await signUp(stranger, "tickets-stranger");
@@ -128,7 +134,7 @@ test("agents reply into the customer's conversation and can close in one step", 
   expect(ticket.code).toBe(sent.turn.ticketId);
 
   const stream = readEvents(
-    `http://localhost:3101/api/conversations/${conversation.id}/events`,
+    `${origin}/api/conversations/${conversation.id}/events`,
     await cookieHeader(owner),
     2,
   );

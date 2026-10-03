@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, type APIRequestContext } from "@playwright/test";
 
-export const origin = "http://localhost:3101";
+// npm run test:e2e picks the ports (3101/3102 unless taken) and passes them in.
+const port = Number(process.env.E2E_PORT || 3101);
+export const origin = `http://localhost:${port}`;
+/** Second app whose OpenRouter endpoint is unreachable (pipeline failures). */
+export const failureOrigin = `http://localhost:${port + 1}`;
 export const headers = { Origin: origin };
 
 /** Creates a fresh account on the real auth server and keeps its cookie. */
@@ -16,10 +20,11 @@ export async function signUp(client: APIRequestContext, prefix = "lab") {
     headers,
     data,
   });
-  if (response.status() === 429) {
-    // The real auth server limits rapid signups. Honor its retry window once.
+  // The real auth server limits rapid signups. Honor its retry window, a few
+  // times, since many spec files sign up accounts back to back.
+  for (let retry = 0; response.status() === 429 && retry < 3; retry += 1) {
     const seconds = Number(response.headers()["retry-after"] || 10);
-    await delay((Math.min(seconds, 10) + 0.1) * 1000);
+    await delay((Math.min(seconds, 30) + 0.2) * 1000);
     response = await client.post("/api/auth/sign-up/email", { headers, data });
   }
   expect(response.status()).toBe(200);

@@ -1,9 +1,10 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
+import { failureOrigin } from "./support/session";
 
 // This app instance has OpenRouter configured to an address that refuses
 // connections, so every model call fails for real.
 
-const origin = "http://localhost:3102";
+const origin = failureOrigin;
 const headers = { Origin: origin };
 let client: APIRequestContext;
 

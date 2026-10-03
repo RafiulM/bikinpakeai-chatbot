@@ -1,8 +1,27 @@
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { readdirSync } from "node:fs";
+import { createServer } from "node:net";
 import { resolve } from "node:path";
 import { root } from "./lib.mjs";
+
+/** True when nothing listens on the port (any interface). */
+function portFree(port) {
+  return new Promise((accept) => {
+    const server = createServer();
+    server.unref();
+    server.once("error", () => accept(false));
+    server.listen({ port }, () => server.close(() => accept(true)));
+  });
+}
+
+/** 3101/3102 when free, else the next free pair, so other apps keep theirs. */
+async function e2ePort() {
+  if (process.env.E2E_PORT) return Number(process.env.E2E_PORT);
+  for (let port = 3101; port < 3200; port += 2)
+    if ((await portFree(port)) && (await portFree(port + 1))) return port;
+  throw new Error("No free port pair between 3101 and 3200 for the e2e apps.");
+}
 
 const mode = process.argv[2];
 if (!["unit", "e2e"].includes(mode))
@@ -68,6 +87,7 @@ try {
   if (!port)
     throw new Error("Could not determine the isolated PostgreSQL port.");
   const url = `postgresql://starter_test:${password}@127.0.0.1:${port}/starter_test`;
+  const appPort = mode === "e2e" ? await e2ePort() : 3101;
   const testEnv = {
     ...env,
     DATABASE_URL: url,
@@ -75,7 +95,8 @@ try {
     STARTER_TEST_DATABASE_URL: url,
     STARTER_TEST_RUN: project,
     BETTER_AUTH_SECRET: randomBytes(32).toString("hex"),
-    BETTER_AUTH_URL: "http://localhost:3101",
+    BETTER_AUTH_URL: `http://localhost:${appPort}`,
+    E2E_PORT: String(appPort),
   };
   await run(process.execPath, ["scripts/migrate.mjs"], testEnv);
   if (mode === "unit") {

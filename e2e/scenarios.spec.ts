@@ -1,12 +1,18 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { testDb } from "./support/db";
-import { cookieHeader, headers, readEvents, signUp } from "./support/session";
+import {
+  cookieHeader,
+  headers,
+  origin,
+  readEvents,
+  signUp,
+} from "./support/session";
 
 let client: APIRequestContext;
 
 test.beforeAll(async ({ playwright }) => {
   client = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
+    baseURL: origin,
   });
   await signUp(client, "scenarios");
 });
@@ -98,7 +104,7 @@ test("running a scenario sends it through the full pipeline", async ({
   ).toBe(422);
 
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
+    baseURL: origin,
   });
   try {
     await signUp(other, "scenarios-other");
@@ -120,7 +126,7 @@ test("a batch runs scenarios in order and reports progress live", async () => {
     await client.post("/api/conversations", { headers, data: {} })
   ).json();
   const stream = readEvents(
-    `http://localhost:3101/api/conversations/${conversation.id}/events`,
+    `${origin}/api/conversations/${conversation.id}/events`,
     await cookieHeader(client),
     20,
     6000,

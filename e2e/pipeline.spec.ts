@@ -1,6 +1,12 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { testDb } from "./support/db";
-import { cookieHeader, headers, readEvents, signUp } from "./support/session";
+import {
+  cookieHeader,
+  headers,
+  origin,
+  readEvents,
+  signUp,
+} from "./support/session";
 
 // Runs against the local answer engine (no OpenRouter key in the test app).
 
@@ -8,7 +14,7 @@ let client: APIRequestContext;
 
 test.beforeAll(async ({ playwright }) => {
   client = await playwright.request.newContext({
-    baseURL: "http://localhost:3101",
+    baseURL: origin,
   });
   await signUp(client, "pipeline");
 });
@@ -122,7 +128,7 @@ test("live events report the reading, both answers and the comparison", async ()
     await client.post("/api/conversations", { headers, data: {} })
   ).json();
   const stream = readEvents(
-    `http://localhost:3101/api/conversations/${conversation.id}/events`,
+    `${origin}/api/conversations/${conversation.id}/events`,
     await cookieHeader(client),
     5,
   );

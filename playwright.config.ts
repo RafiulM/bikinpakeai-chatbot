@@ -6,6 +6,11 @@ if (!testUrl || !process.env.STARTER_TEST_RUN?.startsWith("starter-pg-test-")) {
     "Use npm run test:e2e so Playwright runs against its own disposable PostgreSQL server.",
   );
 }
+// npm run test:e2e chooses the ports (3101/3102 unless another app holds them).
+const port = Number(process.env.E2E_PORT || 3101);
+const origin = `http://localhost:${port}`;
+const failureOrigin = `http://localhost:${port + 1}`;
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -13,18 +18,18 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 1,
   reporter: "list",
-  use: { baseURL: "http://localhost:3101", trace: "retain-on-failure" },
+  use: { baseURL: origin, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
       command: "npm run start",
-      url: "http://localhost:3101",
+      url: origin,
       reuseExistingServer: false,
       timeout: 60_000,
       env: {
         NODE_ENV: "production",
-        PORT: "3101",
-        BETTER_AUTH_URL: "http://localhost:3101",
+        PORT: String(port),
+        BETTER_AUTH_URL: origin,
         DATABASE_URL: testUrl,
         MIGRATION_DATABASE_URL: testUrl,
         // Local answer engine: deterministic, no network, no API key.
@@ -36,13 +41,13 @@ export default defineConfig({
       // Same app with OpenRouter configured but unreachable, to prove the
       // pipeline survives a failed Jev reading (e2e/pipeline-failure.spec.ts).
       command: "npm run start",
-      url: "http://localhost:3102",
+      url: failureOrigin,
       reuseExistingServer: false,
       timeout: 60_000,
       env: {
         NODE_ENV: "production",
-        PORT: "3102",
-        BETTER_AUTH_URL: "http://localhost:3102",
+        PORT: String(port + 1),
+        BETTER_AUTH_URL: failureOrigin,
         DATABASE_URL: testUrl,
         MIGRATION_DATABASE_URL: testUrl,
         OPENROUTER_API_KEY: "test-key-for-unreachable-endpoint",

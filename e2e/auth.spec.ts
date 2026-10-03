@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { origin } from "./support/session";
 
 test("anonymous visitors cannot access the protected app", async ({
   page,
@@ -80,7 +81,7 @@ test("auth rejects cross-origin requests and invalid signup data", async ({
   });
   expect(crossOrigin.status()).toBe(403);
   const invalid = await request.post("/api/auth/sign-up/email", {
-    headers: { Origin: "http://localhost:3101" },
+    headers: { Origin: origin },
     data: { name: "Test", email: "not-an-email", password: "short" },
   });
   expect(invalid.status()).toBeGreaterThanOrEqual(400);
