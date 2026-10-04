@@ -24,7 +24,9 @@ const schema = z.object({
   }, "Set DATABASE_URL to a PostgreSQL connection string or run npm run setup."),
   BETTER_AUTH_SECRET: z
     .string()
-    .min(32, "Run npm run setup to generate a secret."),
+    .min(32, "Run npm run setup to generate a secret.")
+    // Generated secrets have no spaces; a sentence here is a placeholder.
+    .regex(/^\S+$/, "Replace BETTER_AUTH_SECRET with a generated secret."),
   BETTER_AUTH_URL: z
     .url()
     .refine((value) => {

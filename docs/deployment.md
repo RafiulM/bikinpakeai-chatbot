@@ -54,7 +54,7 @@ $DC run --rm migrate && $DC up -d --no-deps app
 
 A plain `$DC up -d --build` also works, but when the image changed Compose stops the old app before `migrate` finishes; if the migration then fails, the app stays down until you fix it. Write migrations that the previous release can still run against, since it keeps serving while they apply.
 
-The app publishes on `127.0.0.1:3000` by default (`APP_BIND`, `APP_PORT`). Put a TLS reverse proxy such as Caddy, nginx, or Traefik in front and set `BETTER_AUTH_URL` to the public `https://` origin. Docker-published ports bypass host firewalls like ufw, so only set `APP_BIND=0.0.0.0` when the container must be reachable directly. On Coolify, assign the domain to the `app` service on port `3000` and enter the variables in its UI; Coolify reads the `${...}` references in the compose file.
+The app publishes on `127.0.0.1:3000` by default (`APP_BIND`, `APP_PORT`). Put a TLS reverse proxy such as Caddy, nginx, or Traefik in front and set `BETTER_AUTH_URL` to the public `https://` origin. Docker-published ports bypass host firewalls like ufw, so only set `APP_BIND=0.0.0.0` when the container must be reachable directly. On Coolify, use the Docker Compose build pack with `/compose.prod.yaml`, assign the domain to the `app` service on port `3000`, and enter the variables in its UI. Coolify reads the `${...}` references and blocks deployment while a `${VAR:?}` value is empty. Keep required references bare: Coolify uses any text after `:?` as the initial value.
 
 Promote the first admin after signing up through the app. The migrator image carries the role script:
 

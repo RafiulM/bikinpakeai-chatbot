@@ -7,6 +7,10 @@
 #
 # Each `up` rebuilds, runs `migrate` to completion, then (re)starts `app`.
 # See docs/deployment.md.
+#
+# Required values use a bare `${VAR:?}`. Coolify treats the text after `:?` as
+# the variable's initial value, so a message there would become the value,
+# including a 50-character "secret" that passes validation.
 
 services:
   migrate:
@@ -15,7 +19,8 @@ services:
       target: migrator
     image: bikinpakeai-chatbot-migrate
     environment:
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to the external PostgreSQL connection string}
+      # Required: the external PostgreSQL connection string.
+      DATABASE_URL: ${DATABASE_URL:?}
       # Optional direct (non-pooled) connection for migrations.
       MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:-}
     restart: "no"
@@ -29,10 +34,11 @@ services:
       migrate:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to the external PostgreSQL connection string}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET to at least 32 random characters}
-      # The public origin browsers open, e.g. https://lab.example.com
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?Set BETTER_AUTH_URL to the public origin of the app}
+      DATABASE_URL: ${DATABASE_URL:?}
+      # Required: at least 32 random characters, e.g. `openssl rand -hex 32`.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
+      # Required: the public origin browsers open, e.g. https://lab.example.com
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?}
       # Optional client-IP settings for auth rate limiting behind proxies.
       IP_ADDRESS_HEADERS: ${IP_ADDRESS_HEADERS:-}
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
