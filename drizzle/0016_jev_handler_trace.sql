@@ -1,0 +1,1 @@
+ALTER TABLE "jev_analyses" ADD COLUMN "handler" jsonb;

@@ -1,9 +1,18 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/index.server";
-import { conversations, messages, responses } from "@/db/schema";
+import {
+  answerFailures,
+  conversations,
+  messages,
+  responses,
+} from "@/db/schema";
 import { pickWinner, summarize, turnDelta } from "@/lib/lab/compare";
 import { publishLabEvent } from "@/lib/lab/events.server";
-import type { BotResponse, ConversationTurn } from "@/lib/lab/types";
+import type {
+  AnswerFailure,
+  BotResponse,
+  ConversationTurn,
+} from "@/lib/lab/types";
 import {
   getConversation,
   toBotResponse,
@@ -126,6 +135,36 @@ export type NewResponse = Omit<
   typeof responses.$inferInsert,
   "id" | "createdAt"
 >;
+
+/**
+ * Records that one answer path produced no answer, then tells the
+ * conversation's live viewers so they stop waiting and can show why.
+ */
+export async function saveAnswerFailure(
+  messageId: string,
+  input: AnswerFailure,
+) {
+  const failure = { ...input, error: input.error.slice(0, 300) };
+  await db
+    .insert(answerFailures)
+    .values({ messageId, ...failure })
+    .onConflictDoUpdate({
+      target: [answerFailures.messageId, answerFailures.mode],
+      set: failure,
+    });
+  const [owner] = await db
+    .select({ conversationId: messages.conversationId })
+    .from(messages)
+    .where(eq(messages.id, messageId))
+    .limit(1);
+  if (owner)
+    publishLabEvent({
+      type: "answer_failed",
+      conversationId: owner.conversationId,
+      messageId,
+      failure,
+    });
+}
 
 /**
  * Stores one answer for a customer message. When this completes the pair,

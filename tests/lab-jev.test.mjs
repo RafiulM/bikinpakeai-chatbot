@@ -48,3 +48,56 @@ test("run metadata defaults missing counters to zero", () => {
     costUsd: 0,
   });
 });
+
+const trace = {
+  kind: "model",
+  template: null,
+  modelId: "deepseek/deepseek-v4.1-flash",
+  reasoningTokens: 0,
+  maxOutputTokens: 400,
+  temperature: 0.2,
+  policy: true,
+  docScope: "relevant",
+  docs: [
+    {
+      id: "membership-activation",
+      product: "Membership",
+      topic: "Aktivasi membership setelah bayar",
+    },
+  ],
+  history: 1,
+  maskedInput: false,
+  inputTokens: 812,
+  outputTokens: 96,
+  latencyMs: 1240,
+  costUsd: 0.0003,
+  fallback: null,
+};
+
+test("a reading without a handler trace stores null", () => {
+  assert.equal(jevAnalysisSchema.parse(valid).handler, null);
+});
+
+test("the handler trace keeps names and counts, never prompt text", () => {
+  const parsed = jevAnalysisSchema.parse({
+    ...valid,
+    handler: { ...trace, instructions: "Kamu asisten…", prompt: "pesan" },
+  });
+  assert.deepEqual(parsed.handler, trace);
+});
+
+test("a malformed handler trace is rejected", () => {
+  for (const handler of [
+    { ...trace, kind: "human" },
+    { ...trace, template: "custom" },
+    { ...trace, docScope: "some" },
+    { ...trace, inputTokens: -1 },
+    { ...trace, temperature: 3 },
+    { ...trace, docs: [{ id: "", product: "x", topic: "y" }] },
+  ]) {
+    assert.equal(
+      jevAnalysisSchema.safeParse({ ...valid, handler }).success,
+      false,
+    );
+  }
+});

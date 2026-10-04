@@ -1,17 +1,50 @@
-import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  countDistinct,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  max,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { db } from "@/db/index.server";
-import { conversations, jevAnalyses, messages, responses } from "@/db/schema";
+import {
+  answerFailures,
+  conversations,
+  jevAnalyses,
+  messages,
+  responses,
+  tickets,
+} from "@/db/schema";
 import { maskSensitive } from "@/lib/lab/mask";
+import {
+  addToTally,
+  CHURN_SIGNAL,
+  emptyTally,
+  FRUSTRATION_CUTOFF,
+  tallyJev,
+} from "@/lib/lab/session-overview";
 import { toJevAnalysis } from "./jev.service.server";
-import { ticketsForMessages } from "./tickets.service.server";
+import { likePattern, ticketsForMessages } from "./tickets.service.server";
 import { VIEW_IDS, type ViewId } from "@/lib/lab/types";
 import type {
   BotResponse,
+  ConversationListItem,
   ConversationTurn,
   LabConversation,
   LabMessage,
+  SessionOverview,
 } from "@/lib/lab/types";
+
+type AnswerFailures = NonNullable<ConversationTurn["answerFailures"]>;
 import type {
+  ConversationFilterInput,
   ListConversationsInput,
   UpdateConversationInput,
 } from "@/validators/conversations";
@@ -162,27 +195,182 @@ export async function addCustomerMessage(
   });
 }
 
-/** Most recent conversations first, with how many messages each holds. */
+// Jev's readings grouped into distinct combinations, so the database returns
+// one row per combination instead of one per message. The cut-offs are our
+// own constants, inlined so the same expression can appear in GROUP BY.
+const emotionLevel = sql<string | null>`case
+  when ${jevAnalyses.frustrationScore} >= ${sql.raw(String(FRUSTRATION_CUTOFF.tinggi))} then 'tinggi'
+  when ${jevAnalyses.frustrationScore} >= ${sql.raw(String(FRUSTRATION_CUTOFF.sedang))} then 'sedang'
+  when ${jevAnalyses.frustrationScore} is not null then 'rendah'
+end`;
+const highChurn = sql<boolean>`coalesce(${jevAnalyses.churnRisk} >= ${sql.raw(String(CHURN_SIGNAL))}, false)`;
+const refundAsked = sql<boolean>`${jevAnalyses.labels} @> '[{"label":"Minta refund","value":"Ya"}]'::jsonb`;
+const jevFields = {
+  issueType: jevAnalyses.issueType,
+  urgency: jevAnalyses.urgency,
+  product: jevAnalyses.product,
+  emotion: emotionLevel,
+  decision: jevAnalyses.decision,
+  sensitiveData: jevAnalyses.sensitiveData,
+  injection: jevAnalyses.injectionDetected,
+  churnRisk: highChurn,
+  refund: refundAsked,
+  count: count(),
+};
+const jevGroupBy = [
+  jevAnalyses.issueType,
+  jevAnalyses.urgency,
+  jevAnalyses.product,
+  emotionLevel,
+  jevAnalyses.decision,
+  jevAnalyses.sensitiveData,
+  jevAnalyses.injectionDetected,
+  highChurn,
+  refundAsked,
+];
+
+/**
+ * Per conversation: how Jev read its messages, how many failed to be read or
+ * answered, and how many tickets they opened.
+ */
+async function conversationStats(conversationIds: string[]) {
+  const stats = new Map<
+    string,
+    Pick<ConversationListItem, "jev" | "failures" | "tickets">
+  >(
+    conversationIds.map((id) => [
+      id,
+      { jev: emptyTally(), failures: 0, tickets: 0 },
+    ]),
+  );
+  if (conversationIds.length === 0) return stats;
+  const [readings, failures, ticketCounts] = await Promise.all([
+    db
+      .select({ conversationId: messages.conversationId, ...jevFields })
+      .from(jevAnalyses)
+      .innerJoin(messages, eq(messages.id, jevAnalyses.messageId))
+      .where(
+        and(
+          inArray(messages.conversationId, conversationIds),
+          eq(jevAnalyses.status, "done"),
+        ),
+      )
+      .groupBy(messages.conversationId, ...jevGroupBy),
+    db
+      .select({
+        conversationId: messages.conversationId,
+        count: countDistinct(messages.id),
+      })
+      .from(messages)
+      .leftJoin(jevAnalyses, eq(jevAnalyses.messageId, messages.id))
+      .leftJoin(answerFailures, eq(answerFailures.messageId, messages.id))
+      .where(
+        and(
+          inArray(messages.conversationId, conversationIds),
+          or(eq(jevAnalyses.status, "failed"), isNotNull(answerFailures.id)),
+        ),
+      )
+      .groupBy(messages.conversationId),
+    db
+      .select({ conversationId: tickets.conversationId, count: count() })
+      .from(tickets)
+      .where(inArray(tickets.conversationId, conversationIds))
+      .groupBy(tickets.conversationId),
+  ]);
+  for (const row of readings) {
+    const entry = stats.get(row.conversationId);
+    if (entry) addToTally(entry.jev, [row]);
+  }
+  for (const row of failures) {
+    const entry = stats.get(row.conversationId);
+    if (entry) entry.failures = row.count;
+  }
+  for (const row of ticketCounts) {
+    const entry = stats.get(row.conversationId);
+    if (entry) entry.tickets = row.count;
+  }
+  return stats;
+}
+
+/** The caller's conversations matching a status and a code/title search. */
+function conversationFilter(
+  userId: string,
+  { q, status }: ConversationFilterInput,
+): SQL | undefined {
+  return and(
+    eq(conversations.userId, userId),
+    status === "all" ? undefined : eq(conversations.status, status),
+    q
+      ? or(
+          ilike(conversations.title, likePattern(q)),
+          ilike(sql`'#A-' || ${conversations.number}`, likePattern(q)),
+        )
+      : undefined,
+  );
+}
+
+/**
+ * The caller's saved conversations, most recent first, optionally filtered by
+ * status and searched by code or title. Each item carries enough of Jev's
+ * results to pick which one to review in Debug.
+ */
 export async function listConversations(
   userId: string,
-  { limit, offset }: ListConversationsInput,
-) {
+  { limit, offset, q, status }: ListConversationsInput,
+): Promise<{
+  data: ConversationListItem[];
+  meta: { limit: number; offset: number; hasMore: boolean };
+}> {
   const rows = await db
-    .select({ ...conversationFields, messageCount: count(messages.id) })
+    .select({
+      ...conversationFields,
+      messageCount: count(messages.id),
+      lastMessageAt: max(messages.createdAt),
+    })
     .from(conversations)
     .leftJoin(messages, eq(messages.conversationId, conversations.id))
-    .where(eq(conversations.userId, userId))
+    .where(conversationFilter(userId, { q, status }))
     .groupBy(conversations.id)
     .orderBy(desc(conversations.createdAt), desc(conversations.id))
     .limit(limit + 1)
     .offset(offset);
+  const page = rows.slice(0, limit);
+  const stats = await conversationStats(page.map((row) => row.id));
   return {
-    data: rows.slice(0, limit).map((row) => ({
+    data: page.map((row) => ({
       ...toConversationSummary(row),
       messageCount: row.messageCount,
+      lastMessageAt: row.lastMessageAt?.toISOString() ?? null,
+      jev: emptyTally(),
+      failures: 0,
+      tickets: 0,
+      ...stats.get(row.id),
     })),
     meta: { limit, offset, hasMore: rows.length > limit },
   };
+}
+
+/**
+ * How Jev read every message in the caller's conversations matching the same
+ * filter as the session list: intents, emotions, urgency, products,
+ * decisions, and risk signals, counted per message.
+ */
+export async function conversationOverview(
+  userId: string,
+  filter: ConversationFilterInput,
+): Promise<SessionOverview> {
+  const where = conversationFilter(userId, filter);
+  const [[sessions], readings] = await Promise.all([
+    db.select({ count: count() }).from(conversations).where(where),
+    db
+      .select(jevFields)
+      .from(jevAnalyses)
+      .innerJoin(messages, eq(messages.id, jevAnalyses.messageId))
+      .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+      .where(and(where, eq(jevAnalyses.status, "done")))
+      .groupBy(...jevGroupBy),
+  ]);
+  return { sessions: sessions?.count ?? 0, ...tallyJev(readings) };
 }
 
 /**
@@ -198,6 +386,10 @@ export function toBotResponse(row: typeof responses.$inferSelect): BotResponse {
     latencyMs: row.latencyMs,
     costUsd: Number(row.costUsd),
     isVerified: row.isVerified,
+    modelId: row.modelId,
+    inputTokens: row.inputTokens,
+    outputTokens: row.outputTokens,
+    docCount: row.docCount,
     review: {
       verdict: row.verdict as BotResponse["review"]["verdict"],
       verdictLabel: row.verdictLabel,
@@ -217,7 +409,21 @@ export function buildTurns(
   answers: (typeof responses.$inferSelect)[] = [],
   readings: (typeof jevAnalyses.$inferSelect)[] = [],
   ticketRows: Awaited<ReturnType<typeof ticketsForMessages>> = [],
+  failureRows: (typeof answerFailures.$inferSelect)[] = [],
 ): ConversationTurn[] {
+  const failuresByMessage = new Map<string, AnswerFailures>();
+  for (const row of failureRows) {
+    const mode = row.mode === "with_jev" ? "with_jev" : "without_jev";
+    failuresByMessage.set(row.messageId, {
+      ...failuresByMessage.get(row.messageId),
+      [mode]: {
+        mode,
+        error: row.error,
+        modelId: row.modelId,
+        latencyMs: row.latencyMs,
+      },
+    });
+  }
   const ticketByMessage = new Map(
     ticketRows.map((ticket) => [ticket.messageId, ticket]),
   );
@@ -247,6 +453,9 @@ export function buildTurns(
         }),
         withJev: jev ? toBotResponse(jev) : null,
         withoutJev: base ? toBotResponse(base) : null,
+        ...(failuresByMessage.has(message.id) && {
+          answerFailures: failuresByMessage.get(message.id),
+        }),
         ticketId: ticketByMessage.get(message.id)?.code ?? null,
         ...(ticketByMessage.get(message.id)?.replies.length && {
           agentReplies: ticketByMessage.get(message.id)?.replies,
@@ -293,7 +502,7 @@ export async function getConversation(
     .where(eq(messages.conversationId, conversationId))
     .orderBy(asc(messages.createdAt), asc(messages.id));
   const ids = rows.map((row) => row.id);
-  const [answers, readings, ticketRows] = ids.length
+  const [answers, readings, ticketRows, failureRows] = ids.length
     ? await Promise.all([
         db.select().from(responses).where(inArray(responses.messageId, ids)),
         db
@@ -301,11 +510,21 @@ export async function getConversation(
           .from(jevAnalyses)
           .where(inArray(jevAnalyses.messageId, ids)),
         ticketsForMessages(ids),
+        db
+          .select()
+          .from(answerFailures)
+          .where(inArray(answerFailures.messageId, ids)),
       ])
-    : [[], [], []];
+    : [[], [], [], []];
   return {
     ...toConversationSummary(conversation),
-    turns: buildTurns(rows.map(toLabMessage), answers, readings, ticketRows),
+    turns: buildTurns(
+      rows.map(toLabMessage),
+      answers,
+      readings,
+      ticketRows,
+      failureRows,
+    ),
   };
 }
 

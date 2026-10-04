@@ -61,19 +61,3 @@ export function AnalysisState({
     </p>
   );
 }
-
-/** Reminds viewers that the baseline path has no labels or routing at all. */
-export function WithoutJevNote({ turn }: { turn: ConversationTurn }) {
-  return (
-    <div className="grid gap-1 rounded-[10px] border border-dashed border-border-strong px-4 py-3 text-sm">
-      <p className="font-semibold">Tanpa Jev: tidak ada pembacaan</p>
-      <p className="text-muted-foreground">
-        Jalur pembanding mengirim pesan langsung ke satu model mumpuni — tanpa
-        label, tanpa aturan masking/blokir/eskalasi, dan tanpa verifikasi draf.
-        {turn.withoutJev
-          ? ` Jawabannya dinilai: ${turn.withoutJev.review.verdictLabel.toLowerCase()}.`
-          : " Jawabannya belum tersedia."}
-      </p>
-    </div>
-  );
-}

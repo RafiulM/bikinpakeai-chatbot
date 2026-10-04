@@ -4,14 +4,12 @@ import {
   redirect,
   retainSearchParams,
 } from "@tanstack/react-router";
-import {
-  LabConversationProvider,
-  useActiveConversationSummary,
-} from "@/components/lab/conversation-store";
-import { LabShell, SessionCard } from "@/components/lab/lab-shell";
-import { TicketProvider } from "@/components/lab/ticket-store";
+import { LabConversationProvider } from "@/components/lab/conversation-store";
+import { DisplaySettingsProvider } from "@/components/lab/display-settings";
+import { LabShell } from "@/components/lab/lab-shell";
 import { loadConversationFn } from "@/lib/lab/conversation.functions";
 import { labSearchSchema } from "@/lib/lab/search";
+import { loadDisplaySettingsFn } from "@/lib/lab/settings.functions";
 
 // Pathless layout for signed-in screens. The check runs on the server during
 // SSR and again on client navigation. It protects pages only: API routes and
@@ -24,11 +22,15 @@ export const Route = createFileRoute("/_protected")({
     if (!context.session) throw redirect({ to: "/sign-in" });
     return { session: context.session };
   },
-  // The conversation to open, rendered on the server. Later switches are
-  // handled by the conversation store, so the loader runs only once.
+  // The conversation to open and the display settings, rendered on the
+  // server. Later changes are handled by the conversation store and the
+  // display settings provider, so the loader runs only once.
   loader: async ({ location }) => {
     const c = (location.search as { c?: string }).c;
-    const result = await loadConversationFn({ data: { id: c } });
+    const [result, display] = await Promise.all([
+      loadConversationFn({ data: { id: c } }),
+      loadDisplaySettingsFn(),
+    ]);
     // Put the opened conversation in the address before rendering, so the
     // server HTML already has the ?c= every link carries; adding it later in
     // the browser made links render differently during hydration.
@@ -41,7 +43,7 @@ export const Route = createFileRoute("/_protected")({
         replace: true,
       });
     }
-    return result;
+    return { ...result, display };
   },
   shouldReload: false,
   component: ProtectedLayout,
@@ -49,26 +51,14 @@ export const Route = createFileRoute("/_protected")({
 
 function ProtectedLayout() {
   const { user } = Route.useRouteContext().session;
-  const { conversation } = Route.useLoaderData();
+  const { conversation, display } = Route.useLoaderData();
   return (
-    <LabConversationProvider initial={conversation}>
-      <TicketProvider>
-        <LabShell userEmail={user.email} session={<ActiveSessionCard />}>
+    <DisplaySettingsProvider initial={display}>
+      <LabConversationProvider initial={conversation}>
+        <LabShell userEmail={user.email}>
           <Outlet />
         </LabShell>
-      </TicketProvider>
-    </LabConversationProvider>
-  );
-}
-
-function ActiveSessionCard() {
-  const summary = useActiveConversationSummary();
-  return (
-    <SessionCard
-      code={summary.code}
-      title={summary.title}
-      messageCount={summary.messageCount}
-      conversationId={summary.id}
-    />
+      </LabConversationProvider>
+    </DisplaySettingsProvider>
   );
 }

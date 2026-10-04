@@ -76,13 +76,10 @@ export function DemoDataCard({ source }: { source: OpenRouterKeySource }) {
             </p>
             <p className="flex flex-wrap gap-x-4 gap-y-1 font-semibold">
               <Link to="/compare" search={search} className="underline">
-                Buka Compare
+                Buka Chat
               </Link>
-              <Link to="/agent" search={search} className="underline">
-                Antrean Agent
-              </Link>
-              <Link to="/test-set" search={search} className="underline">
-                Pantau Uji Test Set
+              <Link to="/debug" search={search} className="underline">
+                Buka Debug
               </Link>
             </p>
           </div>

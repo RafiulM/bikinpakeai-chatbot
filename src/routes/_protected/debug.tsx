@@ -6,13 +6,16 @@ import {
   AnalysisPanel,
   PanelSection,
 } from "@/components/lab/debug/analysis-panel";
-import { WithoutJevNote } from "@/components/lab/debug/analysis-state";
+import { AnalysisState } from "@/components/lab/debug/analysis-state";
+import { BaselineDebug } from "@/components/lab/debug/baseline-debug";
 import { DecisionReason } from "@/components/lab/debug/decision-reason";
 import { LabelTable } from "@/components/lab/debug/label-table";
 import { MessageTabs } from "@/components/lab/debug/message-tabs";
-import { RouteChoice } from "@/components/lab/debug/route-choice";
+import { RouteMap } from "@/components/lab/debug/route-map";
 import { TimingBreakdown } from "@/components/lab/debug/timing-breakdown";
+import { SessionPicker } from "@/components/lab/sessions/session-picker";
 import { sortTurns } from "@/lib/lab/conversation";
+import type { ResponseMode } from "@/lib/lab/types";
 
 export const Route = createFileRoute("/_protected/debug")({
   head: () => ({ meta: [{ title: `Debug | ${siteConfig.name}` }] }),
@@ -29,38 +32,53 @@ function DebugPage() {
   const [selectedId, setSelectedId] = useState<string | undefined>(() =>
     hash.startsWith("turn-") ? hash.slice(5) : undefined,
   );
-  // Default to the latest message; keep the choice while it still exists.
-  const selectedIndex = Math.max(
-    0,
-    turns.findIndex((turn) => turn.message.id === selectedId),
+  // The chosen path stays while moving between messages.
+  const [path, setPath] = useState<ResponseMode>("with_jev");
+  // Default to the latest message; keep the choice while it still exists
+  // (switching to another session falls back to its latest message).
+  const selectedIndex = turns.findIndex(
+    (turn) => turn.message.id === selectedId,
   );
   const selected = turns.length
-    ? turns[selectedId ? selectedIndex : turns.length - 1]
+    ? turns[selectedIndex === -1 ? turns.length - 1 : selectedIndex]
     : undefined;
 
   return (
-    <div className="grid max-w-[1200px] gap-6">
+    <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-[22px] leading-tight font-medium tracking-tight">
             Debug
           </h1>
           <p className="text-sm text-muted-foreground">
-            Percakapan {conversation.code} · cara Jev membaca tiap pesan
+            Cara Jev membaca tiap pesan
+            {conversation.turns.length > 0 && (
+              <>
+                {" "}
+                di sesi{" "}
+                <span className="font-medium text-foreground">
+                  {conversation.title}
+                </span>
+              </>
+            )}
           </p>
         </div>
-        <Link
-          to="/compare"
-          className="text-sm font-semibold underline underline-offset-3 rekam:hidden"
-        >
-          Lihat dua jawabannya di Compare
-        </Link>
+        <div className="flex max-w-full flex-wrap items-center gap-4 rekam:hidden">
+          <SessionPicker conversation={conversation} />
+          <Link
+            to="/compare"
+            hash={selected ? `turn-${selected.message.id}` : undefined}
+            className="text-sm font-semibold underline underline-offset-3"
+          >
+            Lihat di Chat
+          </Link>
+        </div>
       </div>
 
       {!selected ? (
         <p className="rounded-[20px] border border-dashed p-6 text-center text-muted-foreground">
-          Belum ada pesan. Kirim pertanyaan di tampilan Customer untuk melihat
-          hasil pembacaan Jev di sini.
+          Belum ada pesan di sesi ini. Kirim pertanyaan di Chat, atau pilih sesi
+          tersimpan lain untuk direview.
         </p>
       ) : (
         <div className="grid items-start gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
@@ -68,14 +86,12 @@ function DebugPage() {
             aria-labelledby="debug-list-title"
             className="grid gap-3 rounded-[20px] border bg-card p-4"
           >
-            <div className="grid gap-0.5 px-1">
-              <h2 id="debug-list-title" className="text-[17px] font-semibold">
-                Pesan pelanggan
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Pilih pesan untuk melihat cara Jev membacanya.
-              </p>
-            </div>
+            <h2
+              id="debug-list-title"
+              className="px-1 text-[17px] font-semibold"
+            >
+              Pesan pelanggan
+            </h2>
             <MessageTabs
               turns={turns}
               selectedId={selected.message.id}
@@ -87,26 +103,29 @@ function DebugPage() {
             turn={selected}
             index={turns.indexOf(selected)}
             panelId={PANEL_ID}
+            path={path}
+            onPathChange={setPath}
           >
-            {selected.analysis && (
+            {path === "without_jev" ? (
+              <BaselineDebug turn={selected} />
+            ) : !selected.analysis ? (
+              <AnalysisState turn={selected} />
+            ) : (
               <>
+                <PanelSection title="Rute penanganan">
+                  <RouteMap turn={selected} analysis={selected.analysis} />
+                </PanelSection>
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
                   <PanelSection title="Label & skor keyakinan">
                     <LabelTable analysis={selected.analysis} />
                   </PanelSection>
-                  <div className="grid content-start gap-6">
-                    <PanelSection title="Rute penanganan">
-                      <RouteChoice analysis={selected.analysis} />
-                    </PanelSection>
-                    <PanelSection title="Alasan keputusan">
-                      <DecisionReason analysis={selected.analysis} />
-                    </PanelSection>
-                  </div>
+                  <PanelSection title="Alasan keputusan">
+                    <DecisionReason analysis={selected.analysis} />
+                  </PanelSection>
                 </div>
                 <PanelSection title="Waktu proses & biaya">
                   <TimingBreakdown turn={selected} />
                 </PanelSection>
-                <WithoutJevNote turn={selected} />
               </>
             )}
           </AnalysisPanel>

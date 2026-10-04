@@ -35,6 +35,14 @@ export function toJevAnalysis(row: AnalysisRow): JevAnalysis | null {
     routeReason: row.routeReason ?? "",
     rules: row.rules,
     steps: row.steps,
+    reader: {
+      modelId: row.modelId,
+      inputTokens: row.inputTokens,
+      outputTokens: row.outputTokens,
+      latencyMs: row.latencyMs,
+      costUsd: row.costUsd,
+    },
+    handler: row.handler ?? null,
   };
 }
 
@@ -99,6 +107,7 @@ export async function saveJevFailure(
     labels: [],
     rules: [],
     steps: [],
+    handler: null,
     ...run,
   };
   await db

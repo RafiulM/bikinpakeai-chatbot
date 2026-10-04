@@ -1,16 +1,12 @@
-import type { ParsedCase } from "./test-set-file";
 import type {
   AiSettings,
+  ConversationListItem,
   ConversationTurn,
   DemoSeedResult,
+  DisplaySettings,
   OpenRouterKeyCheck,
   LabConversation,
-  SupportTicket,
-  TestRunReport,
-  TestRunState,
-  TestRunStatus,
-  TestSetSummary,
-  TicketStatus,
+  SessionOverview,
   ViewId,
 } from "./types";
 
@@ -60,6 +56,44 @@ export const labApi = {
     return { ...data, turns: [] } satisfies LabConversation;
   },
 
+  /** Saved conversations, newest first (session history). */
+  async listConversations(params: {
+    limit?: number;
+    offset?: number;
+    q?: string;
+    status?: "all" | "active" | "ended";
+  }) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params))
+      if (value !== undefined && value !== "") query.set(key, String(value));
+    return request<{
+      data: ConversationListItem[];
+      meta: { limit: number; offset: number; hasMore: boolean };
+    }>(`/api/conversations?${query}`);
+  },
+
+  /** Jev's readings across the conversations matching the same filter. */
+  async sessionOverview(params: {
+    q?: string;
+    status?: "all" | "active" | "ended";
+  }) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params))
+      if (value !== undefined && value !== "") query.set(key, String(value));
+    const { data } = await request<{ data: SessionOverview }>(
+      `/api/conversations/overview?${query}`,
+    );
+    return data;
+  },
+
+  /** The newest active conversation, or null when there is none. */
+  async currentConversation() {
+    const { data } = await request<{ data: LabConversation | null }>(
+      "/api/conversations/current",
+    );
+    return data;
+  },
+
   async getConversation(id: string) {
     const { data } = await request<{ data: LabConversation }>(
       `/api/conversations/${id}`,
@@ -75,125 +109,11 @@ export const labApi = {
     return data.turn;
   },
 
-  async runScenario(scenarioId: string, conversationId: string) {
-    const { data } = await request<{ data: { turn: ConversationTurn } }>(
-      `/api/scenarios/${scenarioId}/run`,
-      { method: "POST", body: json({ conversationId }) },
-    );
-    return data.turn;
-  },
-
   async saveView(conversationId: string, activeView: ViewId) {
     await request(`/api/conversations/${conversationId}`, {
       method: "PATCH",
       body: json({ activeView }),
     });
-  },
-
-  async listTickets() {
-    return request<{
-      data: SupportTicket[];
-      meta: { counts: Record<TicketStatus, number>; total: number };
-    }>("/api/tickets?filter=all&limit=200");
-  },
-
-  async setTicketStatus(id: string, status: TicketStatus) {
-    const { data } = await request<{ data: SupportTicket }>(
-      `/api/tickets/${id}`,
-      {
-        method: "PATCH",
-        body: json({ status }),
-      },
-    );
-    return data;
-  },
-
-  async replyTicket(id: string, content: string, close: boolean) {
-    const { data } = await request<{ data: SupportTicket }>(
-      `/api/tickets/${id}/replies`,
-      { method: "POST", body: json({ content, close }) },
-    );
-    return data;
-  },
-
-  async listTestSets() {
-    const { data } = await request<{ data: TestSetSummary[] }>(
-      "/api/test-sets",
-    );
-    return data;
-  },
-
-  async createTestSet(name: string, cases: ParsedCase[]) {
-    const { data } = await request<{ data: TestSetSummary }>("/api/test-sets", {
-      method: "POST",
-      body: json({ name, cases }),
-    });
-    return data;
-  },
-
-  async listTestRuns(status?: TestRunStatus, limit = 1) {
-    const query = new URLSearchParams({ limit: String(limit) });
-    if (status) query.set("status", status);
-    const { data } = await request<{ data: TestRunState[] }>(
-      `/api/test-runs?${query}`,
-    );
-    return data;
-  },
-
-  /** Starts a run; when one is already going, returns that run instead. */
-  async startTestRun(testSetId: string) {
-    try {
-      const { data } = await request<{ data: TestRunState }>("/api/test-runs", {
-        method: "POST",
-        body: json({ testSetId }),
-      });
-      return data;
-    } catch (error) {
-      if (error instanceof LabApiError && error.code === "RUN_IN_PROGRESS") {
-        const [running] = await labApi.listTestRuns("running");
-        if (running) return running;
-      }
-      throw error;
-    }
-  },
-
-  async cancelTestRun(id: string) {
-    const { data } = await request<{ data: TestRunState }>(
-      `/api/test-runs/${id}/cancel`,
-      { method: "POST", body: json({}) },
-    );
-    return data;
-  },
-
-  async getTestRunReport(id: string) {
-    const { data } = await request<{ data: TestRunReport }>(
-      `/api/test-runs/${id}/report`,
-    );
-    return data;
-  },
-
-  /** Downloads a summary file built on the server from stored results. */
-  async exportSummary(params: {
-    conversationId?: string;
-    testRunId?: string;
-    format: "markdown" | "json";
-  }) {
-    const query = new URLSearchParams({ format: params.format });
-    if (params.conversationId)
-      query.set("conversationId", params.conversationId);
-    if (params.testRunId) query.set("testRun", params.testRunId);
-    const response = await fetch(`/api/exports/summary?${query}`);
-    if (!response.ok)
-      throw new LabApiError(
-        response.status,
-        "EXPORT_FAILED",
-        "Ringkasan gagal dibuat. Coba lagi.",
-      );
-    const disposition = response.headers.get("content-disposition") ?? "";
-    return {
-      blob: await response.blob(),
-      fileName: /filename="([^"]+)"/.exec(disposition)?.[1] ?? "ringkasan.md",
-    };
   },
 
   async getAiSettings() {
@@ -221,6 +141,14 @@ export const labApi = {
     const { data } = await request<{ data: OpenRouterKeyCheck }>(
       "/api/settings/openrouter-key/check",
       { method: "POST", body: json({}) },
+    );
+    return data;
+  },
+
+  async saveDisplaySettings(settings: DisplaySettings) {
+    const { data } = await request<{ data: DisplaySettings }>(
+      "/api/settings/display",
+      { method: "PUT", body: json(settings) },
     );
     return data;
   },

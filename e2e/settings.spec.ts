@@ -133,3 +133,48 @@ test("demo data fills the account through the real pipeline", async ({
   }
   expect(runs.map((run) => run.status)).toEqual(["done", "done", "done"]);
 });
+
+test("display settings start in demo mode and are saved per account", async ({
+  request,
+}) => {
+  const url = "/api/settings/display";
+  expect((await request.get(url)).status()).toBe(401);
+  expect((await (await owner.get(url)).json()).data).toEqual({
+    demoMode: true,
+    chatbot: "with_jev",
+  });
+
+  const off = { demoMode: false, chatbot: "without_jev" };
+  expect((await request.put(url, { headers, data: off })).status()).toBe(401);
+  expect(
+    (
+      await owner.put(url, {
+        headers: { Origin: "https://evil.example" },
+        data: off,
+      })
+    ).status(),
+  ).toBe(403);
+  for (const data of [
+    { demoMode: false },
+    { demoMode: "no", chatbot: "with_jev" },
+    { demoMode: false, chatbot: "both" },
+    { ...off, userId: "someone" },
+  ])
+    expect((await owner.put(url, { headers, data })).status()).toBe(422);
+
+  const saved = await owner.put(url, { headers, data: off });
+  expect(saved.status()).toBe(200);
+  expect((await saved.json()).data).toEqual(off);
+  expect((await (await owner.get(url)).json()).data).toEqual(off);
+
+  // Settings are per account.
+  expect((await (await other.get(url)).json()).data).toEqual({
+    demoMode: true,
+    chatbot: "with_jev",
+  });
+
+  const back = { demoMode: true, chatbot: "without_jev" };
+  expect(
+    (await (await owner.put(url, { headers, data: back })).json()).data,
+  ).toEqual(back);
+});

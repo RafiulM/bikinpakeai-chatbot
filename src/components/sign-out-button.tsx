@@ -4,7 +4,14 @@ import { LogOut } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
-export function SignOutButton() {
+/** `compact` shows only the icon, for slim bars; the name stays "Sign out". */
+export function SignOutButton({
+  compact = false,
+  title,
+}: {
+  compact?: boolean;
+  title?: string;
+}) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
   const router = useRouter();
@@ -24,16 +31,35 @@ export function SignOutButton() {
     }
   }
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex shrink-0 flex-wrap items-center gap-2">
       {error && (
         <p role="alert" className="text-sm text-destructive">
           Couldn’t sign out. Try again.
         </p>
       )}
-      <Button onClick={signOut} disabled={pending} variant="outline" size="sm">
-        <LogOut aria-hidden="true" />
-        {pending ? "Signing out…" : "Sign out"}
-      </Button>
+      {compact ? (
+        <Button
+          onClick={signOut}
+          disabled={pending}
+          variant="ghost"
+          size="icon"
+          aria-label="Sign out"
+          title={title ?? "Sign out"}
+          className="text-muted-foreground"
+        >
+          <LogOut aria-hidden="true" />
+        </Button>
+      ) : (
+        <Button
+          onClick={signOut}
+          disabled={pending}
+          variant="outline"
+          size="sm"
+        >
+          <LogOut aria-hidden="true" />
+          {pending ? "Signing out…" : "Sign out"}
+        </Button>
+      )}
     </div>
   );
 }

@@ -87,10 +87,16 @@ test("each message keeps at most one answer per mode with valid metrics", async 
       "INSERT INTO messages (conversation_id, sender, content) VALUES ($1, 'customer', 'Halo') RETURNING id",
       [conversation.id],
     );
-    const insert = (mode, verdict = "correct", latency = 800, cost = 0.0004) =>
+    const insert = (
+      mode,
+      verdict = "correct",
+      latency = 800,
+      cost = 0.0004,
+      docs = null,
+    ) =>
       db.query(
-        `INSERT INTO responses (message_id, mode, content, latency_ms, cost_usd, verdict, verdict_label, issues, flags)
-         VALUES ($1, $2, 'Jawaban', $3, $4, $5, 'Label', $6, $7) RETURNING cost_usd, issues, flags`,
+        `INSERT INTO responses (message_id, mode, content, latency_ms, cost_usd, verdict, verdict_label, issues, flags, doc_count)
+         VALUES ($1, $2, 'Jawaban', $3, $4, $5, 'Label', $6, $7, $8) RETURNING cost_usd, issues, flags, doc_count`,
         [
           message.id,
           mode,
@@ -99,14 +105,19 @@ test("each message keeps at most one answer per mode with valid metrics", async 
           verdict,
           JSON.stringify(["Masalah"]),
           JSON.stringify(["security"]),
+          docs,
         ],
       );
     const {
       rows: [jev],
-    } = await insert("with_jev");
+    } = await insert("with_jev", "correct", 800, 0.0004, 3);
     assert.equal(Number(jev.cost_usd), 0.0004);
     assert.deepEqual(jev.issues, ["Masalah"]);
-    await insert("without_jev", "wrong", 2900, 0.0061);
+    assert.equal(jev.doc_count, 3);
+    const {
+      rows: [base],
+    } = await insert("without_jev", "wrong", 2900, 0.0061);
+    assert.equal(base.doc_count, null);
     await assert.rejects(insert("with_jev"), /responses_message_mode_idx/);
     await assert.rejects(insert("baseline"), /responses_mode_check/);
     await db.query("DELETE FROM responses WHERE message_id = $1", [message.id]);
@@ -117,6 +128,10 @@ test("each message keeps at most one answer per mode with valid metrics", async 
     await assert.rejects(
       insert("with_jev", "correct", -1),
       /responses_metrics_check/,
+    );
+    await assert.rejects(
+      insert("with_jev", "correct", 800, 0.0004, -1),
+      /responses_doc_count_check/,
     );
     await db.query("DELETE FROM messages WHERE id = $1", [message.id]);
   } finally {
@@ -408,6 +423,39 @@ test("test sets seed built-in cases and keep runs and results consistent", async
     assert.deepEqual(left.rows[0], { runs: 0, results: 0, sets: 1 });
   } finally {
     await db.query('DELETE FROM "user" WHERE id = $1', ["lab-tester"]);
+    await db.end();
+  }
+});
+
+test("display settings default to demo mode and allow only known chatbots", async () => {
+  const db = pool();
+  try {
+    await db.query('INSERT INTO "user" (id, name, email) VALUES ($1, $2, $3)', [
+      "lab-display",
+      "Lab Display",
+      "lab-display@example.com",
+    ]);
+    const saved = await db.query(
+      "INSERT INTO account_display_settings (user_id) VALUES ($1) RETURNING demo_mode, chatbot",
+      ["lab-display"],
+    );
+    assert.deepEqual(saved.rows[0], { demo_mode: true, chatbot: "with_jev" });
+    await assert.rejects(
+      db.query(
+        "UPDATE account_display_settings SET chatbot = 'both' WHERE user_id = $1",
+        ["lab-display"],
+      ),
+      /account_display_settings_chatbot_check/,
+    );
+
+    await db.query('DELETE FROM "user" WHERE id = $1', ["lab-display"]);
+    const left = await db.query(
+      "SELECT count(*)::int AS count FROM account_display_settings WHERE user_id = $1",
+      ["lab-display"],
+    );
+    assert.equal(left.rows[0].count, 0);
+  } finally {
+    await db.query('DELETE FROM "user" WHERE id = $1', ["lab-display"]);
     await db.end();
   }
 });

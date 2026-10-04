@@ -8,8 +8,8 @@ const HEARTBEAT_MS = 20_000;
 
 // Server-Sent Events for live cards: "ready" with the current totals on
 // connect, then "analysis" / "analysis_failed" when Jev finishes reading a
-// message, "answer" for each stored answer, and "comparison" when a pair is
-// complete. Event payloads follow LabStreamEvent in src/lib/lab/stream-events.
+// message, "answer" for each stored answer, "answer_failed" when a path could
+// not answer, and "comparison" when a pair is complete. Event payloads follow LabStreamEvent in src/lib/lab/stream-events.
 export const Route = createFileRoute("/api/conversations/$id/events")({
   server: {
     handlers: {

@@ -1,4 +1,4 @@
-import type { SupportTicket, TicketPriority } from "./types";
+import type { FrustrationLevel, SupportTicket, TicketPriority } from "./types";
 
 // Pure queue rules for the Agent view, shared by the UI and the API.
 
@@ -9,7 +9,7 @@ const PRIORITY_RANK: Record<TicketPriority, number> = {
   low: 3,
 };
 
-export type FrustrationLevel = "tinggi" | "sedang" | "rendah";
+export type { FrustrationLevel };
 
 export function frustrationLevel(score: number): FrustrationLevel {
   if (score >= 0.75) return "tinggi";

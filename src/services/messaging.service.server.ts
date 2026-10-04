@@ -1,6 +1,9 @@
 import type { ConversationTurn } from "@/lib/lab/types";
 import { withAccountAi } from "./ai-settings.service.server";
-import { addCustomerMessage } from "./conversations.service.server";
+import {
+  addCustomerMessage,
+  getConversation,
+} from "./conversations.service.server";
 import { answerMessage } from "./pipeline/orchestrator.server";
 import { createTicketForEscalation } from "./tickets.service.server";
 
@@ -36,6 +39,10 @@ export async function sendCustomerMessage(
     ticketId: null,
   };
   try {
+    // Earlier turns let Jev read a follow-up in context.
+    const history = (
+      await getConversation(userId, conversationId)
+    )?.turns.filter((earlier) => earlier.message.id !== stored.message.id);
     // The account's own OpenRouter key, if saved, answers both paths.
     const { jev } = await withAccountAi(userId, () =>
       answerMessage({
@@ -43,6 +50,7 @@ export async function sendCustomerMessage(
         rawText: content,
         maskedText: stored.message.content,
         masked: stored.message.isMasked,
+        history,
         onEscalate: ({ messageId, analysis, refundRequested }) =>
           createTicketForEscalation(messageId, analysis, refundRequested),
       }),

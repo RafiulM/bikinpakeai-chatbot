@@ -7,6 +7,40 @@ import { z } from "zod";
 const unit = z.number().min(0).max(1);
 const shortText = z.string().trim().min(1).max(200);
 
+const count = z.number().int().min(0);
+
+/** What the chosen handler was given; names and counts only, never text. */
+export const handlerTraceSchema = z.object({
+  kind: z.enum(["template", "model", "local"]),
+  template: z
+    .enum([
+      "blocked",
+      "masked",
+      "escalated",
+      "clarify",
+      "feature",
+      "safeFallback",
+    ])
+    .nullable(),
+  modelId: z.string().max(200).nullable(),
+  reasoningTokens: count.max(100_000),
+  maxOutputTokens: count.max(100_000).nullable(),
+  temperature: z.number().min(0).max(2).nullable(),
+  policy: z.boolean(),
+  docScope: z.enum(["relevant", "product", "all", "none"]),
+  // Room for the whole knowledge base, which "all" sends.
+  docs: z
+    .array(z.object({ id: shortText, product: shortText, topic: shortText }))
+    .max(200),
+  history: count.max(100),
+  maskedInput: z.boolean(),
+  inputTokens: count,
+  outputTokens: count,
+  latencyMs: count.max(600_000),
+  costUsd: z.number().min(0),
+  fallback: z.string().trim().min(1).max(300).nullable(),
+});
+
 export const jevAnalysisSchema = z.object({
   product: shortText,
   issueType: z.enum([
@@ -52,6 +86,7 @@ export const jevAnalysisSchema = z.object({
       }),
     )
     .max(10),
+  handler: handlerTraceSchema.nullable().default(null),
 });
 
 export const jevRunMetaSchema = z.object({
@@ -62,5 +97,5 @@ export const jevRunMetaSchema = z.object({
   costUsd: z.number().min(0).default(0),
 });
 
-export type JevAnalysisInput = z.infer<typeof jevAnalysisSchema>;
+export type JevAnalysisInput = z.input<typeof jevAnalysisSchema>;
 export type JevRunMeta = z.infer<typeof jevRunMetaSchema>;

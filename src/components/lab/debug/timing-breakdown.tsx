@@ -85,6 +85,24 @@ export function TimingBreakdown({ turn }: { turn: ConversationTurn }) {
               scope="row"
               className="py-1.5 text-left font-medium text-muted-foreground"
             >
+              Model penjawab
+            </th>
+            <td className="py-1.5 font-mono text-[13px] [overflow-wrap:anywhere]">
+              {turn.withJev
+                ? (turn.withJev.modelId ?? "Template, tanpa model")
+                : "—"}
+            </td>
+            <td className="py-1.5 font-mono text-[13px] [overflow-wrap:anywhere]">
+              {turn.withoutJev?.modelId ??
+                turn.answerFailures?.without_jev?.modelId ??
+                "—"}
+            </td>
+          </tr>
+          <tr>
+            <th
+              scope="row"
+              className="py-1.5 text-left font-medium text-muted-foreground"
+            >
               Biaya pesan
             </th>
             <td className="py-1.5 text-[17px] font-semibold">

@@ -1,0 +1,1128 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jev di Bikinpakeai</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fbf5f0;--fg:#1d1e1c;--card:#fff;--secondary:#f3ebe4;--muted:#6a696a;--border:rgb(29 30 28 / 10%);
+  --surface:#f8f5f1;--signal:#fa5d00;--signal-soft:rgb(250 93 0 / 10%);--signal-text:#c1490b;
+  --positive:#23a40c;--positive-text:#1b7a0a;--warning:#f18d2a;--warning-text:#a95d05;--danger:#cb5c5b;--danger-text:#9f3b3a;
+  --match:#84cc16;--mismatch:#dc2626;--ext-blue:#3ba6f1;--ext-ink:#0a558a;--ext-tint:#e8f4fb;
+  --sans:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --serif:"IBM Plex Serif",ui-serif,Georgia,"Times New Roman",serif;
+}
+html,body{height:100%;background:#e9e1d9;color:var(--fg);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+.deck{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden}
+.stage{position:relative;width:1280px;height:720px;flex:none;transform-origin:center center}
+.slide{position:absolute;inset:0;width:1280px;height:720px;overflow:hidden;display:none;background:var(--bg)}
+.slide.active{display:block}
+svg{width:1em;height:1em;flex:none}
+svg.mark{width:auto;height:1em}
+.abs{position:absolute;z-index:1}
+
+.top{position:absolute;left:64px;right:64px;top:30px;display:flex;justify-content:space-between;align-items:baseline}
+.brand b{font-size:18px;font-weight:600;letter-spacing:-.01em}
+.brand span{font-size:13px;color:var(--muted);margin-left:10px}
+.page{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.head{position:absolute;left:64px;right:64px;top:80px}
+.eyebrow,.label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.title{font-family:var(--serif);font-weight:400;font-size:46px;line-height:1.1;letter-spacing:-.01em;margin-top:8px}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px}
+.card.strong{border:2px solid var(--fg)}
+.tag{display:inline-flex;align-items:center;gap:6px;border:1px solid transparent;border-radius:999px;padding:3px 11px;font-size:13px;font-weight:600;white-space:nowrap}
+.tag svg{font-size:14px}
+.tag.neutral{background:var(--secondary)}
+.tag.dark{background:var(--fg);color:#fff}
+.tag.dang{border-color:rgb(203 92 91 / 35%);background:rgb(203 92 91 / 10%);color:var(--danger-text)}
+.bubble{font-size:17px;line-height:1.45;padding:12px 16px}
+.bubble.bot{background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 16px 6px}
+.bubble.customer{background:var(--fg);color:#fff;border-radius:16px 16px 6px 16px;font-size:18px}
+.meta{font-size:13px;color:var(--muted);margin-top:8px}
+.meta.right{text-align:right}
+.bar{display:block;width:90px;height:7px;border-radius:99px;background:var(--secondary);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:inherit;background:var(--fg)}
+.bar.flag i{background:var(--signal)}
+.jev-badge{display:inline-flex;align-items:center;gap:8px;font-weight:700;letter-spacing:-.01em}
+.jev-badge .mark{height:26px}
+.jev-badge b{font-size:22px}
+.jev-badge.lg .mark{height:40px}
+.jev-badge.lg b{font-size:30px}
+
+/* 1 */
+.row-llm,.row-jev{display:grid;grid-template-columns:150px 40px 1fr;align-items:center;padding:0 26px}
+.who{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.who b{font-size:24px}
+.who small{font-size:13px;color:var(--muted)}
+.node{display:grid;place-items:center;width:52px;height:52px;border-radius:14px;font-size:26px}
+.node.gray{background:var(--secondary)}
+.flow-arrow{color:var(--muted);font-size:24px;display:grid;place-items:center}
+.flow-arrow.signal{color:var(--signal)}
+.out .label{margin-bottom:10px}
+.typing{color:#4a4a48}
+.caret{display:inline-block;width:2px;height:18px;background:var(--fg);vertical-align:-3px;margin-left:2px}
+.typed{display:grid;gap:10px}
+.typed div{display:grid;grid-template-columns:104px 1fr 120px 44px;align-items:center;gap:12px;padding:9px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border)}
+.typed .kind{font-size:13px;color:var(--muted)}
+.typed b{font-size:18px}
+.typed b.hot{color:var(--signal-text)}
+.typed .bar{width:120px}
+.typed em{font-style:normal;font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
+.bench{padding:24px 26px;display:flex;flex-direction:column;gap:26px}
+.metric{display:grid;gap:12px}
+.m-name{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600}
+.hbar{display:grid;grid-template-columns:62px 1fr 86px;align-items:center;gap:10px;font-size:14px}
+.who-s{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:600}
+.who-s svg{font-size:15px}
+.track{height:18px;border-radius:99px;background:var(--secondary);overflow:hidden}
+.track i{display:block;height:100%;min-width:8px;border-radius:inherit;background:#9a9893}
+.track i.jev{background:var(--signal)}
+.hbar b{font-size:15px;text-align:right;font-variant-numeric:tabular-nums}
+.big-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:auto}
+.big-stats div{background:var(--signal-soft);border-radius:14px;padding:12px 16px}
+.big-stats b{display:block;font-family:var(--serif);font-weight:400;font-size:44px;line-height:1;color:var(--signal-text)}
+.big-stats span{font-size:14px;font-weight:600;color:var(--signal-text)}
+.source{font-size:12px;color:var(--muted)}
+
+/* 2 */
+.wires{position:absolute;inset:0;width:1280px;height:720px;z-index:0}
+.wires path{fill:none;stroke:#cfc6bd;stroke-width:2;stroke-dasharray:5 6}
+.wires path.hot{stroke:var(--signal);stroke-width:3;stroke-dasharray:none}
+.reader{padding:18px 22px;display:flex;flex-direction:column}
+.reader-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.lrow{display:grid;grid-template-columns:100px 92px minmax(0,1fr);align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border);font-size:15px}
+.lrow .bar{width:100%}
+.lk{color:var(--muted)}
+.lv{font-weight:600}
+.lv.flagged{color:var(--signal-text)}
+.reader .meta{margin-top:auto}
+.rules{display:flex;align-items:center;gap:8px;height:60px;padding:0 18px;border-radius:999px;background:var(--fg);color:#fff;font-size:17px}
+.rules svg{font-size:20px}
+.route{display:flex;align-items:center;gap:14px;width:306px;height:76px;padding:0 16px;border-radius:16px;background:var(--card);border:1px solid var(--border)}
+.route.active{border:2px solid var(--signal);box-shadow:0 6px 18px rgb(250 93 0 / 14%)}
+.route b{display:block;font-size:17px}
+.route small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.route{position:absolute}
+.route .tag{position:absolute;right:12px;top:-11px;font-size:11px;padding:2px 9px}
+.r-ico{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;font-size:20px;flex:none}
+.r-ico.dang,b.dang{color:var(--danger-text)}.r-ico.dang{background:rgb(203 92 91 / 12%)}
+.r-ico.warn,b.warn{color:var(--warning-text)}.r-ico.warn{background:rgb(241 141 42 / 14%)}
+.r-ico.pos,b.pos{color:var(--positive-text)}.r-ico.pos{background:rgb(35 164 12 / 12%)}
+
+/* 3 */
+.lane{border-radius:20px;padding:16px 22px}
+.lane.muted{background:var(--surface);border:1px solid var(--border)}
+.lane.strong{background:var(--card);border:2px solid var(--fg)}
+.lane-name{font-size:18px;font-weight:600;margin-bottom:10px}
+.pipe{display:flex;align-items:center;gap:8px}
+.chev{color:var(--muted);font-size:20px;display:grid;place-items:center}
+.pnode{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:120px;height:92px;border-radius:16px;background:var(--card);border:1px solid var(--border);text-align:center}
+.lane.muted .pnode{background:var(--card)}
+.lane.strong .pnode{background:var(--surface)}
+.pnode .p-ico{font-size:24px;line-height:0}
+.pnode .p-ico svg.mark{height:26px}
+.pnode b{font-size:15px}
+.pnode small{font-size:12px;color:var(--muted);line-height:1.2;padding:0 6px}
+.pnode.wide{width:230px}
+.pnode.gray{background:#e9e3dc!important}
+.lane.strong .pnode.jev{background:var(--signal-soft);border:2px solid var(--signal)}
+.pnode.jev b{color:var(--signal-text)}
+.risks{display:grid;gap:8px;margin-left:40px}
+.handlers{display:grid;gap:5px;width:190px}
+.handlers div{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:500}
+.handlers em{font-style:normal;font-weight:700;color:var(--positive-text);display:inline-flex}
+.strip{display:flex;align-items:center;gap:18px;padding:14px 22px}
+.metrics{display:flex;flex-wrap:wrap;gap:8px}
+.metrics span{border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:14px;font-weight:500;background:var(--bg)}
+
+/* 4: mock extension (warna asli class-shopper) */
+.ext{background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;box-shadow:0 10px 30px rgb(29 30 28 / 8%)}
+.ext-head{display:flex;align-items:center;gap:8px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--border)}
+.ext-head b{font-size:20px;margin-right:auto}
+.ext-head small{font-size:13px;font-weight:600}
+.switch{width:36px;height:20px;border-radius:99px;background:var(--ext-ink);position:relative}
+.switch i{position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff}
+.ext-label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin:4px 0 8px}
+.step{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--signal);color:#fff;font-size:12px;font-weight:700}
+.desire{border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:15px;margin-bottom:12px;line-height:1.6}
+.desire mark{background:var(--ext-tint);color:var(--ext-ink);border-radius:4px;padding:1px 2px}
+.criteria{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:auto}
+.criteria>div{display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--border)}
+.criteria>div:first-child{border-top:0}
+.cb{display:grid;place-items:center;width:18px;height:18px;border-radius:4px;background:var(--ext-ink);color:#fff;font-size:12px}
+.cv{display:flex;flex-direction:column;margin-right:auto}
+.cv small{font-size:11px;color:var(--muted)}
+.cv small em{font-style:normal;background:var(--secondary);border-radius:99px;padding:0 6px;margin-left:4px;color:var(--fg)}
+.cv b{font-size:14px}
+.lvl{font-size:11px;border:1px solid var(--border);border-radius:8px;padding:3px 8px}
+.ext-btn{display:flex;align-items:center;justify-content:center;gap:6px;height:42px;border-radius:12px;background:var(--ext-blue);color:#0c0a09;font-size:15px;font-weight:600;margin-top:14px}
+.ext-arrow{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--signal);font-size:26px}
+.ext-arrow .mark{height:28px;color:var(--fg)}
+.browser{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgb(29 30 28 / 8%)}
+.chrome{display:flex;align-items:center;gap:12px;height:40px;padding:0 14px;background:#f1ece6;border-bottom:1px solid var(--border)}
+.dots{display:flex;gap:6px}.dots i{width:10px;height:10px;border-radius:50%;background:#d6cec5}
+.url{display:flex;align-items:center;gap:8px;flex:1;height:26px;padding:0 12px;border-radius:99px;background:#fff;font-size:13px;color:var(--muted)}
+.ext-pill{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#fff}
+.ext-pill .mark{height:16px}
+.grid-label{margin:12px 16px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:10px 16px 16px}
+.prod{border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#fff}
+.prod.cocok{box-shadow:0 0 0 3px var(--match)}
+.vstrip{display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.vstrip svg{font-size:15px;stroke-width:3}
+.prod.cocok .vstrip{background:var(--match);color:#0c0a09}
+.prod.tidak .vstrip{background:var(--mismatch);color:#fff}
+.pbody{display:flex;gap:12px;padding:12px}
+.pimg{display:grid;place-items:center;width:96px;height:96px;flex:none;border-radius:10px;background:#f4f1ed;font-size:62px;color:#3d3b38}
+.prod.tidak .pimg{opacity:.4;filter:grayscale(1)}
+.ptext{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ptext b{font-size:14px;font-weight:500;line-height:1.3}
+.price{font-size:16px;font-weight:700}
+.why{font-size:12px;padding:5px 8px;border-left:4px solid;border-radius:0 6px 6px 0;margin-top:2px}
+.prod.cocok .why{border-color:var(--match);background:#f2fbe3;color:#1a2e05}
+.prod.tidak .why{border-color:var(--mismatch);background:#fef2f2;color:#7f1d1d}
+
+.label.gap{margin-top:14px}
+.tpill{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;justify-self:start}
+.t-choice{background:var(--fg);color:#fff}
+.t-score{background:var(--signal-soft);color:var(--signal-text)}
+.t-bool{background:var(--secondary);color:var(--fg);box-shadow:inset 0 0 0 1px #cfc6bd}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.dot.t-choice{background:var(--fg);box-shadow:none}.dot.t-score{background:var(--signal)}.dot.t-bool{background:#b5aca3;box-shadow:none}
+.typed div{grid-template-columns:96px 1fr 120px 44px}
+.bubble.customer.small{font-size:15px;padding:10px 14px}
+.dtrack{display:block;height:8px;border-radius:99px;background:var(--secondary);overflow:hidden}
+.dtrack i{display:block;height:100%;background:var(--fg);border-radius:inherit}
+.dtrack.big{height:10px}
+
+/* 2: input & output */
+.io-in,.io-out,.how,.scores,.jev-io{padding:18px 20px;display:flex;flex-direction:column}
+.state{display:grid;gap:5px;margin-top:6px}
+.state code{font-family:"SFMono-Regular",Consolas,monospace;font-size:12px;color:var(--muted)}
+.state small{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.qgroup{display:grid;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.q{display:flex;gap:8px;align-items:baseline;font-size:13px}
+.q b{flex:none;width:92px;font-weight:600}
+.q .opts{color:var(--muted);font-size:12px;line-height:1.4}
+.q .scale{display:inline-flex;gap:3px;flex:none;align-self:center}
+.q .scale i{width:10px;height:10px;border-radius:3px;background:var(--signal)}
+.q .scale i:nth-child(1){opacity:.2}.q .scale i:nth-child(2){opacity:.4}.q .scale i:nth-child(3){opacity:.6}.q .scale i:nth-child(4){opacity:.8}
+.q.wrap{flex-wrap:wrap;gap:6px}
+.q.wrap{gap:5px}
+.q.wrap b{width:auto;background:var(--secondary);border-radius:999px;padding:2px 8px;font-weight:500;font-size:12px}
+.mid-arrow{width:80px;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--signal);font-size:26px;text-align:center}
+.mid-arrow .mark{height:30px;color:var(--fg)}
+.mid-arrow small{font-size:11px;line-height:1.3;color:var(--muted)}
+.orow{display:grid;grid-template-columns:10px 104px 1fr 40px;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:14px}
+.reader-head+.orow{border-top:0}
+.orow em{font-style:normal;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.overall{margin-top:auto;display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--signal-soft)}
+.overall>span:first-child{font-size:14px;font-weight:600}
+.overall b{font-family:var(--serif);font-weight:400;font-size:32px;line-height:1;color:var(--signal-text)}
+.overall .dtrack{grid-column:1/-1;background:#fff}
+.overall .dtrack i{background:var(--signal)}
+.overall small{grid-column:1/-1;font-size:11px;color:var(--muted)}
+.how{gap:12px}
+.how-block{display:grid;grid-template-columns:auto 1fr;gap:7px 8px;align-items:center;padding-top:12px;border-top:1px solid var(--border)}
+.how .label+.how-block{border-top:0;padding-top:4px}
+.how-block>b{font-size:14px}
+.drow{grid-column:1/-1;display:grid;grid-template-columns:76px 1fr 32px;gap:8px;align-items:center;font-size:12px}
+.drow .dtrack i{background:#b5aca3}
+.drow.hot{font-weight:700}
+.drow.hot .dtrack i{background:var(--fg)}
+.drow em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums}
+.hist{grid-column:1/-1;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;align-items:end;height:86px}
+.hist div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;height:100%;font-size:11px}
+.hist i{display:block;width:100%;border-radius:4px 4px 0 0;background:#e2d9cf}
+.hist em{font-style:normal}
+.hist span{color:var(--muted)}
+.hist .hot i{background:var(--signal)}
+.hist .hot em,.hist .hot span{font-weight:700;color:var(--signal-text)}
+.split{grid-column:1/-1;display:flex;height:26px;border-radius:8px;overflow:hidden;background:var(--secondary)}
+.split i{display:flex;align-items:center;padding-left:10px;background:var(--fg);color:#fff;font-size:12px;font-weight:600;font-style:normal;white-space:nowrap}
+.split i.yes{background:var(--signal);padding:0;min-width:4px}
+.how-foot{margin-top:auto;font-size:12px;color:var(--muted)}
+
+/* 3: tangga aturan */
+.srow{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-top:1px solid var(--border);font-size:15px}
+.reader-head+.srow{border-top:0}
+.srow .lk{color:var(--muted)}
+.srow b{font-variant-numeric:tabular-nums}
+.srow b.flagged{color:var(--signal-text)}
+.srow.total{border-top:2px solid var(--fg);font-weight:600}
+.srow.total .lk{color:var(--fg)}
+.srow.total b{color:var(--signal-text);font-size:18px}
+.scores .meta{margin-top:auto}
+.ladder{display:grid;gap:10px}
+.lhead,.lrung{display:grid;grid-template-columns:34px minmax(0,1fr) 160px 220px;gap:14px;align-items:center}
+.lhead{padding:0 16px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lrung{min-height:80px;padding:10px 16px;border-radius:16px;background:#fff;border:1px solid var(--border)}
+.lrung .num{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--fg);color:#fff;font-weight:700;font-size:14px}
+.lrung .cond{font-size:15px;font-weight:600;line-height:1.35}
+.lrung .val{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.lrung.hit{border:2px solid var(--signal);box-shadow:0 6px 18px rgb(250 93 0 / 14%)}
+.lrung.hit .val{color:var(--signal-text);font-weight:700}
+.lrung.skip{opacity:.5}
+.rt{display:flex;align-items:center;gap:10px}
+.rt b{display:block;font-size:15px}
+.rt small{display:block;font-size:12px;color:var(--muted)}
+
+/* 5: class-shopper */
+.kvs{display:grid}
+.kvs div{display:grid;grid-template-columns:104px 1fr;gap:8px;padding:7px 0;border-top:1px solid var(--border);font-size:13px}
+.kvs div:first-child{border-top:0}
+.kvs span{color:var(--muted)}
+.kvs b{font-weight:600}
+.verdict-out{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;margin-top:4px}
+.vchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:6px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.vchip svg{stroke-width:3}
+.vchip.tidak{background:var(--mismatch);color:#fff}
+.verdict-out b{font-size:20px;font-variant-numeric:tabular-nums}
+.verdict-out .dtrack i{background:var(--mismatch)}
+.reason{font-size:13px;padding:6px 10px;margin-top:10px;border-left:4px solid var(--mismatch);border-radius:0 6px 6px 0;background:#fef2f2;color:#7f1d1d}
+.jev-io .meta{margin-top:auto}
+.browser .grid{gap:12px;padding:8px 14px 14px}
+.browser .pbody{padding:10px;gap:10px}
+.browser .pimg{width:64px;height:64px;font-size:42px}
+.browser .ptext b{font-size:13px}
+.browser .price{font-size:14px}
+.browser .why{display:block;margin:0 10px 10px;font-size:12px}
+
+.others{display:grid;gap:6px;margin-top:2px}
+.others div{display:grid;grid-template-columns:78px 1fr 70px 34px;gap:8px;align-items:center;font-size:12px}
+.others b{text-align:right;font-variant-numeric:tabular-nums}
+.vchip.sm{height:22px;padding:0 6px;font-size:10px;gap:4px;border-radius:5px}
+.vchip.cocok{background:var(--match);color:#0c0a09}
+.others .dtrack i.m{background:var(--match)}
+.others .dtrack i.x{background:var(--mismatch)}
+
+.jev-io .label.gap{margin-top:12px}
+.jev-io .kvs div{padding:6px 0}
+
+.io-in{padding:18px 16px}
+.q.wrap b{padding:2px 7px;font-size:11.5px}
+
+.clamp{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;font-size:15px;line-height:1.45}
+.orow.low em{color:var(--warning-text)}
+.lane-stat{font-size:13px;font-weight:500;color:var(--muted);margin-left:12px;padding:3px 10px;border-radius:999px;background:var(--secondary)}
+.lane-stat.jev{background:var(--signal-soft);color:var(--signal-text)}
+.asli{margin-left:auto;font-size:11px;font-weight:600;color:var(--positive-text);background:rgb(35 164 12 / 10%);border-radius:999px;padding:1px 8px}
+.ext .desire{font-size:16px}
+.ext-btn{background:var(--ext-blue)}
+.io-cols{display:grid;grid-template-columns:1fr 40px 1fr;gap:12px;margin-top:10px;flex:1}
+.io-arrow{display:grid;place-items:center;color:var(--signal);font-size:26px}
+.field-list{display:grid;gap:8px;margin-top:8px}
+.field-list div{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;padding:9px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--border)}
+.field-list div>:first-child{grid-row:1/3}
+.field-list b{font-size:15px}
+.field-list small{font-size:12px;color:var(--muted)}
+.src{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:#fff;border:1px solid var(--border);border-radius:999px;padding:2px 8px;white-space:nowrap}
+.rules-mini{margin-top:16px;padding:12px 14px;border-radius:12px;background:var(--signal-soft)}
+.rules-mini .label{margin-bottom:6px}
+.rules-mini p:not(.label){display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 0}
+.rules-mini svg{color:var(--signal-text)}
+.split i.yes{display:flex;align-items:center;padding-left:8px;color:#fff;font-size:12px;font-weight:600}
+
+.race{position:absolute;inset:0;width:1280px;height:720px;font-family:var(--sans);pointer-events:none;z-index:0}
+.race .lbl{font-size:12px;font-weight:600;letter-spacing:.08em;fill:var(--muted)}
+.bubble-in{fill:var(--fg)}
+.bubble-t{fill:#fff;font-size:16px}
+.wire{fill:none;stroke:#cfc6bd;stroke-width:2}
+.spark{fill:var(--signal)}
+.lane-bg{fill:#fff;stroke:rgb(29 30 28 / 10%);stroke-width:1}
+.lane-bg.strong{stroke:var(--fg);stroke-width:2}
+.ico-bg{fill:var(--secondary)}
+.ico-g,.mark-g{color:var(--fg)}
+.race .ico-g svg{width:25px;height:25px}
+.race .mark-g svg{width:21px;height:30px}
+.lane-n{font-size:17px;font-weight:700;fill:var(--fg)}
+.lane-m{font-size:13px;font-weight:500;fill:var(--muted)}
+.lane-r{font-size:15px;font-weight:700;fill:var(--fg)}
+.lane-r.jev{fill:var(--signal-text)}
+.track{fill:var(--secondary)}
+.seg-wait{fill:#e2d9cf}.seg-think{fill:#b5aca3}.seg-text{fill:var(--fg)}.seg-jev{fill:var(--signal)}
+.seg-l{font-size:12px;font-weight:600;fill:var(--muted)}
+.seg-l.dark{fill:var(--fg)}
+.seg-l.jev{fill:var(--signal-text)}
+.think-t{font-size:14px;font-style:italic;fill:var(--muted)}
+.dot-pulse{fill:var(--muted)}
+.llm-text{font-size:15px;fill:var(--fg);white-space:pre}
+.chip-bg{fill:var(--surface);stroke:rgb(29 30 28 / 10%)}
+.chip-bg.hot{fill:var(--signal-soft);stroke:rgb(250 93 0 / 35%)}
+.chip-t{font-size:13px;white-space:pre}
+.ck{fill:var(--muted)}.cv{fill:var(--fg);font-weight:700}.cv.hot{fill:var(--signal-text)}.cp{fill:var(--muted);font-size:12px}
+.decision{fill:rgb(203 92 91 / 12%);stroke:rgb(203 92 91 / 40%)}
+.decision-t{font-size:14px;font-weight:700;fill:var(--danger-text)}
+.axis,.tick{stroke:#cfc6bd}
+.tick-t{font-size:11px;fill:var(--muted)}
+.ph-line{stroke:var(--signal);stroke-width:1.5;stroke-dasharray:4 4}
+.clock-bg{fill:var(--fg)}
+.clock-t{font-size:12px;font-weight:700;fill:#fff;font-variant-numeric:tabular-nums}
+.stat-bg{fill:var(--signal-soft)}
+.stat-n{font-family:var(--serif);font-size:38px;fill:var(--signal-text)}
+.stat-l{font-size:13px;font-weight:600;fill:var(--signal-text)}
+.replay{position:absolute;left:64px;top:472px;z-index:2;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:13px;font-weight:600;color:var(--fg);cursor:pointer}
+.replay svg{font-size:14px}
+@media print{.replay{display:none}}
+
+.agent{fill:#fff;stroke:rgb(29 30 28 / 14%)}
+.agent.on{fill:var(--signal-soft);stroke:var(--signal);stroke-width:2}
+.agent-t{font-size:13px;font-weight:600;fill:var(--muted)}
+.agent-t.on{fill:var(--signal-text);font-weight:700}
+.agent-ck{font-size:13px;font-weight:700;fill:var(--signal-text)}
+.route-arrow{font-size:16px;fill:var(--muted)}
+.doc{fill:var(--surface);stroke:rgb(29 30 28 / 10%)}
+.doc-t{font-size:12px;fill:var(--fg)}
+.ctx-l{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;fill:var(--muted)}
+.check-t{font-size:13px;font-weight:700;fill:var(--positive-text)}
+
+
+
+
+/* mind tree (slide 5) */
+.mt{position:absolute;inset:0;width:1280px;height:720px;font-family:var(--sans);pointer-events:none;z-index:0}
+.mt-step{font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;fill:var(--muted)}
+.mt-num{fill:var(--signal)}
+.mt-num-t{font-size:11px;font-weight:700;fill:#fff}
+.mt-e{fill:none;stroke:#cfc6bd;stroke-width:1.5}
+.mt-e.faint{stroke:#e2d9cf}
+.mt-e.hot{stroke:var(--signal);stroke-width:2.5}
+.mt-root{fill:var(--fg)}
+.mt-root-t{font-size:15px;fill:#fff}
+.mt-knot{fill:#fff;stroke:var(--fg);stroke-width:2}
+.mt-knot.dark{fill:var(--fg)}
+.mt-mark{color:var(--fg);fill:var(--fg)}
+.mt-cap{font-size:13px;font-weight:700;fill:var(--fg)}
+.mt-sub{font-size:11.5px;fill:var(--muted)}
+.mt-leaf{fill:#fff;stroke:rgb(29 30 28 / 12%)}
+.mt-leaf.hot{fill:#feece0;stroke:var(--signal);stroke-width:1.5}
+.mt-k{font-size:12.5px;fill:var(--muted)}
+.mt-v{font-size:13px;font-weight:700;fill:var(--fg)}
+.mt-p{font-size:11.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
+.mt-k.hot,.mt-p.hot{fill:var(--signal-text)}
+.mt-v.hot{fill:var(--signal-text)}
+.mt-agent{fill:#fff;stroke:rgb(29 30 28 / 14%)}
+.mt-agent.on{fill:#feece0;stroke:var(--signal);stroke-width:2}
+.mt-an{font-size:13.5px;font-weight:700;fill:var(--fg)}
+.mt-as{font-size:11.5px;fill:var(--muted)}
+.mt-an.on,.mt-as.on,.mt-ck{fill:var(--signal-text)}
+.mt-ck{font-size:15px;font-weight:700}
+.mt-ctx{fill:#fff;stroke:rgb(250 93 0 / 40%)}
+.mt-ci{fill:none;stroke:var(--signal-text);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mt-ct{font-size:12.5px;fill:var(--fg)}
+.mt-llm{fill:var(--fg)}
+.mt-ll{font-size:11px;font-weight:600;fill:#cfc6bd}
+.mt-tok{font-family:var(--serif);font-size:26px;fill:#fff}
+.mt-tokl{font-size:10.5px;fill:#cfc6bd}
+.mt-out{fill:#fff;stroke:var(--fg);stroke-width:2}
+.mt-ans{font-size:14px;fill:var(--fg)}
+.mt-m{font-size:13px;font-weight:700;fill:var(--signal-text)}
+.mt-ok{font-size:13px;font-weight:700;fill:var(--positive-text)}
+.mt-rule{stroke:var(--border)}
+.replay.mt-replay{top:520px}
+/* end mind tree */
+.src-foot{position:absolute;left:64px;right:64px;bottom:12px;z-index:3;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src-foot a{color:var(--muted);text-decoration:underline;text-underline-offset:2px}
+.src-foot code{font-family:"SFMono-Regular",Consolas,monospace;font-size:10.5px}
+.par{position:absolute;inset:0;width:1280px;height:720px;font-family:var(--sans);z-index:0;pointer-events:none}
+.par .lbl{font-size:12px;font-weight:600;letter-spacing:.08em;fill:var(--muted)}
+.par .ico-g svg{width:25px;height:25px}
+.par .mark-g svg{width:17px;height:25px}
+.par-cap{font-size:13px;fill:var(--muted)}
+.tok{fill:var(--surface);stroke:rgb(29 30 28 / 14%)}
+.tok-t{font-size:13px;fill:var(--fg);white-space:pre}
+.par-arrow{font-size:18px;fill:var(--muted)}
+.fan{fill:none;stroke:var(--signal);stroke-width:1.5;opacity:.75}
+.qdot.t-choice{fill:var(--fg)}.qdot.t-score{fill:var(--signal)}.qdot.t-bool{fill:#b5aca3}
+.q-n{font-size:13px;fill:var(--muted)}
+.q-v{font-size:13px;font-weight:700;fill:var(--fg)}
+.q-c{font-size:12px;fill:var(--muted)}
+.state-box{fill:var(--fg);stroke:var(--signal);stroke-width:1}
+.state-k{font-size:11px;font-family:"SFMono-Regular",Consolas,monospace;fill:#cfc6bd}
+.state-v{font-size:13px;font-weight:600;fill:#fff}
+.b-l{font-size:13px;font-weight:600;fill:var(--fg)}
+.b-track{fill:var(--secondary)}
+.b-bar{fill:var(--signal)}
+.b-v{font-size:13px;font-weight:700;fill:var(--signal-text)}
+.b-m{font-size:12px;fill:var(--muted)}
+
+.basics{background:#fff;border:1px solid var(--border);border-radius:20px;padding:12px 24px;display:grid;grid-template-rows:auto auto auto auto auto;row-gap:6px}
+.b-head,.b-row,.b-use{display:grid;grid-template-columns:104px minmax(0,1fr) minmax(0,1fr);column-gap:24px}
+.b-head{align-items:center}
+.b-head>div{display:flex;align-items:center;gap:10px}
+.b-head b{font-size:22px}
+.b-head small{font-size:13px;color:var(--muted)}
+.b-head .node{width:38px;height:38px;font-size:20px;border-radius:12px}
+.b-row{align-items:start;padding-top:8px;border-top:1px solid var(--border)}
+.b-row .label,.b-row.use .label{white-space:nowrap}
+.b-row>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.b-row>div>b{font-size:15px}
+.b-row .label{padding-top:2px}
+.hint{font-size:12px;color:var(--muted)}
+.b-row .bubble.customer.small{font-size:14px;padding:8px 12px;align-self:flex-start}
+.llm-out{font-size:13px;line-height:1.45;color:#4a4a48;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.json{font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:11px;line-height:1.45;white-space:pre-wrap;word-break:break-word;background:#1d1e1c;color:#e9e4de;border-radius:12px;padding:12px 14px;margin:0}
+.json.sm{padding:8px 12px;font-size:10.5px;line-height:1.4}
+.j-k{color:#f5f5f4}.j-s{color:#fb9a62}.j-n{color:#7ad86b}.j-c{color:#9a958f;font-style:italic}
+.mini{display:block;overflow:visible}
+.fan-l{font-size:12px;font-weight:600;fill:var(--signal-text)}
+.b-row.use{align-items:center;padding-bottom:2px}
+.fan-t{font-size:10px;font-family:"SFMono-Regular",Consolas,monospace;fill:var(--muted)}
+.b-use{align-items:center;padding:10px 24px;background:#fff;border:1px solid var(--border);border-radius:16px}
+.use-l,.use-j{font-size:15px;font-weight:600}
+.use-j{display:flex;align-items:center;justify-content:space-between}
+.use-both{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:var(--fg);color:#fff;font-size:13px;font-weight:600}
+.b-use .use-both{position:absolute;right:20px}
+.code-card{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.code-card .json{flex:1;overflow:hidden;font-size:10.5px;line-height:1.38}
+.io-mid{display:flex;flex-direction:column;align-items:center;gap:4px;width:40px;color:var(--signal);font-size:24px}
+.io-mid small{font-size:10px;color:var(--muted);white-space:nowrap}
+.how-note{grid-column:1/-1;font-size:11px;color:var(--muted)}
+
+
+.qex,.pex{display:grid;gap:5px}
+.qex>div,.pex>div{display:grid;grid-template-columns:62px minmax(0,1fr) auto;align-items:center;gap:8px}
+.qex .tpill,.pex .tpill{justify-self:start}
+.qx{font-size:12.5px;line-height:1.3}
+.qex small{font-size:11px;color:var(--muted);white-space:nowrap}
+.qex-more{font-size:11px;color:var(--muted);margin-top:2px}
+.pex>div{grid-template-columns:62px 200px minmax(0,1fr)}
+.pex small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sbar{display:flex;height:20px;border-radius:6px;overflow:hidden;background:var(--secondary)}
+.sbar .sg{display:flex;align-items:center;padding-left:6px;font-style:normal;font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;color:#fff;background:#b5aca3}
+.sbar .sg.s1,.sbar .sg.s2,.sbar .sg.s3{background:#d8cfc5}
+.sbar .sg.sg-top.choice{background:var(--fg)}
+.sbar .sg.sg-top.score{background:var(--signal)}
+.sbar .sg.noul{background:var(--fg)}
+.sbar .sg.noul.s1,.sbar .sg.noul:last-child{background:var(--signal)}
+
+/* slide: apa itu Jev */
+.w-def{font-size:22px;line-height:1.45;color:var(--fg)}
+.w-def b{color:var(--signal-text)}
+.w-step{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.w-n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--signal);color:#fff;font-size:12px;font-weight:700;margin-right:8px;letter-spacing:0}
+.w-msg{font-size:19px;line-height:1.45;margin-top:auto;margin-bottom:auto}
+.w-q{font-size:19px;line-height:1.4;font-weight:600}
+.w-opts{display:flex;flex-wrap:wrap;gap:6px}
+.w-opts span{background:var(--secondary);border-radius:999px;padding:5px 12px;font-size:14px;font-weight:500}
+.w-arrow{display:grid;place-items:center;color:var(--signal);font-size:30px}
+.w-jev{display:flex;flex-direction:column;align-items:center;gap:6px}
+.w-jev .mark{height:34px}
+.w-ans{display:flex;align-items:baseline;gap:12px}
+.w-ans b{font-size:30px}
+.w-ans em{font-style:normal;font-family:var(--serif);font-size:30px;color:var(--signal-text)}
+.w-bars{display:grid;gap:7px}
+.w-bars div{display:grid;grid-template-columns:104px 1fr 40px;gap:10px;align-items:center;font-size:14px}
+.w-bars em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums}
+.w-bars .dtrack i{background:#b5aca3}
+.w-bars .hot{font-weight:700}
+.w-bars .hot .dtrack i{background:var(--signal)}
+.w-foot{font-size:19px;color:var(--muted)}
+.w-foot b{color:var(--fg)}
+/* slide: penjelasan sederhana */
+.s-sub{font-size:18px;line-height:1.45;color:var(--muted)}
+.s-sub code{font-family:"SFMono-Regular",Consolas,monospace;font-size:15px;background:var(--secondary);padding:1px 6px;border-radius:6px;color:var(--fg)}
+.s-card{padding:22px 26px;display:flex;flex-direction:column}
+.s-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.s-head h2{font-size:22px;font-weight:600}
+.s-head p{font-size:14px;color:var(--muted)}
+.s-head .tag{margin-left:auto}
+.s-head .node{width:42px;height:42px;font-size:22px;border-radius:12px}
+.s-card .label{margin-bottom:10px}
+.s-sample{min-height:118px;display:flex;align-items:center}
+.s-sample>*{width:100%}
+.s-llm{font-size:14px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.s-rows{display:grid}
+.s-rows div{display:grid;grid-template-columns:130px 1fr 110px 44px;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--border);font-size:16px}
+.s-rows div:first-child{border-top:0}
+.s-rows .lk{color:var(--muted)}
+.s-rows .bar{width:110px}
+.s-rows em{font-style:normal;text-align:right;font-size:14px;font-variant-numeric:tabular-nums}
+.s-rows b.flagged{color:var(--signal-text)}
+.s-kv{display:grid;margin-top:auto;border-top:1px solid var(--border)}
+.s-kv div{display:grid;grid-template-columns:160px 1fr;padding:8px 0;border-bottom:1px solid var(--border);font-size:16px}
+.s-kv dt{color:var(--muted)}
+.s-kv dd{font-weight:600}
+.s-foot{font-size:16px;color:var(--muted)}
+
+.c-panel{padding:14px 18px;display:flex;flex-direction:column}
+.c-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.c-title small{font-size:13px;font-weight:500;color:var(--muted);margin-left:8px}
+.c-row{display:grid;grid-template-columns:160px 16px 32px 16px minmax(0,1fr) 52px;align-items:center;column-gap:6px;height:46px;border-top:1px solid var(--border)}
+.c-msg{font-size:12.5px;line-height:1.25;font-weight:500}
+.c-ar{display:grid;place-items:center;color:#b5aca3;font-size:14px}
+.c-node{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;font-size:17px}
+.c-node.llm{background:var(--secondary)}
+.c-node.llm.warn{background:rgb(203 92 91 / 14%);color:var(--danger-text);box-shadow:inset 0 0 0 1.5px rgb(203 92 91 / 50%)}
+.c-node.jev{background:var(--signal-soft);box-shadow:inset 0 0 0 1.5px rgb(250 93 0 / 40%)}
+.c-node.jev .mark{height:18px}
+.c-out,.c-dest{display:inline-flex;align-items:center;gap:6px;justify-self:start;white-space:nowrap;font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid}
+.c-out{background:var(--surface);border-color:var(--border);color:#4a4a48}
+.c-out.bad{background:rgb(203 92 91 / 10%);border-color:rgb(203 92 91 / 35%);color:var(--danger-text);font-weight:600}
+.c-dest{font-weight:600}
+.c-dest.pos{background:rgb(35 164 12 / 10%);border-color:rgb(35 164 12 / 30%);color:var(--positive-text)}
+.c-dest.dang{background:rgb(203 92 91 / 10%);border-color:rgb(203 92 91 / 35%);color:var(--danger-text)}
+.c-dest.warn{background:rgb(241 141 42 / 12%);border-color:rgb(241 141 42 / 40%);color:var(--warning-text)}
+.c-dest.neutral{background:var(--secondary);border-color:transparent;color:var(--fg)}
+.c-row em{font-style:normal;font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.c-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.c-stat{background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px 14px;display:grid;gap:6px;align-content:start}
+.c-pair{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;column-gap:8px;font-size:12px;min-height:20px}
+.c-pair>span:first-child{color:var(--muted)}
+.c-pair b{font-size:15px;font-variant-numeric:tabular-nums;grid-column:3}
+.c-pair.jev b{color:var(--signal-text)}
+.c-bar{height:8px;border-radius:99px;background:var(--secondary);overflow:hidden}
+.c-bar i{display:block;height:100%;background:#9a9893;border-radius:inherit}
+.c-pair.jev .c-bar i{background:var(--signal)}
+.c-robots{display:flex;gap:2px;font-size:13px;color:#9a9893}
+.c-pair.jev .c-robots{color:var(--signal)}
+
+/* Kontrol */
+.controls{position:fixed;right:16px;bottom:14px;display:flex;align-items:center;gap:4px;padding:5px;border-radius:999px;background:var(--fg);color:#fff;font-size:14px;opacity:.3;transition:opacity .2s}
+.controls:hover,.controls:focus-within{opacity:1}
+.controls button{border:0;background:none;color:#fff;cursor:pointer;padding:7px 12px;border-radius:999px}
+.controls button:hover,.controls button:focus-visible{background:rgb(255 255 255 / 15%);outline:none}
+.controls .count{min-width:48px;text-align:center;font-variant-numeric:tabular-nums}
+.notes{position:fixed;left:16px;right:16px;bottom:64px;max-width:960px;margin:0 auto;padding:16px 20px;border-radius:16px;background:var(--fg);color:#fff;font-size:17px;line-height:1.5;display:none}
+.notes.open{display:block}
+.notes b{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#fb9a62;margin-bottom:6px}
+
+@page{size:1280px 720px;margin:0}
+@media print{
+  html,body{background:none;height:auto}
+  .deck{position:static;display:block;overflow:visible}
+  .stage{transform:none!important;width:1280px;height:auto}
+  .slide{position:relative;display:block!important;break-after:page}
+  .slide:last-child{break-after:auto}
+  .controls,.notes{display:none!important}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media screen and (prefers-reduced-motion:no-preference){
+  .slide.active{animation:in .2s ease-out}@keyframes in{from{opacity:.5}to{opacity:1}}
+  .caret{animation:blink 1s steps(1) infinite}@keyframes blink{50%{opacity:0}}
+}
+</style>
+</head>
+<body>
+<main class="deck"><div class="stage">
+<section class="slide" aria-label="Slide 1 dari 10" data-notes="Jev itu AI yang tidak menulis kalimat. Kita kasih teks, kita kasih pertanyaan beserta pilihan jawabannya, lalu Jev memilih jawaban yang paling cocok dan memberi tahu seberapa besar peluangnya. Contoh asli: pesan &quot;Ekspor PDF gagal terus, padahal besok saya presentasi!&quot;. Pertanyaannya: produk Bikinpakeai mana yang dibicarakan, dengan 6 pilihan. Jev menjawab PRDTask dengan peluang 88%, DesainPakeAI 8%, Template 4%, sisanya nol. Hasil seperti ini langsung bisa dipakai program, misalnya untuk memilih tim atau dokumen yang tepat.">
+  <header class="top"><div class="brand"><b>Bikinpakeai</b><span>Jev · System One model dari TypeSafe</span></div><span class="page">1 / 10</span></header>
+  <div class="head"><p class="eyebrow">Apa itu Jev</p><h1 class="title">Jev memilih jawaban, bukan menulis.</h1></div>
+  
+    <p class="abs w-def" style="left:64px;top:168px;width:1100px">Jev adalah AI dari TypeSafe yang <b>membaca teks</b>, lalu <b>memilih jawaban</b> dari opsi yang kita tentukan, lengkap dengan <b>peluangnya</b>.</p>
+    <div class="abs w-step card" style="left:64px;top:250px;width:320px;height:330px">
+      <p class="label"><span class="w-n">1</span>Teks</p>
+      <div class="bubble customer w-msg">Ekspor PDF gagal terus, padahal besok saya presentasi!</div>
+    </div>
+    <div class="abs" style="left:392px;top:395px"><span class="w-arrow"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span></div>
+    <div class="abs w-step card" style="left:440px;top:250px;width:340px;height:330px">
+      <p class="label"><span class="w-n">2</span>Pertanyaan + opsi</p>
+      <p class="w-q">“Produk Bikinpakeai mana yang dibicarakan pelanggan?”</p>
+      <div class="w-opts"><span>PRDTask</span><span>DesainPakeAI</span><span>AndalAI</span><span>Template</span><span>Membership</span><span>Komunitas</span></div>
+    </div>
+    <div class="abs w-jev" style="left:790px;top:378px"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg><span class="w-arrow"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span></div>
+    <div class="abs w-step card strong" style="left:864px;top:250px;width:352px;height:330px">
+      <p class="label"><span class="w-n">3</span>Jawaban Jev</p>
+      <p class="w-ans"><b>PRDTask</b><em>88%</em></p>
+      <div class="w-bars"><div class="hot"><span>PRDTask</span><span class="dtrack"><i style="width:88%"></i></span><em>88%</em></div><div class=""><span>DesainPakeAI</span><span class="dtrack"><i style="width:8%"></i></span><em>8%</em></div><div class=""><span>Template</span><span class="dtrack"><i style="width:4%"></i></span><em>4%</em></div><div class=""><span>AndalAI</span><span class="dtrack"><i style="width:0.6%"></i></span><em>0%</em></div><div class=""><span>Membership</span><span class="dtrack"><i style="width:0.6%"></i></span><em>0%</em></div><div class=""><span>Komunitas</span><span class="dtrack"><i style="width:0.6%"></i></span><em>0%</em></div></div>
+    </div>
+    <p class="abs w-foot" style="left:64px;top:606px;width:1152px">Hasilnya bukan paragraf, tapi <b>pilihan + peluang</b> yang langsung bisa dipakai program.</p>
+  <p class="src-foot">Sumber: <a href="https://docs.typesafe.ai/introduction" target="_blank" rel="noopener">docs.typesafe.ai/introduction</a> · <a href="https://docs.typesafe.ai/primitives/choice" target="_blank" rel="noopener">Choice</a> · <a href="data/jev-run-2026-10-03-deepseek.json" target="_blank" rel="noopener">data: respons asli</a></p>
+</section>
+<section class="slide" aria-label="Slide 2 dari 10" data-notes="LLM seperti DeepSeek V4.1 Flash, Claude, atau GPT menulis jawaban bebas. Bagus untuk menjelaskan, tapi lebih lambat dan sulit dicek otomatis oleh program. Jev berbeda: ia hanya menjawab pertanyaan yang sudah kita tentukan, dengan pilihan, skor, atau ya/tidak, dan selalu menyertakan peluangnya. Contoh di slide ini asli, untuk pesan &quot;Ekspor PDF gagal terus, padahal besok saya presentasi!&quot;: DeepSeek V4.1 Flash butuh 10,63 dtk untuk menulis jawabannya, sedangkan Jev butuh 0,62 dtk untuk menilai jenis masalah bug (peluang 100%), urgensi mendesak (100%), dan bukan injeksi prompt (98%). Analogi singkatnya: LLM mengerjakan soal esai, Jev mengerjakan soal pilihan ganda.">
+  <header class="top"><div class="brand"><b>Bikinpakeai</b><span>Jev · System One model dari TypeSafe</span></div><span class="page">2 / 10</span></header>
+  <div class="head"><p class="eyebrow">Jev vs LLM</p><h1 class="title">LLM menulis jawaban. Jev mengambil keputusan.</h1></div>
+  
+    <p class="abs s-sub" style="left:64px;top:168px;width:1100px">Jev (<code>typesafe/jev-1.13</code>) adalah <em>System One model</em> dari TypeSafe: ia tidak mengarang teks, tapi menjawab pertanyaan tetap dengan pilihan, skor, atau ya/tidak, lengkap dengan peluangnya.</p>
+    <article class="abs card s-card" style="left:64px;top:252px;width:564px;height:392px">
+      <div class="s-head"><span class="node gray"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><div><h2>LLM</h2><p>DeepSeek V4.1 Flash, Claude, GPT</p></div><span class="tag neutral">Generatif</span></div>
+      <p class="label">Contoh output asli</p>
+      <div class="s-sample"><div class="bubble bot"><span class="s-llm">Mohon maaf atas kendalanya. Untuk ekspor PDF PRDTask: 1. Buka PRD, pilih menu Bagikan lalu Ekspor PDF. 2. Jika gagal, coba muat ulang halaman dan ekspor lagi. 3. Jika masih gagal, kirim tangkapan layar galatnya ke tim support agar bisa dicek. Karena presentasi besok, sebaiknya screenshot galat segera dikirim ke tim support.</span></div></div>
+      <dl class="s-kv"><div><dt>Bentuk output</dt><dd>Teks bebas</dd></div><div><dt>Waktu (pesan ini)</dt><dd>10,63 dtk</dd></div><div><dt>Dicek otomatis</dt><dd>Sulit, perlu dibaca</dd></div></dl>
+    </article>
+    <article class="abs card strong s-card" style="left:652px;top:252px;width:564px;height:392px">
+      <div class="s-head"><span class="jev-badge lg"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg><b>Jev</b></span><div><p>System One model · TypeSafe</p></div><span class="tag dark">Decision</span></div>
+      <p class="label">Contoh output asli</p>
+      <div class="s-sample"><div class="s-rows"><div><span class="lk">Jenis masalah</span><b class="">Bug</b><span class="bar"><i style="width:100%"></i></span><em>100%</em></div><div><span class="lk">Urgensi</span><b class="flagged">Mendesak</b><span class="bar flag"><i style="width:100%"></i></span><em>100%</em></div><div><span class="lk">Injeksi prompt</span><b class="">Tidak</b><span class="bar"><i style="width:98%"></i></span><em>98%</em></div></div></div>
+      <dl class="s-kv"><div><dt>Bentuk output</dt><dd>Label + peluang</dd></div><div><dt>Waktu (pesan ini)</dt><dd>0,62 dtk</dd></div><div><dt>Dicek otomatis</dt><dd>Langsung dipakai aturan</dd></div></dl>
+    </article>
+    <p class="abs s-foot" style="left:64px;top:660px;width:1152px">Analogi: LLM mengerjakan soal esai, Jev mengerjakan soal pilihan ganda. Keduanya saling melengkapi.</p>
+  <p class="src-foot">Sumber: <a href="https://docs.typesafe.ai/introduction" target="_blank" rel="noopener">docs.typesafe.ai/introduction</a> · <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev" target="_blank" rel="noopener">blog TypeSafe</a> · <a href="data/jev-run-2026-10-03-deepseek.json" target="_blank" rel="noopener">data: run asli 3 Okt 2026</a></p>
+</section>
+<section class="slide" aria-label="Slide 3 dari 10" data-notes="Enam pesan dari skenario app, dikirim ke dua chatbot yang sama-sama memakai DeepSeek V4.1 Flash. Kiri: LLM doang, setiap pesan langsung ke LLM, jadi LLM dipanggil 6 kali, termasuk pesan yang berisi nomor kartu, dan tidak ada yang diteruskan ke tim. Kanan: Jev membaca dulu, lalu aturan memilih tujuan. Hanya pertanyaan cara ekspor yang benar-benar butuh LLM; pesan mendesak diteruskan ke tim support dengan tiket, nomor kartu disamarkan, permintaan promo lewat injeksi ditolak, saran fitur dicatat, dan pesan yang kurang jelas dijawab dengan pertanyaan balik. Totalnya $0,00070 lawan $0,00029, dan waktu tengah per pesan 3,0 dtk lawan 0,3 dtk. Dua catatan jujur: pertanyaan cara ekspor makan waktu sekitar 15 detik di kedua jalur karena DeepSeek V4.1 Flash sedang lambat saat itu; dan jawaban LLM doang untuk pesan &quot;ekspor gagal&quot; kosong karena batas 400 token di app habis untuk proses berpikir model.">
+  <header class="top"><div class="brand"><b>Bikinpakeai</b><span>Jev · System One model dari TypeSafe</span></div><span class="page">3 / 10</span></header>
+  <div class="head"><p class="eyebrow">Chatbot customer support · 6 pesan asli · DeepSeek V4.1 Flash · 3 Okt 2026</p><h1 class="title">LLM doang vs LLM + Jev.</h1></div>
+  
+    <div class="abs card c-panel" style="left:64px;top:176px;width:568px;height:346px">
+      <p class="c-title">LLM doang <small>semua pesan langsung ke LLM</small></p>
+      <div class="c-row"><span class="c-msg">Cara ekspor PRD</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node llm"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-out"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>jawaban teks</span><em>15,6 dtk</em></div><div class="c-row"><span class="c-msg">Ekspor gagal, tenggat besok</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node llm"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-out bad"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>jawaban kosong</span><em>9,2 dtk</em></div><div class="c-row"><span class="c-msg">Mengirim nomor kartu</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node llm warn"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-out bad"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="14" x="2" y="5" rx="2"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg>kartu ikut ke LLM</span><em>2,5 dtk</em></div><div class="c-row"><span class="c-msg">Minta kode promo lewat injeksi</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node llm"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-out"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>jawaban teks</span><em>3,3 dtk</em></div><div class="c-row"><span class="c-msg">Mode gelap DesainPakeAI</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node llm"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-out"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>jawaban teks</span><em>2,6 dtk</em></div><div class="c-row"><span class="c-msg">Tombol unduh template tidak merespons</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node llm"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-out"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>jawaban teks</span><em>2,3 dtk</em></div>
+    </div>
+    <div class="abs card strong c-panel" style="left:648px;top:176px;width:568px;height:346px">
+      <p class="c-title">LLM + Jev <small>Jev memilah dulu</small></p>
+      <div class="c-row"><span class="c-msg">Cara ekspor PRD</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node jev"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-dest pos"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>LLM + 2 dokumen</span><em>15,0 dtk</em></div><div class="c-row"><span class="c-msg">Ekspor gagal, tenggat besok</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node jev"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-dest dang"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"></path><path d="M21 16v2a4 4 0 0 1-4 4h-5"></path></svg>Tim support + tiket</span><em>0,3 dtk</em></div><div class="c-row"><span class="c-msg">Mengirim nomor kartu</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node jev"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-dest warn"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path><path d="m2 2 20 20"></path></svg>Disamarkan</span><em>0,5 dtk</em></div><div class="c-row"><span class="c-msg">Minta kode promo lewat injeksi</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node jev"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-dest dang"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path></svg>Ditolak</span><em>0,3 dtk</em></div><div class="c-row"><span class="c-msg">Mode gelap DesainPakeAI</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node jev"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-dest neutral"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M12 11h4"></path><path d="M12 16h4"></path><path d="M8 11h.01"></path><path d="M8 16h.01"></path></svg>Dicatat tim produk</span><em>0,3 dtk</em></div><div class="c-row"><span class="c-msg">Tombol unduh template tidak merespons</span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-node jev"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg></span><span class="c-ar"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><span class="c-dest warn"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg>Tanya balik</span><em>0,3 dtk</em></div>
+    </div>
+    <div class="abs c-stats" style="left:64px;top:538px;width:1152px">
+      <div class="c-stat"><p class="label">LLM dipanggil</p>
+        <div class="c-pair"><span>LLM doang</span><span class="c-robots"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><b>6×</b></div>
+        <div class="c-pair jev"><span>LLM + Jev</span><span class="c-robots"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><b>1×</b></div></div>
+      <div class="c-stat"><p class="label">Biaya total</p>
+      <div class="c-pair"><span>LLM doang</span><span class="c-bar"><i style="width:100%"></i></span><b>$0,00070</b></div>
+      <div class="c-pair jev"><span>LLM + Jev</span><span class="c-bar"><i style="width:41.120898231299144%"></i></span><b>$0,00029</b></div></div>
+      <div class="c-stat"><p class="label">Median waktu / pesan</p>
+      <div class="c-pair"><span>LLM doang</span><span class="c-bar"><i style="width:100%"></i></span><b>3,0 dtk</b></div>
+      <div class="c-pair jev"><span>LLM + Jev</span><span class="c-bar"><i style="width:11.340555179417738%"></i></span><b>0,3 dtk</b></div></div>
+      <div class="c-stat"><p class="label">Nomor kartu ke LLM</p>
+      <div class="c-pair"><span>LLM doang</span><b>1</b></div>
+      <div class="c-pair jev"><span>LLM + Jev</span><b>0</b></div></div>
+      <div class="c-stat"><p class="label">Diteruskan ke tim</p>
+      <div class="c-pair"><span>LLM doang</span><b>0</b></div>
+      <div class="c-pair jev"><span>LLM + Jev</span><b>1</b></div></div>
+    </div>
+  <p class="src-foot">Sumber: <code>pesan: src/lib/lab/scenarios.ts</code> · <code>alur: src/services/pipeline</code> · <a href="https://docs.typesafe.ai/patterns/intent-routing" target="_blank" rel="noopener">pola Intent routing</a> · <a href="data/jev-run-2026-10-03-deepseek.json" target="_blank" rel="noopener">data: run asli 3 Okt 2026</a></p>
+</section>
+<section class="slide" aria-label="Slide 4 dari 10" data-notes="Dua jenis AI dengan tugas berbeda. LLM menerima prompt berupa teks, menghasilkan jawaban satu token demi satu token, dan keluarannya teks bebas yang harus dibaca manusia atau diurai program. Jev, model System One dari TypeSafe, menerima state dan daftar pertanyaan bertipe, menilai semua pertanyaan secara paralel, lalu mengembalikan JSON bertipe: pilihan atau skor, peluang tiap opsi, dan confidence. Tiga contoh tipe pertanyaannya juga asli dari kode chatbot dan respons Jev: choice untuk produk (PRDTask 88%, confidence 0.85), score untuk frustrasi (paling banyak di &quot;sangat kesal&quot; 91%, skor 2.93), dan noul untuk pesan kurang jelas (peluang ya 42%). Contoh di slide ini asli: pesan &quot;Ekspor PDF gagal terus, padahal besok saya presentasi!&quot;. DeepSeek V4.1 Flash menulis paragraf saran, sedangkan Jev mengembalikan, misalnya, issue_type &quot;bug&quot; dengan confidence 1 dan peluang &quot;kurang jelas&quot; 0.42. Karena itu keduanya paling kuat bila dipakai bersama: Jev memutuskan, LLM menulis. Itu slide berikutnya.">
+  <header class="top"><div class="brand"><b>Bikinpakeai</b><span>Jev · System One model dari TypeSafe</span></div><span class="page">4 / 10</span></header>
+  <div class="head"><p class="eyebrow">Dasar · Jev vs LLM</p><h1 class="title">Beda mendasar Jev dan LLM.</h1></div>
+  
+    <div class="abs basics" style="left:64px;top:178px;width:1152px;height:500px">
+      <div class="b-head"><span></span><div><span class="node gray"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><b>LLM</b><small>mis. DeepSeek V4.1 Flash, Claude, GPT</small></div><div class="jevh"><span class="jev-badge md"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg><b>Jev</b></span><small>System One model · TypeSafe</small></div></div>
+      <div class="b-row"><p class="label">Masuk</p>
+        <div><b>Prompt teks</b><div class="bubble customer small">Ekspor PDF gagal terus, padahal besok saya presentasi!</div><small class="hint">+ instruksi + dokumen, semuanya teks</small></div>
+        <div><b>State + pertanyaan bertipe</b><div class="qex"><div><span class="tpill t-choice">choice</span><span class="qx" title="Produk Bikinpakeai mana yang dibicarakan pelanggan?">Produk Bikinpakeai mana yang dibicarakan pelanggan?</span><small>6 opsi</small></div><div><span class="tpill t-score">score</span><span class="qx" title="Seberapa frustrasi atau kesal pelanggan?">Seberapa frustrasi atau kesal pelanggan?</span><small>skala 0–4</small></div><div><span class="tpill t-bool">noul</span><span class="qx" title="Apakah pesan terlalu tidak jelas untuk dijawab tanpa bertanya balik?">Apakah pesan terlalu tidak jelas untuk dijawab tanpa bertanya balik?</span><small>ya / tidak</small></div><p class="qex-more">state = pesan di kiri · contoh 3 dari 9 pertanyaan</p></div></div></div>
+      <div class="b-row"><p class="label">Proses</p>
+        <div><b>Satu token, lalu token berikutnya</b><svg class="anim mini" data-dur="4" viewBox="0 0 470 30" style="width:470px;height:30px"><g opacity="0"><set attributeName="opacity" to="1" begin="0.30s" fill="freeze"/><rect class="tok" x="0" y="2" width="52" height="26" rx="6"/><text class="tok-t" x="8" y="20">Mohon</text><text class="par-arrow" x="55" y="20">›</text></g><g opacity="0"><set attributeName="opacity" to="1" begin="0.70s" fill="freeze"/><rect class="tok" x="68" y="2" width="44" height="26" rx="6"/><text class="tok-t" x="76" y="20">maaf</text><text class="par-arrow" x="115" y="20">›</text></g><g opacity="0"><set attributeName="opacity" to="1" begin="1.10s" fill="freeze"/><rect class="tok" x="128" y="2" width="59" height="26" rx="6"/><text class="tok-t" x="136" y="20">atas k</text><text class="par-arrow" x="190" y="20">›</text></g><g opacity="0"><set attributeName="opacity" to="1" begin="1.50s" fill="freeze"/><rect class="tok" x="203" y="2" width="37" height="26" rx="6"/><text class="tok-t" x="211" y="20">end</text><text class="par-arrow" x="243" y="20">›</text></g><g opacity="0"><set attributeName="opacity" to="1" begin="1.90s" fill="freeze"/><rect class="tok" x="256" y="2" width="30" height="26" rx="6"/><text class="tok-t" x="264" y="20">al</text><text class="par-arrow" x="289" y="20">›</text></g><g opacity="0"><set attributeName="opacity" to="1" begin="2.30s" fill="freeze"/><rect class="tok" x="302" y="2" width="44" height="26" rx="6"/><text class="tok-t" x="310" y="20">anya</text></g></svg></div>
+        <div><b>Semua pertanyaan dinilai paralel</b><svg class="anim mini" data-dur="4" viewBox="0 0 470 78" style="width:470px;height:78px">
+      <rect class="state-box" x="0" y="23" width="96" height="32" rx="8"/><text class="state-v" x="14" y="44">state</text>
+      <path class="fan" d="M96 39 C 150 39, 170 3, 222 3" stroke-dasharray="160" stroke-dashoffset="160"><animate attributeName="stroke-dashoffset" from="160" to="0" begin="0.5s" dur="0.4s" fill="freeze"/></path><circle class="qdot t-choice" cx="226" cy="3" r="3.5"/><path class="fan" d="M96 39 C 150 39, 170 12, 222 12" stroke-dasharray="160" stroke-dashoffset="160"><animate attributeName="stroke-dashoffset" from="160" to="0" begin="0.5s" dur="0.4s" fill="freeze"/></path><circle class="qdot t-choice" cx="226" cy="12" r="3.5"/><path class="fan" d="M96 39 C 150 39, 170 21, 222 21" stroke-dasharray="160" stroke-dashoffset="160"><animate attributeName="stroke-dashoffset" from="160" to="0" begin="0.5s" dur="0.4s" fill="freeze"/></path><circle class="qdot t-score" cx="226" cy="21" r="3.5"/><path class="fan" d="M96 39 C 150 39, 170 30, 222 30" stroke-dasharray="160" stroke-dashoffset="160"><animate attributeName="stroke-dashoffset" from="160" to="0" begin="0.5s" dur="0.4s" fill="freeze"/></path><circle class="qdot t-score" cx="226" cy="30" r="3.5"/><path class="fan" d="M96 39 C 150 39, 170 39, 222 39" stroke-dasharray="160" stroke-dashoffset="160"><animate attributeName="stroke-dashoffset" from="160" to="0" begin="0.5s" dur="0.4s" fill="freeze"/></path><circle class="qdot t-score" cx="226" cy="39" r="3.5"/><path class="fan" d="M96 39 C 150 39, 170 48, 222 48" stroke-dasharray="160" stroke-dashoffset="160"><animate attributeName="stroke-dashoffset" from="160" to="0" begin="0.5s" dur="0.4s" fill="freeze"/></path><circle class="qdot t-bool" cx="226" cy="48" r="3.5"/><path class="fan" d="M96 39 C 150 39, 170 57, 222 57" stroke-dasharray="160" stroke-dashoffset="160"><animate attributeName="stroke-dashoffset" from="160" to="0" begin="0.5s" dur="0.4s" fill="freeze"/></path><circle class="qdot t-bool" cx="226" cy="57" r="3.5"/><path class="fan" d="M96 39 C 150 39, 170 66, 222 66" stroke-dasharray="160" stroke-dashoffset="160"><animate attributeName="stroke-dashoffset" from="160" to="0" begin="0.5s" dur="0.4s" fill="freeze"/></path><circle class="qdot t-bool" cx="226" cy="66" r="3.5"/><path class="fan" d="M96 39 C 150 39, 170 75, 222 75" stroke-dasharray="160" stroke-dashoffset="160"><animate attributeName="stroke-dashoffset" from="160" to="0" begin="0.5s" dur="0.4s" fill="freeze"/></path><circle class="qdot t-bool" cx="226" cy="75" r="3.5"/>
+      <g opacity="0"><set attributeName="opacity" to="1" begin="0.95s" fill="freeze"/><text class="fan-l" x="244" y="35">9 pertanyaan,</text><text class="fan-l" x="244" y="52">9 jawaban sekaligus</text></g>
+    </svg></div></div>
+      <div class="b-row"><p class="label">Keluar</p>
+        <div><b>Teks bebas</b><p class="llm-out">Mohon maaf atas kendalanya. Untuk ekspor PDF PRDTask: 1. Buka PRD, pilih menu Bagikan lalu Ekspor PDF. 2. Jika gagal, coba muat ulang halaman dan ekspor lagi. 3. Jika masih gagal, kirim tangkapan layar galatnya ke tim support agar bisa dicek. Karena presentasi besok, sebaiknya screenshot galat segera dikirim ke tim support.</p></div>
+        <div><b>Peluang tiap opsi + confidence</b><div class="pex"><div><span class="tpill t-choice">choice</span><span class="sbar"><i class="sg choice sg-top" style="width:88%">PRDTask 88%</i><i class="sg choice s1" style="width:8%"></i><i class="sg choice s2" style="width:4%"></i></span><small>DesainPakeAI 8% · Template 4%</small></div><div><span class="tpill t-score">score</span><span class="sbar"><i class="sg score s0" style="width:8%"></i><i class="sg score sg-top" style="width:91%">Sangat kesal 91%</i><i class="sg score s2" style="width:1%"></i></span><small>Kesal 8% · Marah 1% · skor 2,93</small></div><div><span class="tpill t-bool">noul</span><span class="sbar"><i class="sg noul sg-top" style="width:58.00000000000001%">tidak 58%</i><i class="sg noul s1" style="width:42%">ya 42%</i></span><small>peluang “ya” = 0,42</small></div><p class="qex-more">confidence: 0,85 (choice) · 0,92 (score) · noul tanpa confidence</p></div></div></div>
+      <div class="b-row use"><p class="label">Cocok untuk</p><span class="use-l">menulis · menjelaskan · merangkum</span><span class="use-j">memilah · menilai · merutekan<span class="use-both">Dipakai bersama <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span></span></div>
+    </div>
+  <p class="src-foot">Sumber: <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev" target="_blank" rel="noopener">blog TypeSafe: Introducing System One Models &amp; Jev</a> · <a href="https://docs.typesafe.ai/introduction" target="_blank" rel="noopener">docs.typesafe.ai/introduction</a> · <a href="data/jev-run-2026-10-03-deepseek.json" target="_blank" rel="noopener">data: run asli 3 Okt 2026</a></p>
+</section>
+<section class="slide" aria-label="Slide 5 dari 10" data-notes="Jev tidak menggantikan LLM; Jev memutuskan agent mana yang jalan, dan keputusan itu menentukan konteks yang diterima LLM. Ini pohon keputusan dari satu pesan asli pada 3 Okt 2026: &quot;Bagaimana cara ekspor PRD dari PRDTask ke PDF?&quot;. Langkah 1: Jev membaca pesan dan menjawab 9 pertanyaan sekaligus dalam 0,44 dtk: produk PRDTask 100%, jenis masalah cara pakai 100%, urgensi rendah, pelanggan tenang, tidak ada risiko churn, tidak ada data sensitif, injeksi, atau permintaan refund, dan pesannya cukup jelas. Langkah 2: aturan di backend mengecek angka itu berurutan. Tidak ada pemicu blokir, eskalasi, atau tanya balik, dan jenisnya cara pakai, jadi yang dipilih Agent FAQ. Agent lain tidak jalan, dan tiga di antaranya memang tidak memanggil LLM sama sekali. Langkah 3: karena yang terpilih Agent FAQ, LLM hanya menerima kebijakan support, 2 dokumen yang cocok dengan kata di pesan (dari 9 dokumen), instruksi maksimal tiga kalimat, dan pesan pelanggan: 316 token. LLM saja menerima semua 9 dokumen, 671 token. Langkah 4: DeepSeek V4.1 Flash menulis jawaban yang lolos cek kebijakan. Totalnya 2,19 dtk dan $0,00018, sedangkan LLM saja 1,44 dtk dan $0,00028: sekitar 1,6× lebih murah dengan konteks 2,1× lebih ringkas, tapi 0,75 dtk lebih lambat karena Jev berjalan dulu. Jawabannya setara.">
+  <header class="top"><div class="brand"><b>Bikinpakeai</b><span>Jev · System One model dari TypeSafe</span></div><span class="page">5 / 10</span></header>
+  <div class="head"><p class="eyebrow">Jev + LLM · 1 pesan · diukur 3 Okt 2026</p><h1 class="title">Jev memilih agent. LLM menjawab.</h1></div>
+  <svg class="anim mt" data-dur="6.05" viewBox="0 0 1280 720" role="img" aria-label="Pohon keputusan: pesan masuk ke Jev, 9 jawaban Jev masuk ke aturan, aturan memilih Agent FAQ, Agent FAQ menerima kebijakan, 2 dokumen, batas 3 kalimat, dan pesan (316 token), lalu DeepSeek V4.1 Flash menulis jawaban akhir.">
+    <text class="mt-step" x="64" y="226">Pesan pelanggan</text>
+    <circle class="mt-num" cx="235" cy="222" r="9"/><text class="mt-num-t" x="235" y="226" text-anchor="middle">1</text><text class="mt-step" x="251" y="226">Jev membaca · 9 pertanyaan sekaligus</text>
+    <circle class="mt-num" cx="579" cy="222" r="9"/><text class="mt-num-t" x="579" y="226" text-anchor="middle">2</text><text class="mt-step" x="595" y="226">Aturan memilih agent</text>
+    <circle class="mt-num" cx="859" cy="222" r="9"/><text class="mt-num-t" x="859" y="226" text-anchor="middle">3</text><text class="mt-step" x="875" y="226">Konteks untuk agent</text>
+    <rect class="mt-root" x="64" y="388" width="140" height="104" rx="16"/>
+    <text class="mt-root-t" x="80" y="418">Bagaimana cara</text>
+    <text class="mt-root-t" x="80" y="438">ekspor PRD dari</text>
+    <text class="mt-root-t" x="80" y="458">PRDTask ke</text>
+    <text class="mt-root-t" x="80" y="478">PDF?</text>
+    <path class="mt-e hot" d="M204 440 L226 440" stroke-dasharray="22" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="22" begin="0s"/><animate attributeName="stroke-dashoffset" from="22" to="0" begin="0.15s" dur="0.2s" fill="freeze"/></path>
+    <path class="mt-e " d="M266 440 C288 440,288 280,310 280" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="0.55s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M266 440 C288 440,288 320,310 320" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="0.55s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M266 440 C288 440,288 360,310 360" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="0.55s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M266 440 C288 440,288 400,310 400" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="0.55s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M266 440 C288 440,288 440,310 440" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="0.55s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M266 440 C288 440,288 480,310 480" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="0.55s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M266 440 C288 440,288 520,310 520" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="0.55s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M266 440 C288 440,288 560,310 560" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="0.55s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M266 440 C288 440,288 600,310 600" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="0.55s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M266 440 C288 440,288 320,310 320" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="1.45s" dur="0.25s" fill="freeze"/></path>
+    <path class="mt-e " d="M534 280 C552 280,552 440,570 440" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="1.70s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M534 320 C552 320,552 440,570 440" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="1.70s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M534 360 C552 360,552 440,570 440" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="1.70s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M534 400 C552 400,552 440,570 440" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="1.70s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M534 440 C552 440,552 440,570 440" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="1.70s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M534 480 C552 480,552 440,570 440" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="1.70s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M534 520 C552 520,552 440,570 440" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="1.70s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M534 560 C552 560,552 440,570 440" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="1.70s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e " d="M534 600 C552 600,552 440,570 440" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="1.70s" dur="0.35s" fill="freeze"/></path>
+    <path class="mt-e faint" d="M610 440 C632 440,632 332,654 332" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="2.30s" dur="0.3s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M610 440 C632 440,632 332,654 332" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="3.05s" dur="0.25s" fill="freeze"/></path>
+    <path class="mt-e faint" d="M610 440 C632 440,632 386,654 386" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="2.30s" dur="0.3s" fill="freeze"/></path>
+    <path class="mt-e faint" d="M610 440 C632 440,632 440,654 440" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="2.30s" dur="0.3s" fill="freeze"/></path>
+    <path class="mt-e faint" d="M610 440 C632 440,632 494,654 494" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="2.30s" dur="0.3s" fill="freeze"/></path>
+    <path class="mt-e faint" d="M610 440 C632 440,632 548,654 548" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="2.30s" dur="0.3s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M804 332 C827 332,827 256,850 256" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="3.35s" dur="0.3s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M804 332 C827 332,827 294,850 294" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="3.35s" dur="0.3s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M804 332 C827 332,827 332,850 332" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="3.35s" dur="0.3s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M804 332 C827 332,827 370,850 370" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="3.35s" dur="0.3s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M804 332 C827 332,827 408,850 408" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="3.35s" dur="0.3s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M1042 256 C1060 256,1060 332,1078 332" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="4.00s" dur="0.25s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M1042 294 C1060 294,1060 332,1078 332" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="4.00s" dur="0.25s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M1042 332 C1060 332,1060 332,1078 332" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="4.00s" dur="0.25s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M1042 370 C1060 370,1060 332,1078 332" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="4.00s" dur="0.25s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M1042 408 C1060 408,1060 332,1078 332" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="1" begin="0s"/><animate attributeName="stroke-dashoffset" from="1" to="0" begin="4.00s" dur="0.25s" fill="freeze"/></path>
+    <path class="mt-e hot" d="M1147 368 L1147 472" stroke-dasharray="104" stroke-dashoffset="0"><set attributeName="stroke-dashoffset" to="104" begin="0s"/><animate attributeName="stroke-dashoffset" from="104" to="0" begin="4.55s" dur="0.25s" fill="freeze"/></path>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="0.30s" dur="0.25s" fill="freeze"/><circle class="mt-knot" cx="246" cy="440" r="20"/><svg x="237.75" y="428" width="16.5" height="24" viewBox="0 0 99 144" class="mt-mark"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg><text class="mt-cap" x="246" y="408" text-anchor="middle">Jev</text><text class="mt-sub" x="246" y="482" text-anchor="middle">0,44 dtk</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="0.85s" dur="0.25s" fill="freeze"/><rect class="mt-leaf" x="310" y="265" width="224" height="30" rx="15"/><text class="mt-k" x="324" y="284.5">Produk</text><text class="mt-v" x="414" y="284.5">PRDTask</text><text class="mt-p" x="521" y="284.5" text-anchor="end">100%</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="0.85s" dur="0.25s" fill="freeze"/><rect class="mt-leaf" x="310" y="305" width="224" height="30" rx="15"/><text class="mt-k" x="324" y="324.5">Jenis masalah</text><text class="mt-v" x="414" y="324.5">Cara pakai</text><text class="mt-p" x="521" y="324.5" text-anchor="end">100%</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="1.45s" dur="0.2s" fill="freeze"/><rect class="mt-leaf hot" x="310" y="305" width="224" height="30" rx="15"/><text class="mt-k hot" x="324" y="324.5">Jenis masalah</text><text class="mt-v hot" x="414" y="324.5">Cara pakai</text><text class="mt-p hot" x="521" y="324.5" text-anchor="end">100%</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="0.85s" dur="0.25s" fill="freeze"/><rect class="mt-leaf" x="310" y="345" width="224" height="30" rx="15"/><text class="mt-k" x="324" y="364.5">Urgensi</text><text class="mt-v" x="414" y="364.5">Rendah</text><text class="mt-p" x="521" y="364.5" text-anchor="end">81%</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="0.85s" dur="0.25s" fill="freeze"/><rect class="mt-leaf" x="310" y="385" width="224" height="30" rx="15"/><text class="mt-k" x="324" y="404.5">Frustrasi</text><text class="mt-v" x="414" y="404.5">Tenang</text><text class="mt-p" x="521" y="404.5" text-anchor="end">100%</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="0.85s" dur="0.25s" fill="freeze"/><rect class="mt-leaf" x="310" y="425" width="224" height="30" rx="15"/><text class="mt-k" x="324" y="444.5">Risiko churn</text><text class="mt-v" x="414" y="444.5">Tidak ada</text><text class="mt-p" x="521" y="444.5" text-anchor="end">74%</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="0.85s" dur="0.25s" fill="freeze"/><rect class="mt-leaf" x="310" y="465" width="224" height="30" rx="15"/><text class="mt-k" x="324" y="484.5">Data sensitif</text><text class="mt-v" x="414" y="484.5">Tidak</text><text class="mt-p" x="521" y="484.5" text-anchor="end">99%</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="0.85s" dur="0.25s" fill="freeze"/><rect class="mt-leaf" x="310" y="505" width="224" height="30" rx="15"/><text class="mt-k" x="324" y="524.5">Injeksi</text><text class="mt-v" x="414" y="524.5">Tidak</text><text class="mt-p" x="521" y="524.5" text-anchor="end">98%</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="0.85s" dur="0.25s" fill="freeze"/><rect class="mt-leaf" x="310" y="545" width="224" height="30" rx="15"/><text class="mt-k" x="324" y="564.5">Minta refund</text><text class="mt-v" x="414" y="564.5">Tidak</text><text class="mt-p" x="521" y="564.5" text-anchor="end">99%</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="0.85s" dur="0.25s" fill="freeze"/><rect class="mt-leaf" x="310" y="585" width="224" height="30" rx="15"/><text class="mt-k" x="324" y="604.5">Kurang jelas</text><text class="mt-v" x="414" y="604.5">Tidak</text><text class="mt-p" x="521" y="604.5" text-anchor="end">74%</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="2.05s" dur="0.25s" fill="freeze"/><circle class="mt-knot dark" cx="590" cy="440" r="20"/><svg x="580" y="430" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg><text class="mt-cap" x="590" y="408" text-anchor="middle">Aturan</text><text class="mt-sub" x="590" y="482" text-anchor="middle">tak ada</text><text class="mt-sub" x="590" y="496" text-anchor="middle">pemicu</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="2.55s" dur="0.25s" fill="freeze"/><g><rect class="mt-agent" x="654" y="310" width="150" height="44" rx="12"/><text class="mt-an" x="668" y="329">Agent FAQ</text><text class="mt-as" x="668" y="345">LLM cepat + dokumen</text></g></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="3.05s" dur="0.2s" fill="freeze"/><rect class="mt-agent on" x="654" y="310" width="150" height="44" rx="12"/><text class="mt-an on" x="668" y="329">Agent FAQ</text><text class="mt-as on" x="668" y="345">LLM cepat + dokumen</text><text class="mt-ck" x="746" y="329.5">✓</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="2.55s" dur="0.25s" fill="freeze"/><g><animate attributeName="opacity" from="1" to="0.42" begin="3.05s" dur="0.3s" fill="freeze"/><rect class="mt-agent" x="654" y="364" width="150" height="44" rx="12"/><text class="mt-an" x="668" y="383">Agent teknis</text><text class="mt-as" x="668" y="399">LLM penalaran + dok</text></g></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="2.55s" dur="0.25s" fill="freeze"/><g><animate attributeName="opacity" from="1" to="0.42" begin="3.05s" dur="0.3s" fill="freeze"/><rect class="mt-agent" x="654" y="418" width="150" height="44" rx="12"/><text class="mt-an" x="668" y="437">Template</text><text class="mt-as" x="668" y="453">tanpa LLM</text></g></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="2.55s" dur="0.25s" fill="freeze"/><g><animate attributeName="opacity" from="1" to="0.42" begin="3.05s" dur="0.3s" fill="freeze"/><rect class="mt-agent" x="654" y="472" width="150" height="44" rx="12"/><text class="mt-an" x="668" y="491">Tim support</text><text class="mt-as" x="668" y="507">tiket, tanpa LLM</text></g></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="2.55s" dur="0.25s" fill="freeze"/><g><animate attributeName="opacity" from="1" to="0.42" begin="3.05s" dur="0.3s" fill="freeze"/><rect class="mt-agent" x="654" y="526" width="150" height="44" rx="12"/><text class="mt-an" x="668" y="545">Tanya balik</text><text class="mt-as" x="668" y="561">tanpa LLM</text></g></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="3.60s" dur="0.25s" fill="freeze"/><rect class="mt-ctx" x="850" y="241" width="192" height="30" rx="8"/><svg class="mt-ci" x="861" y="249" width="14" height="14" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg><text class="mt-ct" x="882" y="260.5">Kebijakan support</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="3.68s" dur="0.25s" fill="freeze"/><rect class="mt-ctx" x="850" y="279" width="192" height="30" rx="8"/><svg class="mt-ci" x="861" y="287" width="14" height="14" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg><text class="mt-ct" x="882" y="298.5">Ekspor PRD ke PDF</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="3.76s" dur="0.25s" fill="freeze"/><rect class="mt-ctx" x="850" y="317" width="192" height="30" rx="8"/><svg class="mt-ci" x="861" y="325" width="14" height="14" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg><text class="mt-ct" x="882" y="336.5">Reset password PRDTask</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="3.84s" dur="0.25s" fill="freeze"/><rect class="mt-ctx" x="850" y="355" width="192" height="30" rx="8"/><svg class="mt-ci" x="861" y="363" width="14" height="14" viewBox="0 0 24 24"><path d="M21 6H3"/><path d="M15 12H3"/><path d="M17 18H3"/></svg><text class="mt-ct" x="882" y="374.5">Jawab maks. 3 kalimat</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="3.92s" dur="0.25s" fill="freeze"/><rect class="mt-ctx" x="850" y="393" width="192" height="30" rx="8"/><svg class="mt-ci" x="861" y="401" width="14" height="14" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><text class="mt-ct" x="882" y="412.5">Pesan pelanggan</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="4.00s" dur="0.25s" fill="freeze"/><text class="mt-sub" x="850" y="445">2 dari 9 dokumen, cocok dengan kata di pesan</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="4.25s" dur="0.25s" fill="freeze"/><rect class="mt-llm" x="1078" y="296" width="138" height="72" rx="14"/><text class="mt-ll" x="1147" y="314" text-anchor="middle">DeepSeek V4.1 Flash</text><text class="mt-tok" x="1147" y="342" text-anchor="middle">316</text><text class="mt-tokl" x="1147" y="358" text-anchor="middle">token konteks</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="4.80s" dur="0.25s" fill="freeze"/><rect class="mt-out" x="850" y="472" width="366" height="194" rx="18"/><circle class="mt-num" cx="877" cy="497" r="9"/><text class="mt-num-t" x="877" y="501" text-anchor="middle">4</text><text class="mt-step" x="893" y="501">Jawaban akhir</text><text class="mt-m" x="1198" y="501" text-anchor="end">2,19 dtk · $0,00018</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="5.00s" dur="0.2s" fill="freeze"/><text class="mt-ans" x="868" y="530">Buka PRD di PRDTask, lalu pilih menu <tspan font-weight="700">Bagikan</tspan></text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="5.10s" dur="0.2s" fill="freeze"/><text class="mt-ans" x="868" y="551">dan klik <tspan font-weight="700">Ekspor PDF</tspan>. Jika ekspor gagal, coba muat</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="5.20s" dur="0.2s" fill="freeze"/><text class="mt-ans" x="868" y="572">ulang halaman terlebih dahulu. Bila masih gagal,</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="5.30s" dur="0.2s" fill="freeze"/><text class="mt-ans" x="868" y="593">kirimkan tangkapan layar galatnya ke tim support.</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="5.60s" dur="0.25s" fill="freeze"/><text class="mt-ok" x="868" y="620">✓ lolos cek kebijakan</text><line class="mt-rule" x1="868" x2="1198" y1="632" y2="632"/><text class="mt-sub" x="868" y="652">LLM saja: semua 9 dokumen · 671 token · 1,44 dtk · $0,00028</text></g>
+    <g opacity="0"><set attributeName="opacity" to="0" begin="0s"/><animate attributeName="opacity" from="0" to="1" begin="5.75s" dur="0.3s" fill="freeze"/><animateTransform attributeName="transform" type="translate" additive="sum" from="0 8" to="0 0" begin="5.75s" dur="0.3s" fill="freeze"/><rect class="stat-bg" x="880" y="78" width="160" height="74" rx="16"/><text class="stat-n" x="896" y="122">1,6×</text><text class="stat-l" x="896" y="142">lebih murah</text><rect class="stat-bg" x="1056" y="78" width="160" height="74" rx="16"/><text class="stat-n" x="1072" y="122">2,1×</text><text class="stat-l" x="1072" y="142">konteks lebih ringkas</text></g>
+    </svg>
+  <button class="replay mt-replay" type="button" data-replay><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>Putar ulang</button>
+  <p class="src-foot">Sumber: <a href="https://docs.typesafe.ai/patterns/intent-routing" target="_blank" rel="noopener">pola Intent routing · docs.typesafe.ai</a> · <a href="data/jev-run-2026-10-03-deepseek.json" target="_blank" rel="noopener">data: run asli 3 Okt 2026</a> · aturan &amp; konteks: <code>rules.ts</code>, <code>answers.server.ts</code></p>
+</section>
+<section class="slide" aria-label="Slide 6 dari 10" data-notes="LLM menulis secara berurutan: satu potongan teks dihasilkan, lalu potongan berikutnya bergantung pada potongan sebelumnya. Di kiri adalah 15 potongan asli dari jawaban DeepSeek V4.1 Flash, termasuk potongan yang memotong kata seperti &quot;Buka PR&quot; lalu &quot;D yang ingin&quot;. Jev bekerja berbeda. Menurut dokumentasi TypeSafe, setiap pertanyaan dinilai secara paralel dan terpisah terhadap state yang sama dalam satu kali proses, jadi menambah pertanyaan hampir tidak menambah waktu. Blog TypeSafe menyebutnya parallel sampling: semua output dihasilkan dalam satu query, bukan token demi token. Kami ukur sendiri pada 3 Okt 2026: dengan 1, 3, 9, dan 18 pertanyaan, median waktu respons tetap sekitar 0,28 dtk, 0,28 dtk, 0,33 dtk, 0,30 dtk. Yang naik hanya token input dan biayanya, karena token output Jev gratis. Animasi di atas menunjukkan urutan proses, bukan skala waktu.">
+  <header class="top"><div class="brand"><b>Bikinpakeai</b><span>Jev · System One model dari TypeSafe</span></div><span class="page">6 / 10</span></header>
+  <div class="head"><p class="eyebrow">Cara kerja · berurutan vs paralel</p><h1 class="title">Jev menjawab semua pertanyaan sekaligus.</h1></div>
+  
+  <svg class="anim par" data-dur="6.5" viewBox="0 0 1280 720" aria-label="LLM menghasilkan potongan teks satu per satu, Jev menjawab sembilan pertanyaan sekaligus dalam satu panggilan">
+    <rect class="lane-bg" x="64" y="180" width="556" height="298" rx="20"/>
+    <g transform="translate(92,203) scale(0.8)" class="ico-g"><svg width="25" height="25" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></g>
+    <text class="lane-n" x="122" y="219">LLM <tspan class="lane-m">berurutan</tspan></text>
+    <text class="par-cap" x="92" y="246">satu potongan dulu, lalu berikutnya</text>
+    <g opacity="0"><set attributeName="opacity" to="1" begin="0.40s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="0.40s" dur="0.2s" fill="freeze"/><rect class="tok" x="92" y="266" width="69" height="28" rx="6"/><text class="tok-t" x="101" y="285">Buka PR</text></g><text class="par-arrow" x="166" y="285" opacity="0"><set attributeName="opacity" to="1" begin="0.72s" fill="freeze"/>›</text><g opacity="0"><set attributeName="opacity" to="1" begin="0.72s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="0.72s" dur="0.2s" fill="freeze"/><rect class="tok" x="179" y="266" width="106" height="28" rx="6"/><text class="tok-t" x="188" y="285">D yang ingin</text></g><text class="par-arrow" x="290" y="285" opacity="0"><set attributeName="opacity" to="1" begin="1.04s" fill="freeze"/>›</text><g opacity="0"><set attributeName="opacity" to="1" begin="1.04s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="1.04s" dur="0.2s" fill="freeze"/><rect class="tok" x="303" y="266" width="135" height="28" rx="6"/><text class="tok-t" x="312" y="285">diekspor, lalu p</text></g><g opacity="0"><set attributeName="opacity" to="1" begin="1.36s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="1.36s" dur="0.2s" fill="freeze"/><rect class="tok" x="92" y="310" width="142" height="28" rx="6"/><text class="tok-t" x="101" y="329">ilih menu Bagikan</text></g><text class="par-arrow" x="239" y="329" opacity="0"><set attributeName="opacity" to="1" begin="1.68s" fill="freeze"/>›</text><g opacity="0"><set attributeName="opacity" to="1" begin="1.68s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="1.68s" dur="0.2s" fill="freeze"/><rect class="tok" x="252" y="310" width="55" height="28" rx="6"/><text class="tok-t" x="261" y="329">dan p</text></g><text class="par-arrow" x="312" y="329" opacity="0"><set attributeName="opacity" to="1" begin="2.00s" fill="freeze"/>›</text><g opacity="0"><set attributeName="opacity" to="1" begin="2.00s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="2.00s" dur="0.2s" fill="freeze"/><rect class="tok" x="325" y="310" width="128" height="28" rx="6"/><text class="tok-t" x="334" y="329">ilih Ekspor PDF</text></g><g opacity="0"><set attributeName="opacity" to="1" begin="2.32s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="2.32s" dur="0.2s" fill="freeze"/><rect class="tok" x="92" y="354" width="157" height="28" rx="6"/><text class="tok-t" x="101" y="373">. Jika ekspor gagal</text></g><text class="par-arrow" x="254" y="373" opacity="0"><set attributeName="opacity" to="1" begin="2.64s" fill="freeze"/>›</text><g opacity="0"><set attributeName="opacity" to="1" begin="2.64s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="2.64s" dur="0.2s" fill="freeze"/><rect class="tok" x="267" y="354" width="40" height="28" rx="6"/><text class="tok-t" x="276" y="373">, c</text></g><text class="par-arrow" x="312" y="373" opacity="0"><set attributeName="opacity" to="1" begin="2.96s" fill="freeze"/>›</text><g opacity="0"><set attributeName="opacity" to="1" begin="2.96s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="2.96s" dur="0.2s" fill="freeze"/><rect class="tok" x="325" y="354" width="135" height="28" rx="6"/><text class="tok-t" x="334" y="373">oba muat ulang h</text></g><text class="par-arrow" x="465" y="373" opacity="0"><set attributeName="opacity" to="1" begin="3.28s" fill="freeze"/>›</text><g opacity="0"><set attributeName="opacity" to="1" begin="3.28s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="3.28s" dur="0.2s" fill="freeze"/><rect class="tok" x="478" y="354" width="91" height="28" rx="6"/><text class="tok-t" x="487" y="373">alaman ter</text></g><g opacity="0"><set attributeName="opacity" to="1" begin="3.60s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="3.60s" dur="0.2s" fill="freeze"/><rect class="tok" x="92" y="398" width="128" height="28" rx="6"/><text class="tok-t" x="101" y="417">lebih dahulu. B</text></g><text class="par-arrow" x="225" y="417" opacity="0"><set attributeName="opacity" to="1" begin="3.92s" fill="freeze"/>›</text><g opacity="0"><set attributeName="opacity" to="1" begin="3.92s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="3.92s" dur="0.2s" fill="freeze"/><rect class="tok" x="238" y="398" width="84" height="28" rx="6"/><text class="tok-t" x="247" y="417">ila masih</text></g><text class="par-arrow" x="327" y="417" opacity="0"><set attributeName="opacity" to="1" begin="4.24s" fill="freeze"/>›</text><g opacity="0"><set attributeName="opacity" to="1" begin="4.24s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="4.24s" dur="0.2s" fill="freeze"/><rect class="tok" x="340" y="398" width="142" height="28" rx="6"/><text class="tok-t" x="349" y="417">gagal, kirim tang</text></g><g opacity="0"><set attributeName="opacity" to="1" begin="4.56s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="4.56s" dur="0.2s" fill="freeze"/><rect class="tok" x="92" y="442" width="142" height="28" rx="6"/><text class="tok-t" x="101" y="461">kapan layar galat</text></g><text class="par-arrow" x="239" y="461" opacity="0"><set attributeName="opacity" to="1" begin="4.88s" fill="freeze"/>›</text><g opacity="0"><set attributeName="opacity" to="1" begin="4.88s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="0 6" to="0 0" begin="4.88s" dur="0.2s" fill="freeze"/><rect class="tok" x="252" y="442" width="157" height="28" rx="6"/><text class="tok-t" x="261" y="461">nya ke tim support.</text></g>
+
+    <rect class="lane-bg strong" x="640" y="180" width="576" height="298" rx="20"/>
+    <g transform="translate(668,200)" class="mark-g"><svg width="17" height="25" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg></g>
+    <text class="lane-n" x="694" y="219">Jev <tspan class="lane-m">paralel · 1 panggilan</tspan></text>
+    <g class="state-g"><rect class="state-box" x="668" y="300" width="150" height="46" rx="10"><animate attributeName="stroke-width" values="1;3;1" begin="0.60s" dur="0.5s"/></rect>
+      <text class="state-k" x="680" y="319">state</text><text class="state-v" x="680" y="336">pesan pelanggan</text></g>
+    <path class="fan" d="M818 323 C 848 323, 830 236, 864 236" stroke-dasharray="141.35580891098448" stroke-dashoffset="141.35580891098448"><animate attributeName="stroke-dashoffset" from="141.35580891098448" to="0" begin="0.90s" dur="0.35s" fill="freeze"/></path>
+        <circle class="qdot t-choice" cx="870" cy="236" r="4"/>
+        <text class="q-n" x="880" y="240">Produk</text>
+        <g opacity="0"><set attributeName="opacity" to="1" begin="1.25s" fill="freeze"/><text class="q-v" x="982" y="240">PRDTask</text><text class="q-c" x="1196" y="240" text-anchor="end">100%</text></g><path class="fan" d="M818 323 C 848 323, 830 261, 864 261" stroke-dasharray="120.91971329657565" stroke-dashoffset="120.91971329657565"><animate attributeName="stroke-dashoffset" from="120.91971329657565" to="0" begin="0.90s" dur="0.35s" fill="freeze"/></path>
+        <circle class="qdot t-choice" cx="870" cy="261" r="4"/>
+        <text class="q-n" x="880" y="265">Jenis masalah</text>
+        <g opacity="0"><set attributeName="opacity" to="1" begin="1.25s" fill="freeze"/><text class="q-v" x="982" y="265">Cara pakai</text><text class="q-c" x="1196" y="265" text-anchor="end">100%</text></g><path class="fan" d="M818 323 C 848 323, 830 286, 864 286" stroke-dasharray="103.8200595424354" stroke-dashoffset="103.8200595424354"><animate attributeName="stroke-dashoffset" from="103.8200595424354" to="0" begin="0.90s" dur="0.35s" fill="freeze"/></path>
+        <circle class="qdot t-score" cx="870" cy="286" r="4"/>
+        <text class="q-n" x="880" y="290">Urgensi</text>
+        <g opacity="0"><set attributeName="opacity" to="1" begin="1.25s" fill="freeze"/><text class="q-v" x="982" y="290">Rendah</text><text class="q-c" x="1196" y="290" text-anchor="end">80%</text></g><path class="fan" d="M818 323 C 848 323, 830 311, 864 311" stroke-dasharray="93.36665625650534" stroke-dashoffset="93.36665625650534"><animate attributeName="stroke-dashoffset" from="93.36665625650534" to="0" begin="0.90s" dur="0.35s" fill="freeze"/></path>
+        <circle class="qdot t-score" cx="870" cy="311" r="4"/>
+        <text class="q-n" x="880" y="315">Frustrasi</text>
+        <g opacity="0"><set attributeName="opacity" to="1" begin="1.25s" fill="freeze"/><text class="q-v" x="982" y="315">0,00</text><text class="q-c" x="1196" y="315" text-anchor="end">100%</text></g><path class="fan" d="M818 323 C 848 323, 830 336, 864 336" stroke-dasharray="93.60037313302959" stroke-dashoffset="93.60037313302959"><animate attributeName="stroke-dashoffset" from="93.60037313302959" to="0" begin="0.90s" dur="0.35s" fill="freeze"/></path>
+        <circle class="qdot t-score" cx="870" cy="336" r="4"/>
+        <text class="q-n" x="880" y="340">Risiko churn</text>
+        <g opacity="0"><set attributeName="opacity" to="1" begin="1.25s" fill="freeze"/><text class="q-v" x="982" y="340">0,07</text><text class="q-c" x="1196" y="340" text-anchor="end">78%</text></g><path class="fan" d="M818 323 C 848 323, 830 361, 864 361" stroke-dasharray="104.40496875241847" stroke-dashoffset="104.40496875241847"><animate attributeName="stroke-dashoffset" from="104.40496875241847" to="0" begin="0.90s" dur="0.35s" fill="freeze"/></path>
+        <circle class="qdot t-bool" cx="870" cy="361" r="4"/>
+        <text class="q-n" x="880" y="365">Data sensitif</text>
+        <g opacity="0"><set attributeName="opacity" to="1" begin="1.25s" fill="freeze"/><text class="q-v" x="982" y="365">ya 1%</text></g><path class="fan" d="M818 323 C 848 323, 830 386, 864 386" stroke-dasharray="121.68843247363729" stroke-dashoffset="121.68843247363729"><animate attributeName="stroke-dashoffset" from="121.68843247363729" to="0" begin="0.90s" dur="0.35s" fill="freeze"/></path>
+        <circle class="qdot t-bool" cx="870" cy="386" r="4"/>
+        <text class="q-n" x="880" y="390">Injeksi prompt</text>
+        <g opacity="0"><set attributeName="opacity" to="1" begin="1.25s" fill="freeze"/><text class="q-v" x="982" y="390">ya 2%</text></g><path class="fan" d="M818 323 C 848 323, 830 411, 864 411" stroke-dasharray="142.21545871344512" stroke-dashoffset="142.21545871344512"><animate attributeName="stroke-dashoffset" from="142.21545871344512" to="0" begin="0.90s" dur="0.35s" fill="freeze"/></path>
+        <circle class="qdot t-bool" cx="870" cy="411" r="4"/>
+        <text class="q-n" x="880" y="415">Minta refund</text>
+        <g opacity="0"><set attributeName="opacity" to="1" begin="1.25s" fill="freeze"/><text class="q-v" x="982" y="415">ya 1%</text></g><path class="fan" d="M818 323 C 848 323, 830 436, 864 436" stroke-dasharray="164.3905141077888" stroke-dashoffset="164.3905141077888"><animate attributeName="stroke-dashoffset" from="164.3905141077888" to="0" begin="0.90s" dur="0.35s" fill="freeze"/></path>
+        <circle class="qdot t-bool" cx="870" cy="436" r="4"/>
+        <text class="q-n" x="880" y="440">Kurang jelas</text>
+        <g opacity="0"><set attributeName="opacity" to="1" begin="1.25s" fill="freeze"/><text class="q-v" x="982" y="440">ya 26%</text></g>
+
+    <rect class="lane-bg" x="64" y="494" width="1152" height="182" rx="20"/>
+    <text class="lbl" x="92" y="526">WAKTU RESPONS JEV · MEDIAN 3 KALI · 3 OKT 2026</text>
+    <text class="b-l" x="288" y="562" text-anchor="end">1 pertanyaan</text>
+        <rect class="b-track" x="300" y="548" width="520" height="18" rx="9"/>
+        <rect class="b-bar" x="300" y="548" width="0" height="18" rx="9"><animate attributeName="width" from="0" to="291.20000000000005" begin="0.2s" dur="0.6s" fill="freeze"/></rect>
+        <text class="b-v" x="601.2" y="562" opacity="0"><set attributeName="opacity" to="1" begin="0.80s" fill="freeze"/>0,28 dtk</text>
+        <text class="b-m" x="850" y="562">435 token input · $0,000018</text><text class="b-l" x="288" y="592" text-anchor="end">3 pertanyaan</text>
+        <rect class="b-track" x="300" y="578" width="520" height="18" rx="9"/>
+        <rect class="b-bar" x="300" y="578" width="0" height="18" rx="9"><animate attributeName="width" from="0" to="293.28" begin="0.2s" dur="0.6s" fill="freeze"/></rect>
+        <text class="b-v" x="603.28" y="592" opacity="0"><set attributeName="opacity" to="1" begin="0.80s" fill="freeze"/>0,28 dtk</text>
+        <text class="b-m" x="850" y="592">694 token input · $0,000029</text><text class="b-l" x="288" y="622" text-anchor="end">9 pertanyaan</text>
+        <rect class="b-track" x="300" y="608" width="520" height="18" rx="9"/>
+        <rect class="b-bar" x="300" y="608" width="0" height="18" rx="9"><animate attributeName="width" from="0" to="345.28000000000003" begin="0.2s" dur="0.6s" fill="freeze"/></rect>
+        <text class="b-v" x="655.28" y="622" opacity="0"><set attributeName="opacity" to="1" begin="0.80s" fill="freeze"/>0,33 dtk</text>
+        <text class="b-m" x="850" y="622">932 token input · $0,000039</text><text class="b-l" x="288" y="652" text-anchor="end">18 pertanyaan</text>
+        <rect class="b-track" x="300" y="638" width="520" height="18" rx="9"/>
+        <rect class="b-bar" x="300" y="638" width="0" height="18" rx="9"><animate attributeName="width" from="0" to="313.03999999999996" begin="0.2s" dur="0.6s" fill="freeze"/></rect>
+        <text class="b-v" x="623.04" y="652" opacity="0"><set attributeName="opacity" to="1" begin="0.80s" fill="freeze"/>0,30 dtk</text>
+        <text class="b-m" x="850" y="652">1.584 token input · $0,000067</text>
+  </svg>
+  <p class="src-foot">Sumber: <a href="https://docs.typesafe.ai/introduction" target="_blank" rel="noopener">docs.typesafe.ai/introduction</a> · <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev" target="_blank" rel="noopener">blog TypeSafe: Introducing System One Models &amp; Jev</a> · <a href="data/jev-run-2026-10-03-deepseek.json" target="_blank" rel="noopener">data: run asli 3 Okt 2026</a></p>
+</section>
+<section class="slide" aria-label="Slide 7 dari 10" data-notes="Ini request dan respons JSON asli dari satu panggilan Jev, ditangkap langsung dari HTTP. Request-nya berisi model, state (pesan pelanggan yang sudah disamarkan), dan sembilan pertanyaan bertipe dari kode chatbot: choice dengan daftar opsi, score dengan daftar level, dan noul untuk ya/tidak. Di slide hanya tiga yang ditampilkan; titik-titik menandai bagian yang tidak muat. Responsnya berisi jawaban untuk kesembilan pertanyaan sekaligus. Choice dan score membawa peluang tiap opsi dan confidence, yang menurut dokumentasi TypeSafe dihitung dari bentuk distribusi: 1 kalau semua peluang di satu opsi, 0 kalau rata. Noul hanya membawa satu angka: peluang &quot;ya&quot;. Respons juga mencatat pemakaian: 932 token input dan biaya $0.000039144. Waktu 0,71 dtk.">
+  <header class="top"><div class="brand"><b>Bikinpakeai</b><span>Jev · System One model dari TypeSafe</span></div><span class="page">7 / 10</span></header>
+  <div class="head"><p class="eyebrow">Chatbot Bikinpakeai · input & output Jev</p><h1 class="title">Yang Jev baca, yang Jev jawab.</h1></div>
+  
+    <div class="abs card code-card" style="left:64px;top:186px;width:420px;height:490px">
+      <p class="label">Request · POST /api/alpha/decisions</p>
+      <pre class="json">{
+  <span class="j-k">"model"</span>: <span class="j-s">"typesafe/jev-1.13"</span>,
+  <span class="j-k">"state"</span>: {
+    <span class="j-k">"message"</span>: <span class="j-s">"Ekspor PDF gagal terus, padahal besok saya presentasi!"</span>
+  },
+  <span class="j-k">"questions"</span>: {
+    <span class="j-k">"issue_type"</span>: {
+      <span class="j-k">"type"</span>: <span class="j-s">"choice"</span>,
+      <span class="j-k">"instructions"</span>: <span class="j-s">"Jenis masalah apa yang disampaikan pelanggan?"</span>,
+      <span class="j-k">"criteria"</span>: { <span class="j-k">"bug"</span>: <span class="j-s">"Fitur rusak, galat, atau tombol tidak berfungsi."</span>, <span class="j-c">… 4 opsi lain</span> }
+    },
+    <span class="j-k">"frustration"</span>: {
+      <span class="j-k">"type"</span>: <span class="j-s">"score"</span>,
+      <span class="j-k">"instructions"</span>: <span class="j-s">"Seberapa frustrasi atau kesal pelanggan?"</span>,
+      <span class="j-k">"criteria"</span>: [<span class="j-s">"Tenang"</span>, <span class="j-s">"Sedikit kesal"</span>, <span class="j-s">"Kesal"</span>, <span class="j-s">"Sangat kesal"</span>, <span class="j-s">"Marah"</span>]
+    },
+    <span class="j-k">"unclear"</span>: { <span class="j-k">"type"</span>: <span class="j-s">"noul"</span>, <span class="j-k">"instructions"</span>: <span class="j-s">"Apakah pesan terlalu tidak jelas untuk dijawab tanpa bertanya balik?"</span> },
+    <span class="j-c">… 6 pertanyaan lain</span>
+  }
+}</pre>
+    </div>
+    <div class="abs io-mid" style="left:490px;top:410px"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg><small>0,71 dtk</small></div>
+    <div class="abs card strong code-card" style="left:536px;top:186px;width:400px;height:490px">
+      <p class="label">Respons asli · 200 · 932 token input</p>
+      <pre class="json">{
+  <span class="j-k">"model"</span>: <span class="j-s">"typesafe/jev-1.13-20260917"</span>,
+  <span class="j-k">"answers"</span>: {
+    <span class="j-k">"issue_type"</span>: {
+      <span class="j-k">"type"</span>: <span class="j-s">"choice"</span>,
+      <span class="j-k">"choice"</span>: <span class="j-s">"bug"</span>,
+      <span class="j-k">"probabilities"</span>: { <span class="j-k">"bug"</span>: <span class="j-n">1</span>, <span class="j-k">"saran_fitur"</span>: <span class="j-n">0</span>, <span class="j-c">… 3 lainnya</span> },
+      <span class="j-k">"confidence"</span>: <span class="j-n">1</span>
+    },
+    <span class="j-k">"frustration"</span>: {
+      <span class="j-k">"type"</span>: <span class="j-s">"score"</span>,
+      <span class="j-k">"score"</span>: <span class="j-n">2.93</span>,
+      <span class="j-k">"probabilities"</span>: { <span class="j-k">"2"</span>: <span class="j-n">0.08</span>, <span class="j-k">"3"</span>: <span class="j-n">0.91</span>, <span class="j-k">"4"</span>: <span class="j-n">0.01</span>, <span class="j-c">… 2 lainnya</span> },
+      <span class="j-k">"confidence"</span>: <span class="j-n">0.92</span>
+    },
+    <span class="j-k">"unclear"</span>: { <span class="j-k">"type"</span>: <span class="j-s">"noul"</span>, <span class="j-k">"noul"</span>: <span class="j-n">0.42</span> },
+    <span class="j-c">… 6 jawaban lain</span>
+  },
+  <span class="j-k">"usage"</span>: { <span class="j-k">"input_tokens"</span>: <span class="j-n">932</span>, <span class="j-k">"output_tokens"</span>: <span class="j-n">248</span>, <span class="j-k">"cost"</span>: <span class="j-n">0.000039144</span> },
+  <span class="j-k">"provider"</span>: <span class="j-s">"TypeSafe"</span>
+}</pre>
+    </div>
+    <div class="abs card how" style="left:952px;top:186px;width:264px;height:490px">
+      <p class="label">Cara membaca</p>
+      <div class="how-block"><span class="tpill t-choice">choice</span><b>product</b>
+        <div class="drow hot"><span>PRDTask</span><span class="dtrack"><i style="width:88%"></i></span><em>88%</em></div><div class="drow"><span>DesainPakeAI</span><span class="dtrack"><i style="width:8%"></i></span><em>8%</em></div><div class="drow"><span>Template</span><span class="dtrack"><i style="width:4%"></i></span><em>4%</em></div>
+        <p class="how-note">confidence 0.85: dihitung dari bentuk distribusi</p>
+      </div>
+      <div class="how-block"><span class="tpill t-score">score</span><b>frustration</b>
+        <div class="hist"><div class=""><em>0%</em><i style="height:1px"></i><span>Tenang</span></div><div class=""><em>0%</em><i style="height:1px"></i><span>Sedikit</span></div><div class=""><em>8%</em><i style="height:4px"></i><span>Kesal</span></div><div class="hot"><em>91%</em><i style="height:45.5px"></i><span>Sangat</span></div><div class=""><em>1%</em><i style="height:1px"></i><span>Marah</span></div></div>
+        <p class="how-note">score 2.93 → app: 0,73</p>
+      </div>
+      <div class="how-block"><span class="tpill t-bool">noul</span><b>unclear</b>
+        <div class="split"><i style="width:58.00000000000001%"><span>tidak 58%</span></i><i class="yes" style="width:42%"><span>ya 42%</span></i></div>
+        <p class="how-note">noul = peluang “ya”, tanpa confidence</p>
+      </div>
+    </div>
+  <p class="src-foot">Sumber: <a href="https://docs.typesafe.ai/concepts/state" target="_blank" rel="noopener">State</a> · <a href="https://docs.typesafe.ai/primitives/noul" target="_blank" rel="noopener">Noul</a> · <a href="https://docs.typesafe.ai/confidence" target="_blank" rel="noopener">Confidence</a> · <code>src/services/pipeline/jev.server.ts</code> · <a href="data/jev-run-2026-10-03-deepseek.json" target="_blank" rel="noopener">data: request &amp; respons asli</a></p>
+</section>
+<section class="slide" aria-label="Slide 8 dari 10" data-notes="Jev hanya memberi angka; yang memutuskan adalah aturan di backend (rules.ts), dicek berurutan dan berhenti di aturan pertama yang cocok. Ya/tidak dihitung ya kalau peluangnya minimal 50 persen. Untuk pesan ini, hasil asli: injeksi 2% dan data sensitif 2%, jadi lolos. Aturan ketiga cocok: Bug mendesak perlu dicek langsung. Perhatikan frustrasi 0,73 nyaris menyentuh ambang 0,75 dan churn 0,62 di bawah 0,70. Hasil akhirnya: Eskalasi ke tim support.">
+  <header class="top"><div class="brand"><b>Bikinpakeai</b><span>Jev · System One model dari TypeSafe</span></div><span class="page">8 / 10</span></header>
+  <div class="head"><p class="eyebrow">Chatbot Bikinpakeai · aturan backend</p><h1 class="title">Dari angka Jev ke rute.</h1></div>
+  
+    <div class="abs card strong scores" style="left:64px;top:190px;width:290px;height:486px">
+      <div class="reader-head"><span class="jev-badge md"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg><b>Jev</b></span><span class="tag neutral">output asli</span></div>
+      <div class="srow"><span class="lk">Jenis masalah</span><b class="">Bug</b></div><div class="srow"><span class="lk">Urgensi</span><b class="flagged">Mendesak</b></div><div class="srow"><span class="lk">Frustrasi</span><b class="">0,73</b></div><div class="srow"><span class="lk">Risiko churn</span><b class="">0,62</b></div><div class="srow"><span class="lk">Data sensitif</span><b class="">2%</b></div><div class="srow"><span class="lk">Injeksi prompt</span><b class="">2%</b></div><div class="srow"><span class="lk">Minta refund</span><b class="">4%</b></div><div class="srow"><span class="lk">Kurang jelas</span><b class="">42%</b></div><div class="srow total"><span class="lk">Yakin keseluruhan</span><b class="">87%</b></div>
+      <p class="meta">% = peluang “ya” · 3 Okt 2026</p>
+    </div>
+    <div class="abs ladder" style="left:378px;top:190px;width:838px">
+      <div class="lhead"><span></span><span>Dicek berurutan</span><span>Pesan ini</span><span>Rute</span></div>
+      
+        <div class="lrung no">
+          <span class="num">1</span>
+          <span class="cond">Injeksi prompt ≥ 50%</span>
+          <span class="val"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>2% → tidak</span>
+          <span class="rt"><span class="r-ico dang"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path></svg></span><span><b class="dang">Diblokir</b><small>template penolakan</small></span></span>
+        </div>
+        <div class="lrung no">
+          <span class="num">2</span>
+          <span class="cond">Data sensitif ≥ 50%</span>
+          <span class="val"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>2% → tidak</span>
+          <span class="rt"><span class="r-ico warn"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path><path d="m2 2 20 20"></path></svg></span><span><b class="warn">Disamarkan</b><small>template keamanan</small></span></span>
+        </div>
+        <div class="lrung hit">
+          <span class="num">3</span>
+          <span class="cond">Frustrasi ≥ 0,75 · churn ≥ 0,70 · refund ≥ 50% · bug + mendesak</span>
+          <span class="val"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M20 6 9 17l-5-5"></path></svg>bug + mendesak → ya</span>
+          <span class="rt"><span class="r-ico dang"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"></path><path d="M21 16v2a4 4 0 0 1-4 4h-5"></path></svg></span><span><b class="dang">Dieskalasi</b><small>tim support + tiket</small></span></span>
+        </div>
+        <div class="lrung skip">
+          <span class="num">4</span>
+          <span class="cond">Kurang jelas ≥ 60% · yakin < 45%</span>
+          <span class="val">tidak dicek</span>
+          <span class="rt"><span class="r-ico warn"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg></span><span><b class="warn">Minta klarifikasi</b><small>Jev bertanya balik</small></span></span>
+        </div>
+        <div class="lrung skip">
+          <span class="num">5</span>
+          <span class="cond">Sisanya: bug → LLM penalaran · lainnya → LLM cepat</span>
+          <span class="val">tidak dicek</span>
+          <span class="rt"><span class="r-ico pos"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><span><b class="pos">Dijawab biasa</b><small>LLM + dokumentasi</small></span></span>
+        </div>
+    </div>
+  <p class="src-foot">Sumber: <code>src/lib/lab/rules.ts</code> · <a href="data/jev-run-2026-10-03-deepseek.json" target="_blank" rel="noopener">data: run asli 3 Okt 2026</a></p>
+</section>
+<section class="slide" aria-label="Slide 9 dari 10" data-notes="Tanpa Jev, setiap pesan langsung dikirim apa adanya ke LLM, termasuk nomor kartu, lalu jawabannya dikirim tanpa pengecekan. Untuk pesan tadi, DeepSeek V4.1 Flash butuh 10,63 dtk dan $0,00018, dan menyarankan pelanggan mengirim tangkapan layar sendiri ke tim support, tanpa membuat tiket. Dengan Jev, pesan yang sama selesai dibaca dalam 0,71 dtk dengan biaya $0,000039, lalu aturan langsung mengeskalasinya ke tim support dengan balasan template, jadi tidak ada biaya LLM sama sekali untuk pesan ini.">
+  <header class="top"><div class="brand"><b>Bikinpakeai</b><span>Jev · System One model dari TypeSafe</span></div><span class="page">9 / 10</span></header>
+  <div class="head"><p class="eyebrow">Chatbot Bikinpakeai · kenapa pakai Jev</p><h1 class="title">LLM hanya dipanggil saat perlu.</h1></div>
+  
+    <div class="abs lane muted" style="left:64px;top:200px;width:1152px;height:150px">
+      <p class="lane-name">Tanpa Jev <span class="lane-stat">pesan tadi: 10,63 dtk · $0,00018 · tanpa tiket ke tim</span></p>
+      <div class="pipe">
+        <div class="pnode "><span class="p-ico"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span><b>Pesan</b></div><span class="chev"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="m9 18 6-6-6-6"></path></svg></span>
+        <div class="pnode wide gray"><span class="p-ico"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><b>LLM</b><small>teks mentah, tanpa cek</small></div><span class="chev"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="m9 18 6-6-6-6"></path></svg></span>
+        <div class="pnode "><span class="p-ico"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"></path><path d="m21.854 2.147-10.94 10.939"></path></svg></span><b>Kirim</b></div>
+        <div class="risks">
+          <span class="tag dang"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>nomor kartu ikut terbaca</span>
+          <span class="tag dang"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>tidak ada cek kebijakan</span>
+          <span class="tag dang"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>bayar LLM di setiap pesan</span>
+        </div>
+      </div>
+    </div>
+    <div class="abs lane strong" style="left:64px;top:370px;width:1152px;height:192px">
+      <p class="lane-name">Dengan Jev <span class="lane-stat jev">pesan tadi: 0,71 dtk · $0,000039 · dieskalasi ke tim support</span></p>
+      <div class="pipe">
+        <div class="pnode "><span class="p-ico"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span><b>Pesan</b></div><span class="chev"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="m9 18 6-6-6-6"></path></svg></span>
+        <div class="pnode "><span class="p-ico"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path><path d="m2 2 20 20"></path></svg></span><b>Samarkan</b><small>kartu → ••••</small></div><span class="chev"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="m9 18 6-6-6-6"></path></svg></span>
+        <div class="pnode jev"><span class="p-ico"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg></span><b>Jev</b><small>9 label + % yakin</small></div><span class="chev"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="m9 18 6-6-6-6"></path></svg></span>
+        <div class="pnode "><span class="p-ico"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><line x1="6" x2="6" y1="3" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg></span><b>Aturan</b><small>pilih rute</small></div><span class="chev"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="m9 18 6-6-6-6"></path></svg></span>
+        <div class="handlers">
+          <div><span>Template</span><em>tanpa LLM</em></div>
+          <div><span>LLM cepat</span><em></em></div>
+          <div><span>LLM penalaran</span><em></em></div>
+          <div><span>Tim support</span><em><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"></path><path d="M21 16v2a4 4 0 0 1-4 4h-5"></path></svg></em></div>
+        </div><span class="chev"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="m9 18 6-6-6-6"></path></svg></span>
+        <div class="pnode "><span class="p-ico"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg></span><b>Cek draf</b><small>sesuai kebijakan</small></div><span class="chev"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="m9 18 6-6-6-6"></path></svg></span>
+        <div class="pnode "><span class="p-ico"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"></path><path d="m21.854 2.147-10.94 10.939"></path></svg></span><b>Kirim</b></div>
+      </div>
+    </div>
+    <div class="abs card strip" style="left:64px;top:584px;width:1152px">
+      <p class="label">Diukur berdampingan di Support Lab</p>
+      <div class="metrics"><span>Ketepatan</span><span>Waktu</span><span>Biaya</span><span>Insiden keamanan</span><span>Di luar kebijakan</span></div>
+    </div>
+  <p class="src-foot">Sumber: <code>src/services/pipeline/orchestrator.server.ts</code> · <code>src/services/pipeline/answers.server.ts</code> · <a href="data/jev-run-2026-10-03-deepseek.json" target="_blank" rel="noopener">data: run asli 3 Okt 2026</a></p>
+</section>
+<section class="slide" aria-label="Slide 10 dari 10" data-notes="Contoh kedua di luar chatbot: extension Chrome class-shopper. Langkah 1 dan 2 di slide ini asli: keinginan &quot;sepatu lari ringan di bawah 500 ribu&quot; kami jalankan lewat kode extension dengan LLM google/gemini-3.8-flash, dan hasilnya 4 kriteria: Kategori Sepatu lari (wajib), Harga maksimum Rp500.000 (wajib), Bobot Ringan (wajib), Bahan Bahan mesh atau berpori agar adem (opsional). Setelah itu, untuk setiap kartu produk di hasil pencarian, Jev menerima kriteria, urutan prioritas, dan data kartu (judul, harga, rating, jumlah terjual, toko), lalu memberi label Cocok atau Tidak cocok, angka yakin, dan alasan singkat. Contoh produk asli belum ditampilkan karena Tokopedia memblokir browser otomatis.">
+  <header class="top"><div class="brand"><b>Bikinpakeai</b><span>Jev · System One model dari TypeSafe</span></div><span class="page">10 / 10</span></header>
+  <div class="head"><p class="eyebrow">Chrome extension · class-shopper</p><h1 class="title">Tulis keinginan, Jev tandai yang cocok.</h1></div>
+  
+    <div class="abs ext" style="left:64px;top:190px;width:330px;height:486px">
+      <div class="ext-head"><b>Jev</b><span class="switch"><i></i></span><small>Aktif</small></div>
+      <p class="ext-label"><span class="step">1</span>Keinginanmu</p>
+      <div class="desire">sepatu lari ringan di bawah 500 ribu</div>
+      <p class="ext-label"><span class="step">2</span>LLM ubah jadi kriteria <span class="asli">asli · 7,3 dtk</span></p>
+      <div class="criteria"><div><span class="cb"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M20 6 9 17l-5-5"></path></svg></span><span class="cv"><small>Kategori</small><b>Sepatu lari</b></span><span class="lvl">Wajib</span></div><div><span class="cb"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M20 6 9 17l-5-5"></path></svg></span><span class="cv"><small>Harga maksimum</small><b>Rp500.000</b></span><span class="lvl">Wajib</span></div><div><span class="cb"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M20 6 9 17l-5-5"></path></svg></span><span class="cv"><small>Bobot</small><b>Ringan</b></span><span class="lvl">Wajib</span></div><div><span class="cb"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M20 6 9 17l-5-5"></path></svg></span><span class="cv"><small>Bahan <em>Tebakan</em></small><b>Bahan mesh atau berpori agar adem</b></span><span class="lvl">Opsional</span></div></div>
+      <div class="ext-btn"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>Cari “sepatu lari ringan”</div>
+    </div>
+    <div class="abs ext-arrow" style="left:404px;top:396px"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg><span><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span></div>
+    <div class="abs card strong jev-io" style="left:464px;top:190px;width:752px;height:486px">
+      <div class="reader-head"><span class="jev-badge md"><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99 144" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M76.4576 17.5651V42.3984L98.8152 56.9225L98.8213 111.911L49.4046 144L22.3637 126.441V100.92L0 86.3963V32.0953L2.12872 30.7086L49.4106 0L76.4576 17.5651ZM35.6044 123.899L49.3985 132.858L85.5624 109.362L71.7744 100.41L35.6044 123.899ZM54.0756 61.9949V86.4024L31.7058 100.927V115.292L67.1155 92.296V53.5286L54.0756 61.9949ZM76.4576 92.3082L89.4732 100.762V61.9888L76.4576 53.5347V92.3082ZM13.2467 83.8601L27.0347 92.8191L40.8289 83.8601L27.0408 74.9072L13.2467 83.8601ZM9.34204 37.1617V75.26L22.3637 66.7998V42.3923L44.7396 27.8561V14.1652L9.34204 37.1617ZM31.7058 66.7937L44.7335 75.2539V61.9888L31.7058 53.5286V66.7937ZM35.6044 44.9225L49.4106 53.8875L63.2048 44.9285L49.4046 35.9635L35.6044 44.9225ZM54.0817 27.8561L67.1155 36.3223V22.6376L54.0817 14.1652V27.8561Z"/></svg><b>Jev</b></span><span class="tag neutral">dipanggil per kartu produk</span></div>
+      <div class="io-cols">
+        <div>
+          <p class="label">Input</p>
+          <div class="field-list">
+            <div><span class="src">dari langkah 2</span><b>Kriteria</b><small>4 kriteria · 3 wajib</small></div>
+            <div><span class="src">dari pengaturan</span><b>Prioritas</b><small>Harga › Kualitas › Pengiriman</small></div>
+            <div><span class="src">dari kartu toko</span><b>Judul</b><small>teks judul produk</small></div>
+            <div><span class="src">dari kartu toko</span><b>Harga</b><small>“Rp…”</small></div>
+            <div><span class="src">dari kartu toko</span><b>Rating · terjual · toko</b><small>bila tersedia</small></div>
+          </div>
+        </div>
+        <span class="io-arrow"><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span>
+        <div>
+          <p class="label">Output</p>
+          <div class="field-list out">
+            <div><span class="tpill t-choice">pilih satu</span><b>Cocok / Tidak cocok</b><small>label di kartu produk</small></div>
+            <div><span class="tpill t-score">yakin</span><b>% keyakinan</b><small>urutan “cocok dulu”</small></div>
+            <div><span class="tpill t-bool">teks</span><b>Alasan singkat</b><small>1–3 poin</small></div>
+          </div>
+          <div class="rules-mini">
+            <p class="label">Aturan penilaian</p>
+            <p><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg> Harga di atas batas → Tidak cocok</p>
+            <p><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg> Kategori lain / aksesori → Tidak cocok</p>
+            <p><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path></svg> Kriteria tak disebut di judul → yakin turun</p>
+            <p><svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"></path></svg> Kriteria opsional → hanya mengubah yakin</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  <p class="src-foot">Sumber: <code>class-shopper/jev-pilih-produk-PRD.md</code> · <code>class-shopper/src/background/jev.ts</code> · <a href="data/jev-run-2026-10-03-deepseek.json" target="_blank" rel="noopener">data: run asli 3 Okt 2026</a></p>
+</section>
+</div></main>
+<div class="notes" role="region" aria-label="Catatan pembicara"><b>Catatan pembicara</b><p></p></div>
+<nav class="controls" aria-label="Kontrol slide">
+  <button type="button" data-act="prev" aria-label="Slide sebelumnya">←</button>
+  <span class="count" aria-live="polite"></span>
+  <button type="button" data-act="next" aria-label="Slide berikutnya">→</button>
+  <button type="button" data-act="notes" title="Tombol N">Catatan</button>
+  <button type="button" data-act="full" title="Tombol F">Layar penuh</button>
+</nav>
+<script>
+(() => {
+  const slides = [...document.querySelectorAll('.slide')];
+  const stage = document.querySelector('.stage');
+  const count = document.querySelector('.count');
+  const notes = document.querySelector('.notes');
+  const notesText = notes.querySelector('p');
+  let i = 0;
+  const fit = () => { stage.style.transform = 'scale(' + Math.min(innerWidth / 1280, innerHeight / 720) + ')'; };
+  const fromHash = () => (parseInt(location.hash.slice(1), 10) || 1) - 1;
+  const show = (k) => {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach((s, j) => s.classList.toggle('active', j === i));
+    count.textContent = (i + 1) + ' / ' + slides.length;
+    notesText.textContent = slides[i].dataset.notes || '';
+    history.replaceState(null, '', '#' + (i + 1));
+    playAnims();
+  };
+  let loop;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const endState = (svg) => { svg.pauseAnimations(); svg.setCurrentTime((parseFloat(svg.dataset.dur) || 0) + 1); };
+  function playAnims() {
+    clearTimeout(loop);
+    slides.forEach((s, j) => s.querySelectorAll('svg.anim').forEach((svg) => {
+      if (j !== i) return svg.pauseAnimations();
+      if (reduce.matches) return endState(svg);
+      const dur = parseFloat(svg.dataset.dur) || 0;
+      const run = () => { svg.setCurrentTime(0); svg.unpauseAnimations(); loop = setTimeout(run, (dur + 4) * 1000); };
+      run();
+    }));
+  }
+  addEventListener('beforeprint', () => { clearTimeout(loop); document.querySelectorAll('svg.anim').forEach(endState); });
+  addEventListener('afterprint', () => playAnims());
+  document.querySelectorAll('[data-replay]').forEach((b) => b.addEventListener('click', () => playAnims()));
+  const toggleNotes = () => notes.classList.toggle('open');
+  const fullscreen = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  addEventListener('resize', fit);
+  addEventListener('hashchange', () => show(fromHash()));
+  addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+    else if (e.key === 'n' || e.key === 'N') toggleNotes();
+    else if (e.key === 'f' || e.key === 'F') fullscreen();
+  });
+  document.querySelector('[data-act=prev]').onclick = () => show(i - 1);
+  document.querySelector('[data-act=next]').onclick = () => show(i + 1);
+  document.querySelector('[data-act=notes]').onclick = toggleNotes;
+  document.querySelector('[data-act=full]').onclick = fullscreen;
+  fit();
+  show(fromHash());
+})();
+</script>
+</body>
+</html>

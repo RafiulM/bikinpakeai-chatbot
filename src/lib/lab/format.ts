@@ -27,6 +27,11 @@ export function formatUsd(value: number, digits = 4) {
   })}`;
 }
 
+/** Whole number with Indonesian grouping, e.g. 12.480. */
+export function formatCount(value: number) {
+  return value.toLocaleString("id-ID");
+}
+
 export function formatScore(value: number) {
   return value.toLocaleString("id-ID", {
     minimumFractionDigits: 2,

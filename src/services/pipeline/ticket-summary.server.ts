@@ -3,7 +3,7 @@ import {
   summarizeConversation,
   type SummaryMessage,
 } from "@/lib/lab/ticket-summary";
-import { aiConfig, openrouter } from "./ai.server";
+import { aiConfig, NO_REASONING, openrouter } from "./ai.server";
 
 // Briefing for a new ticket. With OpenRouter the fast model writes it from the
 // conversation; the local summary is used without a key or when the model
@@ -17,7 +17,9 @@ export async function ticketBriefing(messagesInOrder: SummaryMessage[]) {
       .map((message, index) => `${index + 1}. ${message.content}`)
       .join("\n");
     const result = await generateText({
-      model: openrouter().chat(aiConfig.models.fast),
+      model: openrouter().chat(aiConfig.models.fast, {
+        reasoning: NO_REASONING,
+      }),
       instructions:
         "Ringkas masalah pelanggan untuk agen support dalam 2 sampai 4 poin pendek berbahasa Indonesia. Satu poin per baris, tanpa nomor atau tanda baca pembuka. Jangan menyalin data sensitif.",
       prompt: transcript,

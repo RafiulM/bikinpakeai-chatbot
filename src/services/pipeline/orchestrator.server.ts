@@ -1,14 +1,25 @@
 import { maskSensitive } from "@/lib/lab/mask";
 import { reviewAnswer, type Expectation } from "@/lib/lab/review";
-import { applyRules, checkDraft } from "@/lib/lab/rules";
-import type { BotResponse, JevAnalysis } from "@/lib/lab/types";
-import { saveResponse } from "@/services/comparison.service.server";
+import { applyRules, checkDraft, type RuleContext } from "@/lib/lab/rules";
+import type {
+  BotResponse,
+  ConversationTurn,
+  JevAnalysis,
+  PriorExchange,
+  ResponseMode,
+} from "@/lib/lab/types";
+import {
+  saveAnswerFailure,
+  saveResponse,
+} from "@/services/comparison.service.server";
 import { saveJevAnalysis, saveJevFailure } from "@/services/jev.service.server";
-import { failureReason } from "./ai.server";
+import { failureReason, failureStatus } from "./ai.server";
 import {
   answerBaseline,
   answerFallback,
-  answerWithHandler,
+  baselineModelId,
+  handlerContext,
+  runHandler,
   TEMPLATES,
   type DraftAnswer,
 } from "./answers.server";
@@ -33,6 +44,8 @@ export interface PipelineInput {
   /** Masked text as stored. */
   maskedText: string;
   masked: boolean;
+  /** Earlier turns of the conversation, oldest first. */
+  history?: ConversationTurn[];
   /** Opens a support ticket and returns its code (e.g. "T-208"). */
   onEscalate?: (context: EscalationContext) => Promise<string | null>;
 }
@@ -49,15 +62,67 @@ const SAFE_DRAFT: DraftAnswer = {
   modelId: null,
   latencyMs: 0,
   usage: { inputTokens: 0, outputTokens: 0, costUsd: 0 },
+  docCount: 0,
 };
+
+/** One log line per model failure: the error kind, status and safe reason. */
+function logFailure(step: string, error: unknown) {
+  console.error(
+    `${step} failed:`,
+    error instanceof Error ? error.name : "UnknownError",
+    failureStatus(error) ?? "",
+    failureReason(error),
+  );
+}
 
 function since(started: number) {
   return Math.max(0, Math.round(performance.now() - started));
 }
 
+const CONTEXT_TURNS = 3;
+const CONTEXT_CHARS = 800;
+
+const clip = (text: string) =>
+  text.length > CONTEXT_CHARS ? `${text.slice(0, CONTEXT_CHARS - 1)}…` : text;
+
+/**
+ * The last few exchanges as one answer path saw them. The Jev path also
+ * includes human replies from the Agent view, since the customer saw them.
+ */
+function priorExchanges(
+  turns: ConversationTurn[] = [],
+  mode: ResponseMode,
+): PriorExchange[] {
+  return turns.slice(-CONTEXT_TURNS).map((turn) => {
+    const replies =
+      mode === "with_jev"
+        ? [
+            turn.withJev?.content,
+            ...(turn.agentReplies ?? []).map((reply) => reply.content),
+          ]
+        : [turn.withoutJev?.content];
+    const reply = replies.filter(Boolean).join("\n\n");
+    return {
+      customer: clip(turn.message.content),
+      reply: reply ? clip(reply) : null,
+    };
+  });
+}
+
+function ruleContext(turns: ConversationTurn[] = []): RuleContext {
+  return { justClarified: turns.at(-1)?.analysis?.decision === "clarify" };
+}
+
 /** What a correct answer should have done, from the rules' point of view. */
-function expectationFor(text: string, masked: boolean): Expectation {
-  const rules = applyRules(readLocally(text, masked).classification);
+function expectationFor(input: PipelineInput): Expectation {
+  const rules = applyRules(
+    readLocally(
+      input.maskedText,
+      input.masked,
+      priorExchanges(input.history, "with_jev"),
+    ).classification,
+    ruleContext(input.history),
+  );
   return { decision: rules.decision, escalate: rules.escalate };
 }
 
@@ -66,17 +131,21 @@ async function runJevPath(
   settleExpectation: (expectation: Expectation) => void,
 ): Promise<JevPathResult> {
   const started = performance.now();
+  const history = priorExchanges(input.history, "with_jev");
   let reading;
   try {
-    reading = await readMessage(input.maskedText, input.masked);
+    reading = await readMessage(input.maskedText, input.masked, history);
   } catch (error) {
     // Jev could not read the message: record it, then still answer the
     // customer through the verified fallback handler.
     const reason = failureReason(error);
     await saveJevFailure(input.messageId, reason);
-    settleExpectation(expectationFor(input.maskedText, input.masked));
-    const draft = await answerFallback(input.maskedText).catch(
-      () => SAFE_DRAFT,
+    settleExpectation(expectationFor(input));
+    const draft = await answerFallback(input.maskedText, history).catch(
+      (error) => {
+        logFailure("Jev fallback answer", error);
+        return SAFE_DRAFT;
+      },
     );
     const check = checkDraft(draft.content);
     const content = check.ok ? draft.content : TEMPLATES.safeFallback;
@@ -90,13 +159,14 @@ async function runJevPath(
       modelId: draft.modelId,
       inputTokens: draft.usage.inputTokens,
       outputTokens: draft.usage.outputTokens,
+      docCount: draft.docCount,
       ...reviewAnswer("with_jev", content, null),
     });
     return { analysis: null, analysisError: reason, withJev, ticketId: null };
   }
 
   const ruleStart = performance.now();
-  const rules = applyRules(reading.classification);
+  const rules = applyRules(reading.classification, ruleContext(input.history));
   const ruleMs = since(ruleStart);
   settleExpectation({ decision: rules.decision, escalate: rules.escalate });
 
@@ -126,12 +196,24 @@ async function runJevPath(
   if (ticketId)
     baseAnalysis.routeLabel = `${rules.routeLabel} · Tiket ${ticketId}`;
 
-  const draft = await answerWithHandler(
+  let handlerError: string | null = null;
+  const context = handlerContext(
     rules.route,
     rules.decision,
     input.maskedText,
+    history,
+    reading.classification.product,
+  );
+  const draft = await runHandler(
+    context,
+    input.maskedText,
     ticketId,
-  ).catch(() => SAFE_DRAFT);
+    history,
+  ).catch((error) => {
+    logFailure(`Jev handler (${rules.route})`, error);
+    handlerError = failureReason(error);
+    return SAFE_DRAFT;
+  });
   const verifyStart = performance.now();
   const check = checkDraft(draft.content);
   const content = check.ok ? draft.content : TEMPLATES.safeFallback;
@@ -157,7 +239,9 @@ async function runJevPath(
         },
         {
           name: "Penangan",
-          note: rules.routeLabel,
+          note: handlerError
+            ? `${rules.routeLabel} gagal: ${handlerError} Diganti template aman.`
+            : rules.routeLabel,
           durationMs: draft.latencyMs,
         },
         {
@@ -168,6 +252,19 @@ async function runJevPath(
           durationMs: verifyMs,
         },
       ],
+      handler: {
+        ...context,
+        maskedInput: input.masked,
+        inputTokens: draft.usage.inputTokens,
+        outputTokens: draft.usage.outputTokens,
+        latencyMs: draft.latencyMs,
+        costUsd: draft.usage.costUsd,
+        fallback: handlerError
+          ? `Penangan gagal: ${handlerError} Diganti template aman.`
+          : check.ok
+            ? null
+            : `Draf tidak lolos verifikasi (${check.problems.join(", ")}). Diganti template aman.`,
+      },
     },
     {
       modelId: reading.modelId,
@@ -189,6 +286,8 @@ async function runJevPath(
     modelId: draft.modelId,
     inputTokens: reading.usage.inputTokens + draft.usage.inputTokens,
     outputTokens: reading.usage.outputTokens + draft.usage.outputTokens,
+    // What the handler was sent, as Debug shows it, even if its call failed.
+    docCount: context.docs.length,
     ...reviewAnswer("with_jev", content, {
       decision: rules.decision,
       escalate: rules.escalate,
@@ -202,7 +301,23 @@ async function runBaselinePath(
   expectation: Promise<Expectation>,
 ) {
   const started = performance.now();
-  const draft = await answerBaseline(input.rawText);
+  let draft: DraftAnswer;
+  try {
+    draft = await answerBaseline(
+      input.rawText,
+      priorExchanges(input.history, "without_jev"),
+    );
+  } catch (error) {
+    logFailure("Baseline answer", error);
+    // Record why, so every view can stop waiting and Debug can explain it.
+    await saveAnswerFailure(input.messageId, {
+      mode: "without_jev",
+      error: failureReason(error),
+      modelId: baselineModelId(),
+      latencyMs: since(started),
+    }).catch(() => {});
+    return null;
+  }
   // Judge the answer as the customer would have received it, then mask it
   // before storage so no card number ever reaches the database.
   const review = reviewAnswer("without_jev", draft.content, await expectation);
@@ -217,6 +332,7 @@ async function runBaselinePath(
     modelId: draft.modelId,
     inputTokens: draft.usage.inputTokens,
     outputTokens: draft.usage.outputTokens,
+    docCount: draft.docCount,
     ...review,
     highlight: review.highlight
       ? maskSensitive(review.highlight).text
@@ -234,10 +350,7 @@ export async function answerMessage(input: PipelineInput) {
     settle = resolve;
   });
   const baseline = runBaselinePath(input, expectation).catch((error) => {
-    console.error(
-      "Baseline answer failed:",
-      error instanceof Error ? error.name : "UnknownError",
-    );
+    logFailure("Baseline path", error);
     return null;
   });
   try {
@@ -245,7 +358,7 @@ export async function answerMessage(input: PipelineInput) {
     return { jev, baseline };
   } catch (error) {
     // Never leave the baseline waiting on an expectation that will not come.
-    settle(expectationFor(input.maskedText, input.masked));
+    settle(expectationFor(input));
     throw error;
   }
 }

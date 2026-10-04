@@ -27,6 +27,7 @@ const SAFE_DRAFT: DraftAnswer = {
   modelId: null,
   latencyMs: 0,
   usage: { inputTokens: 0, outputTokens: 0, costUsd: 0 },
+  docCount: 0,
 };
 
 const since = (started: number) =>
@@ -40,7 +41,14 @@ export async function answerWithJevForTest(raw: string): Promise<TestAnswer> {
   const rules = reading ? applyRules(reading.classification) : null;
   const draft = await (
     rules
-      ? answerWithHandler(rules.route, rules.decision, text, null)
+      ? answerWithHandler(
+          rules.route,
+          rules.decision,
+          text,
+          null,
+          [],
+          reading?.classification.product,
+        )
       : answerFallback(text)
   ).catch(() => SAFE_DRAFT);
   const check = checkDraft(draft.content);

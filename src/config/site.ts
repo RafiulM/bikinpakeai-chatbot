@@ -5,5 +5,5 @@ export const siteConfig = {
   id: starter.id,
   name: starter.name,
   description: starter.description,
-  homePath: "/customer",
+  homePath: "/compare",
 } as const;

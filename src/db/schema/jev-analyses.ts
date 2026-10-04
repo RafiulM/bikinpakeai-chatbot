@@ -11,14 +11,15 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import type { LabelScore, PipelineStep } from "@/lib/lab/types";
+import type { HandlerTrace, LabelScore, PipelineStep } from "@/lib/lab/types";
 import { messages } from "./messages";
 
 const score = (name: string) =>
   numeric(name, { precision: 4, scale: 3, mode: "number" });
 
 // How Jev read one customer message: labels with confidence, the backend
-// decision, the chosen handler and why, and how long each step took.
+// decision, the chosen handler and why, what that handler was given, and how
+// long each step took.
 export const jevAnalyses = pgTable(
   "jev_analyses",
   {
@@ -44,6 +45,8 @@ export const jevAnalyses = pgTable(
     routeReason: text("route_reason"),
     rules: jsonb("rules").$type<string[]>().default([]).notNull(),
     steps: jsonb("steps").$type<PipelineStep[]>().default([]).notNull(),
+    /** Context, model and settings the chosen handler used; null on failure. */
+    handler: jsonb("handler").$type<HandlerTrace>(),
     /** OpenRouter model used for the single classification call. */
     modelId: text("model_id"),
     inputTokens: integer("input_tokens").default(0).notNull(),

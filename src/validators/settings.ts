@@ -14,4 +14,15 @@ export const saveOpenRouterKeySchema = z
 
 export type SaveOpenRouterKeyInput = z.infer<typeof saveOpenRouterKeySchema>;
 
+export const saveDisplaySettingsSchema = z
+  .object({
+    demoMode: z.boolean(),
+    chatbot: z.enum(["with_jev", "without_jev"]),
+  })
+  .strict();
+
+export type SaveDisplaySettingsInput = z.infer<
+  typeof saveDisplaySettingsSchema
+>;
+
 export const seedDemoSchema = z.object({}).strict();

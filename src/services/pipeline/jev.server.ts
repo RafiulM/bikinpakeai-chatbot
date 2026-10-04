@@ -1,6 +1,11 @@
 import { experimental_evaluate as evaluate } from "ai";
 import type { Classification } from "@/lib/lab/rules";
-import type { IssueType, LabelScore, Urgency } from "@/lib/lab/types";
+import type {
+  IssueType,
+  LabelScore,
+  PriorExchange,
+  Urgency,
+} from "@/lib/lab/types";
 import {
   aiConfig,
   LOCAL_MODEL_ID,
@@ -11,8 +16,10 @@ import {
 
 // Jev reads a customer message in ONE call: product, issue type, urgency,
 // frustration, churn risk, sensitive data, prompt injection, refund request
-// and vagueness. With OpenRouter configured this is the TypeSafe Jev decision
-// model; otherwise a deterministic local reader keeps the lab usable.
+// and vagueness. Earlier exchanges ride along so a follow-up such as "Boleh,
+// gimana caranya?" reads in context. With OpenRouter configured this is the
+// TypeSafe Jev decision model; otherwise a deterministic local reader keeps
+// the lab usable.
 
 export interface JevReading {
   classification: Classification;
@@ -89,7 +96,12 @@ const QUESTIONS = {
   unclear: {
     type: "boolean",
     instructions:
-      "Apakah pesan terlalu tidak jelas untuk dijawab tanpa bertanya balik?",
+      "Apakah pesan terbaru pelanggan (message) terlalu tidak jelas untuk dijawab, bahkan setelah membaca percakapan sebelumnya (previous_turns, bila ada)?",
+    criteria: {
+      true: "Tidak bisa ditebak apa yang ditanyakan atau produk mana yang dimaksud, misalnya hanya sapaan atau satu kata tanpa konteks.",
+      false:
+        "Topik atau masalahnya bisa dipahami, termasuk tindak lanjut dari balasan sebelumnya. Detail yang kurang tidak membuat pesan tidak jelas.",
+    },
   },
 } as const;
 
@@ -185,11 +197,20 @@ function certainty(answer: {
 async function readWithModel(
   text: string,
   masked: boolean,
+  history: PriorExchange[],
 ): Promise<JevReading> {
   const started = performance.now();
   const result = await evaluate({
     model: openrouter().evaluationModel(aiConfig.models.jev),
-    state: { message: text },
+    state: history.length
+      ? {
+          previous_turns: history.map((turn) => ({
+            customer: turn.customer,
+            assistant: turn.reply ?? "",
+          })),
+          message: text,
+        }
+      : { message: text },
     questions: QUESTIONS,
     maxRetries: 1,
     abortSignal: AbortSignal.timeout(aiConfig.jevTimeoutMs),
@@ -216,6 +237,7 @@ async function readWithModel(
     injectionDetected: a.prompt_injection.probability >= 0.5,
     refundRequested: a.refund_requested.probability >= 0.5,
     unclear: twoDecimals(a.unclear.probability),
+    productConfidence: confidence.product,
   };
   const values = Object.values(confidence);
   return {
@@ -238,15 +260,32 @@ const has = (text: string, pattern: RegExp) => pattern.test(text);
  * Keyword reader for local mode. Deterministic so demos and tests behave the
  * same every time; its confidence is reported honestly as moderate.
  */
-export function readLocally(text: string, masked: boolean): JevReading {
-  const lower = text.toLowerCase();
-  const product =
+function productIn(lower: string) {
+  return (
     (has(lower, /prdtask|prd\b/) && "PRDTask") ||
     (has(lower, /desainpakeai|kelas|canvas/) && "DesainPakeAI") ||
     (has(lower, /andalai/) && "AndalAI") ||
     (has(lower, /template/) && "Template") ||
     (has(lower, /discord|komunitas/) && "Komunitas") ||
-    "Membership";
+    (has(lower, /member|langganan|\bpro\b/) && "Membership") ||
+    null
+  );
+}
+
+export function readLocally(
+  text: string,
+  masked: boolean,
+  history: PriorExchange[] = [],
+): JevReading {
+  const lower = text.toLowerCase();
+  // A follow-up usually names no product; take it from the latest exchange.
+  const named =
+    productIn(lower) ??
+    history
+      .map((turn) => productIn(turn.customer.toLowerCase()))
+      .findLast(Boolean) ??
+    null;
+  const product = named ?? "Membership";
   const injectionDetected = has(
     lower,
     /abaikan (semua )?instruksi|ignore (all )?(previous )?instructions|system prompt|instruksi sistem/,
@@ -286,7 +325,8 @@ export function readLocally(text: string, masked: boolean): JevReading {
     : frustrationScore >= 0.75
       ? "tinggi"
       : "sedang";
-  const unclear = text.trim().split(/\s+/).length <= 2 ? 0.8 : 0.1;
+  const unclear =
+    text.trim().split(/\s+/).length <= 2 && history.length === 0 ? 0.8 : 0.1;
   const partial = {
     product,
     issueType,
@@ -297,6 +337,7 @@ export function readLocally(text: string, masked: boolean): JevReading {
     injectionDetected,
     refundRequested,
     unclear,
+    productConfidence: named ? 0.7 : 0.3,
   };
   const confidence = Object.fromEntries(
     Object.keys(QUESTIONS).map((id) => [id, 0.7]),
@@ -314,8 +355,12 @@ export function readLocally(text: string, masked: boolean): JevReading {
 }
 
 /** One Jev reading: the real decision model when configured, else local. */
-export function readMessage(text: string, masked: boolean) {
+export function readMessage(
+  text: string,
+  masked: boolean,
+  history: PriorExchange[] = [],
+) {
   return aiConfig.enabled
-    ? readWithModel(text, masked)
-    : Promise.resolve(readLocally(text, masked));
+    ? readWithModel(text, masked, history)
+    : Promise.resolve(readLocally(text, masked, history));
 }

@@ -38,6 +38,7 @@ async function startConversation() {
 test("conversation endpoints require a real session", async ({ request }) => {
   for (const [method, url] of [
     ["GET", "/api/conversations"],
+    ["GET", "/api/conversations/overview"],
     ["POST", "/api/conversations"],
     ["GET", `/api/conversations/${randomUUID()}`],
     ["POST", `/api/conversations/${randomUUID()}/messages`],
@@ -153,6 +154,90 @@ test("history endpoints return the caller's conversations as ordered turns", asy
   ).json();
   expect(page2.data[0]).toMatchObject({ id: first.id, messageCount: 2 });
   expect((await owner.get("/api/conversations?limit=0")).status()).toBe(422);
+});
+
+test("session history filters by status and search and sums up Jev's readings", async () => {
+  const { data: saved } = await startConversation();
+  expect(
+    (
+      await owner.post(`/api/conversations/${saved.id}/messages`, {
+        headers,
+        data: {
+          content: "Sudah 3 hari begini, saya kecewa banget. Mau refund aja.",
+        },
+      })
+    ).status(),
+  ).toBe(201);
+  const { data: active } = await startConversation();
+
+  const ids = (body: { data: { id: string }[] }) =>
+    body.data.map((item) => item.id);
+  const ended = await (
+    await owner.get("/api/conversations?status=ended&limit=50")
+  ).json();
+  expect(ids(ended)).toContain(saved.id);
+  expect(ids(ended)).not.toContain(active.id);
+  const current = await (
+    await owner.get("/api/conversations?status=active")
+  ).json();
+  expect(ids(current)).toEqual([active.id]);
+
+  const found = await (
+    await owner.get(`/api/conversations?q=${encodeURIComponent(saved.code)}`)
+  ).json();
+  expect(ids(found)).toEqual([saved.id]);
+  expect(found.data[0]).toMatchObject({
+    status: "ended",
+    messageCount: 1,
+    jev: { analyzed: 1, decisions: { escalated: 1 } },
+    failures: 0,
+    tickets: 1,
+  });
+  expect(found.data[0].lastMessageAt).toEqual(expect.any(String));
+  // Each message lands in exactly one intent, emotion, and urgency.
+  const { jev } = found.data[0];
+  const total = (counts: Record<string, number>) =>
+    Object.values(counts).reduce((sum, count) => sum + count, 0);
+  expect(total(jev.intents)).toBe(1);
+  expect(total(jev.emotions)).toBe(1);
+  expect(total(jev.urgencies)).toBe(1);
+
+  // The overview applies the same filter and adds up the same readings.
+  const overview = await (
+    await owner.get(
+      `/api/conversations/overview?q=${encodeURIComponent(saved.code)}`,
+    )
+  ).json();
+  expect(overview.data).toEqual({ sessions: 1, ...jev });
+  const everything = await (
+    await owner.get("/api/conversations/overview")
+  ).json();
+  expect(everything.data.sessions).toBeGreaterThanOrEqual(2);
+  expect(everything.data.analyzed).toBeGreaterThanOrEqual(1);
+  expect(
+    (await owner.get("/api/conversations/overview?status=archived")).status(),
+  ).toBe(422);
+  expect(
+    (await owner.get("/api/conversations/overview?limit=5")).status(),
+  ).toBe(422);
+  expect(
+    (await (await owner.get("/api/conversations?q=tidak-ada-judul-ini")).json())
+      .data,
+  ).toEqual([]);
+  expect((await owner.get("/api/conversations?status=archived")).status()).toBe(
+    422,
+  );
+  // Another account's search never reaches these conversations.
+  const strangers = await (
+    await stranger.get(`/api/conversations?q=${encodeURIComponent(saved.code)}`)
+  ).json();
+  expect(strangers.data).toEqual([]);
+  const strangerOverview = await (
+    await stranger.get(
+      `/api/conversations/overview?q=${encodeURIComponent(saved.code)}`,
+    )
+  ).json();
+  expect(strangerOverview.data).toMatchObject({ sessions: 0, analyzed: 0 });
 });
 
 test("starting a new conversation ends the active one but keeps its history", async () => {

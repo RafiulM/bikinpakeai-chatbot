@@ -265,7 +265,7 @@ function orderFor(sort: ListTicketsInput["sort"]) {
 }
 
 /** Escapes LIKE wildcards so a search for "100%" matches literally. */
-const likePattern = (text: string) =>
+export const likePattern = (text: string) =>
   `%${text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
 /**

@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { APICallError, RetryError } from "ai";
 import { z } from "zod";
 
 // Model configuration for both answer paths. Every role is an OpenRouter
@@ -9,23 +10,18 @@ import { z } from "zod";
 // in local mode: a deterministic reader and knowledge-base answers, clearly
 // marked as such.
 
+/** Default for every answer-writing role; Jev keeps its own classifier. */
+const DEFAULT_ANSWER_MODEL = "deepseek/deepseek-v4.1-flash";
+
 const aiEnv = z
   .object({
     OPENROUTER_API_KEY: z.string().trim().min(1).optional(),
     /** Optional proxy or test endpoint for the OpenRouter API. */
     OPENROUTER_BASE_URL: z.url().optional(),
     LAB_JEV_MODEL: z.string().trim().min(1).default("typesafe/jev-1.13"),
-    LAB_FAST_MODEL: z.string().trim().min(1).default("openai/gpt-4o-mini"),
-    LAB_REASONING_MODEL: z
-      .string()
-      .trim()
-      .min(1)
-      .default("anthropic/claude-3.5-sonnet"),
-    LAB_BASELINE_MODEL: z
-      .string()
-      .trim()
-      .min(1)
-      .default("anthropic/claude-3.5-sonnet"),
+    LAB_FAST_MODEL: z.string().trim().min(1).default(DEFAULT_ANSWER_MODEL),
+    LAB_REASONING_MODEL: z.string().trim().min(1).default(DEFAULT_ANSWER_MODEL),
+    LAB_BASELINE_MODEL: z.string().trim().min(1).default(DEFAULT_ANSWER_MODEL),
     LAB_JEV_TIMEOUT_MS: z.coerce.number().int().min(1000).default(10_000),
     LAB_MODEL_TIMEOUT_MS: z.coerce.number().int().min(1000).default(30_000),
   })
@@ -78,6 +74,17 @@ export const aiConfig = {
 
 export const LOCAL_MODEL_ID = "lokal/tanpa-openrouter";
 
+/**
+ * Reasoning per role. Thinking models (DeepSeek V4.1 Flash thinks by default)
+ * count reasoning against maxOutputTokens, so fast roles turn it off and
+ * thinking roles get this budget on top of the answer's own token cap.
+ */
+export const REASONING_BUDGET_TOKENS = 1024;
+export const NO_REASONING = { effort: "none" } as const;
+export const BUDGETED_REASONING = {
+  max_tokens: REASONING_BUDGET_TOKENS,
+} as const;
+
 const providers = new Map<string, ReturnType<typeof createOpenRouter>>();
 
 /** The OpenRouter provider for the active key (one client per key). */
@@ -119,11 +126,28 @@ export function usageOf(result: {
   };
 }
 
+/** The provider's HTTP status behind a failure, if there was one. */
+export function failureStatus(error: unknown) {
+  const cause = RetryError.isInstance(error) ? error.lastError : error;
+  return APICallError.isInstance(cause) ? cause.statusCode : undefined;
+}
+
 /** Short, user-safe description of a model failure (no secrets, no URLs). */
 export function failureReason(error: unknown) {
-  if (error instanceof Error && error.name === "TimeoutError")
+  const cause = RetryError.isInstance(error) ? error.lastError : error;
+  if (cause instanceof Error && cause.name === "TimeoutError")
     return "Model tidak merespons dalam batas waktu.";
-  if (error instanceof Error && /abort/i.test(error.name))
+  if (cause instanceof Error && /abort/i.test(cause.name))
     return "Pemanggilan model dibatalkan karena terlalu lama.";
+  if (APICallError.isInstance(cause)) {
+    const status = cause.statusCode;
+    const detail = `${cause.message} ${cause.responseBody ?? ""}`;
+    if (status === 401 || status === 403) return "Kunci OpenRouter ditolak.";
+    if (status === 402) return "Saldo OpenRouter tidak cukup.";
+    if (status === 429)
+      return "Batas pemakaian OpenRouter tercapai. Coba lagi sebentar.";
+    if (status === 404 || (status === 400 && /model/i.test(detail)))
+      return "Model tidak tersedia di OpenRouter. Periksa nama modelnya.";
+  }
   return "Model tidak bisa dihubungi saat ini.";
 }

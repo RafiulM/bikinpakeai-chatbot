@@ -5,11 +5,15 @@ import { VIEW_LINKS } from "./view-nav";
 const TYPING_TARGET =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
 
-/** Keys 1–4 switch between the four views of the same conversation. */
-export function useViewShortcuts() {
+/**
+ * Keys 1–2 switch between the views of the same conversation. Off while the
+ * lab views are hidden (demo mode off).
+ */
+export function useViewShortcuts(enabled = true) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!enabled) return;
     function handleKeyDown(event: KeyboardEvent) {
       if (
         event.defaultPrevented ||
@@ -32,5 +36,5 @@ export function useViewShortcuts() {
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [navigate]);
+  }, [enabled, navigate]);
 }

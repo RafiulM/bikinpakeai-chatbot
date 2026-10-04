@@ -79,7 +79,7 @@ export function ChatComposer({
 
   return (
     <form noValidate onSubmit={handleSubmit} className="grid gap-2">
-      <div className="flex items-end gap-2 max-sm:flex-col max-sm:items-stretch">
+      <div className="flex items-end gap-2">
         <div className="min-w-0 flex-1">
           <label htmlFor={id} className="sr-only">
             Pertanyaan Anda
@@ -100,12 +100,17 @@ export function ChatComposer({
               resize();
             }}
             onKeyDown={handleKeyDown}
-            className="block max-h-40 min-h-12 w-full resize-none rounded-2xl border border-border-strong bg-card px-4 py-3 text-[15px] leading-normal outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-invalid:border-danger"
+            className="block max-h-40 min-h-12 w-full resize-none rounded-2xl border border-border-strong bg-card px-4 py-3 text-[15px] leading-normal shadow-[0_2px_12px_rgb(0_0_0/5%)] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-invalid:border-danger"
           />
         </div>
-        <Button type="submit" size="lg" disabled={busy}>
+        <Button
+          type="submit"
+          size="lg"
+          disabled={busy}
+          className="max-sm:size-12 max-sm:px-0"
+        >
           <Send aria-hidden="true" />
-          {busy ? "Menunggu…" : "Kirim"}
+          <span className="max-sm:sr-only">{busy ? "Menunggu…" : "Kirim"}</span>
         </Button>
       </div>
       {error && (
@@ -118,9 +123,9 @@ export function ChatComposer({
           {error}
         </p>
       )}
-      <p id={hintId} className="text-xs text-muted-foreground rekam:hidden">
-        Enter untuk kirim, Shift+Enter untuk baris baru. Jangan bagikan
-        password; nomor kartu disamarkan otomatis.
+      <p id={hintId} className="sr-only">
+        Enter untuk kirim, Shift+Enter untuk baris baru. Nomor kartu disamarkan
+        otomatis.
       </p>
     </form>
   );

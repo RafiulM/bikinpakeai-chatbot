@@ -1,5 +1,10 @@
 import type { TurnDelta } from "./compare";
-import type { AgentReply, BotResponse, JevAnalysis } from "./types";
+import type {
+  AgentReply,
+  AnswerFailure,
+  BotResponse,
+  JevAnalysis,
+} from "./types";
 
 // Live events for one conversation. The mock stream and the server's
 // /api/conversations/:id/events stream send exactly these shapes.
@@ -12,6 +17,8 @@ export type LabStreamEvent =
     }
   | { type: "analysis_failed"; messageId: string; error: string }
   | { type: "answer"; messageId: string; response: BotResponse }
+  /** One answer path could not produce an answer; nothing was stored. */
+  | { type: "answer_failed"; messageId: string; failure: AnswerFailure }
   | { type: "agent_reply"; messageId: string; reply: AgentReply }
   | {
       type: "scenario_run";

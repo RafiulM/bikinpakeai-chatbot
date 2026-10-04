@@ -35,9 +35,14 @@ test("PostgreSQL migrations preserve rows on rerun and enforce auth constraints"
       encoding: "utf8",
     });
     assert.equal(result.status, 0, result.stderr);
+    // Other test files add their own users in parallel, so count only ours.
     assert.equal(
-      (await db.query('SELECT count(*)::int AS count FROM "user"')).rows[0]
-        .count,
+      (
+        await db.query(
+          'SELECT count(*)::int AS count FROM "user" WHERE id = $1',
+          ["one"],
+        )
+      ).rows[0].count,
       1,
     );
     const row = (

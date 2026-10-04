@@ -48,3 +48,76 @@ test("a failed Jev reading is recorded and the customer still gets an answer", a
   expect(debug.cards[0]).toMatchObject({ status: "failed" });
   expect(debug.summary.failed).toBe(1);
 });
+
+test("a failed baseline tells live viewers why instead of leaving them waiting", async ({
+  browser,
+}) => {
+  const { data: conversation } = await (
+    await client.post("/api/conversations", { headers, data: {} })
+  ).json();
+  const { cookies } = await client.storageState();
+  const events = await fetch(
+    `${origin}/api/conversations/${conversation.id}/events`,
+    {
+      headers: {
+        cookie: cookies.map(({ name, value }) => `${name}=${value}`).join("; "),
+      },
+      signal: AbortSignal.timeout(15_000),
+    },
+  );
+  expect(events.status).toBe(200);
+
+  const response = await client.post(
+    `/api/conversations/${conversation.id}/messages`,
+    { headers, data: { content: "Bagaimana cara ekspor PRD ke PDF?" } },
+  );
+  expect(response.status()).toBe(201);
+  const { data } = await response.json();
+
+  // Read the stream until the baseline's failure arrives.
+  const reader = events.body!.getReader();
+  const decoder = new TextDecoder();
+  let received = "";
+  while (!received.includes("event: answer_failed")) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    received += decoder.decode(value, { stream: true });
+  }
+  await reader.cancel();
+  const line = received
+    .split("\n\n")
+    .find((block) => block.includes("event: answer_failed"))
+    ?.split("\n")
+    .find((row) => row.startsWith("data: "));
+  expect(JSON.parse(line!.slice(6))).toMatchObject({
+    type: "answer_failed",
+    messageId: data.turn.message.id,
+    failure: { mode: "without_jev", error: expect.stringMatching(/model/i) },
+  });
+
+  // The failure is stored, so a reload still explains the missing answer.
+  const { data: stored } = await (
+    await client.get(`/api/conversations/${conversation.id}`)
+  ).json();
+  expect(stored.turns[0].withoutJev).toBeNull();
+  expect(stored.turns[0].answerFailures.without_jev).toMatchObject({
+    mode: "without_jev",
+    error: expect.stringMatching(/model/i),
+  });
+
+  // Chat shows the reason in the Tanpa Jev column; Debug explains the path.
+  const context = await browser.newContext({
+    baseURL: origin,
+    storageState: await client.storageState(),
+  });
+  const page = await context.newPage();
+  await page.goto(`/compare?c=${conversation.id}`);
+  await expect(
+    page.getByRole("region", { name: "Jawaban tanpa Jev" }),
+  ).toContainText(/model/i);
+  await page.goto(`/debug?c=${conversation.id}`);
+  await page.getByRole("radio", { name: "Tanpa Jev" }).check();
+  await expect(page.getByRole("alert")).toContainText("Tidak ada jawaban");
+  await expect(page.getByText("Dilewati")).toHaveCount(3);
+  await context.close();
+});

@@ -1,27 +1,27 @@
-import { useState, type ReactNode } from "react";
-import { Check, Link2, X } from "lucide-react";
+import type { ReactNode } from "react";
+import { Settings, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { SignOutButton } from "@/components/sign-out-button";
 import { cn } from "@/lib/utils";
+import { useDisplaySettings } from "./display-settings";
 import { useRecordingMode } from "./recording-mode";
 import { useViewShortcuts } from "./use-view-shortcuts";
 import { ViewNav } from "./view-nav";
 
 /**
- * Signed-in frame for every Support Lab view: a navigation rail on wide
- * screens, a scrollable top bar on narrow ones.
+ * Signed-in frame for every Support Lab view: one slim bar on top. With demo
+ * mode off the bar keeps only the name, Pengaturan, and sign out, so Chat
+ * reads as the real customer chatbot.
  */
 export function LabShell({
-  session,
   userEmail,
   children,
 }: {
-  /** Summary of the conversation shared by all views. */
-  session: ReactNode;
   userEmail: string;
   children: ReactNode;
 }) {
-  useViewShortcuts();
+  const { demoMode } = useDisplaySettings().settings;
+  useViewShortcuts(demoMode);
   const { recording, setRecording } = useRecordingMode();
   if (recording)
     return (
@@ -29,7 +29,7 @@ export function LabShell({
         <button
           type="button"
           onClick={() => setRecording(false)}
-          className="fixed top-3 right-3 z-20 inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground opacity-40 shadow-sm transition-opacity hover:opacity-100 focus-visible:opacity-100"
+          className="fixed top-3 right-3 z-30 inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground opacity-40 shadow-sm transition-opacity hover:opacity-100 focus-visible:opacity-100"
         >
           <X className="size-3.5" aria-hidden="true" />
           Keluar mode rekaman
@@ -48,109 +48,37 @@ export function LabShell({
       </div>
     );
   return (
-    <div className="grid min-h-dvh content-start lg:grid-cols-[232px_minmax(0,1fr)] lg:content-stretch">
-      <aside className="z-10 flex gap-6 border-b bg-canvas-warm px-4 py-2 max-lg:sticky max-lg:top-0 max-lg:items-center max-lg:overflow-x-auto lg:sticky lg:top-0 lg:h-dvh lg:flex-col lg:overflow-y-auto lg:border-r lg:border-b-0 lg:px-3 lg:py-5">
+    <div className="min-h-dvh">
+      <header className="sticky top-0 z-20 flex h-14 items-center gap-4 overflow-x-auto border-b [scrollbar-width:none] bg-canvas-warm/95 px-6 backdrop-blur max-sm:gap-2 max-sm:px-3">
         <Link
-          to="/customer"
-          className="grid shrink-0 gap-0.5 rounded-[10px] px-3 py-1 max-lg:px-0"
+          to="/compare"
+          className={cn(
+            "shrink-0 text-[17px] font-semibold tracking-tight",
+            demoMode && "max-sm:hidden",
+          )}
         >
-          <span className="text-[17px] leading-tight font-semibold tracking-tight">
-            Bikinpakeai
-          </span>
-          <span className="text-xs text-muted-foreground max-lg:hidden">
-            Support Lab · Jev vs tanpa Jev
-          </span>
+          Bikinpakeai
         </Link>
-        <ViewNav />
-        <div className="ml-auto shrink-0 lg:hidden">
-          <SignOutButton />
-        </div>
-        <div className="mt-auto grid gap-3 max-lg:hidden">
-          {session}
-          <div className="grid gap-2 px-1">
-            <p
-              className="truncate text-xs text-muted-foreground"
-              title={userEmail}
-            >
-              {userEmail}
-            </p>
-            <SignOutButton />
-          </div>
-        </div>
-      </aside>
+        {demoMode ? (
+          <ViewNav />
+        ) : (
+          <Link
+            to="/pengaturan"
+            aria-label="Pengaturan"
+            title="Pengaturan"
+            className="ml-auto grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
+          >
+            <Settings className="size-[18px]" aria-hidden="true" />
+          </Link>
+        )}
+        <SignOutButton compact title={`Sign out · ${userEmail}`} />
+      </header>
       <main
         id="main-content"
-        className="min-w-0 px-8 pt-6 pb-10 max-lg:px-4 max-lg:pt-4"
+        className="mx-auto min-w-0 max-w-[1280px] px-6 pt-6 pb-10 max-sm:px-3 max-sm:pt-4"
       >
         {children}
       </main>
     </div>
-  );
-}
-
-export function SessionCard({
-  code,
-  title,
-  messageCount,
-  conversationId,
-}: {
-  code: string;
-  title: string;
-  messageCount: number;
-  conversationId: string;
-}) {
-  const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle");
-
-  async function copyLink() {
-    const url = new URL(window.location.href);
-    url.searchParams.set("c", conversationId);
-    url.hash = "";
-    try {
-      await navigator.clipboard.writeText(url.toString());
-      setCopied("done");
-    } catch {
-      setCopied("failed");
-    }
-    setTimeout(() => setCopied("idle"), 2000);
-  }
-
-  return (
-    <section
-      aria-label="Percakapan aktif"
-      className="grid gap-1 rounded-2xl border bg-card px-4 py-3 text-[13px] leading-snug"
-    >
-      <p className="text-xs font-semibold text-muted-foreground">
-        Percakapan aktif
-      </p>
-      <p className="font-semibold [overflow-wrap:anywhere]">
-        {code} · {title}
-      </p>
-      <p className="text-muted-foreground">
-        {conversationId === "draft"
-          ? "Belum ada pesan · kirim pertanyaan untuk memulai"
-          : `${messageCount} pesan · tetap utuh di semua tampilan`}
-      </p>
-      {conversationId !== "draft" && (
-        <button
-          type="button"
-          onClick={copyLink}
-          className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full text-xs font-semibold underline underline-offset-3"
-        >
-          {copied === "done" ? (
-            <Check className="size-3.5 text-positive" aria-hidden="true" />
-          ) : (
-            <Link2 className="size-3.5" aria-hidden="true" />
-          )}
-          {copied === "done"
-            ? "Tautan tersalin"
-            : copied === "failed"
-              ? "Gagal menyalin"
-              : "Salin tautan tampilan ini"}
-        </button>
-      )}
-      <span role="status" className="sr-only">
-        {copied === "done" ? "Tautan tampilan ini tersalin." : ""}
-      </span>
-    </section>
   );
 }

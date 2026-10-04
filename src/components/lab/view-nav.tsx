@@ -1,22 +1,24 @@
-import { useEffect, useRef } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
-  Columns2,
-  FileDown,
-  FlaskConical,
-  ListVideo,
-  Headset,
-  MessageCircle,
+  Ellipsis,
+  History,
+  MessagesSquare,
   ScanSearch,
   Settings,
+  SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { ViewId } from "@/lib/lab/types";
-import { useTickets } from "./ticket-store";
 
 export interface ViewLink {
   id: ViewId;
-  to: "/customer" | "/debug" | "/compare" | "/agent";
+  to: "/compare" | "/debug";
   label: string;
   shortcut: string;
   icon: LucideIcon;
@@ -24,11 +26,11 @@ export interface ViewLink {
 
 export const VIEW_LINKS: ViewLink[] = [
   {
-    id: "customer",
-    to: "/customer",
-    label: "Customer",
+    id: "compare",
+    to: "/compare",
+    label: "Chat",
     shortcut: "1",
-    icon: MessageCircle,
+    icon: MessagesSquare,
   },
   {
     id: "debug",
@@ -37,141 +39,89 @@ export const VIEW_LINKS: ViewLink[] = [
     shortcut: "2",
     icon: ScanSearch,
   },
-  {
-    id: "compare",
-    to: "/compare",
-    label: "Compare",
-    shortcut: "3",
-    icon: Columns2,
-  },
-  { id: "agent", to: "/agent", label: "Agent", shortcut: "4", icon: Headset },
 ];
 
 const TOOL_LINKS = [
-  { to: "/skenario", label: "Skenario", icon: ListVideo },
-  { to: "/test-set", label: "Uji Test Set", icon: FlaskConical },
-  { to: "/ekspor", label: "Ekspor & Rekap", icon: FileDown },
+  { to: "/riwayat", label: "Riwayat Sesi", icon: History },
+  { to: "/konfigurasi", label: "Konfigurasi Agent", icon: SlidersHorizontal },
+  { to: "/pengaturan", label: "Pengaturan", icon: Settings },
 ] as const;
 
-// The active view gets a filled surface, a bold label, an orange marker and
-// aria-current (set by Link), so it never relies on color alone.
-const linkClass = [
-  "relative flex min-h-10 items-center gap-2.5 rounded-[10px] px-3 py-2 text-[15px] font-medium text-foreground/75 transition-colors",
+// The active view is filled dark and carries aria-current (set by Link), so it
+// never relies on color alone.
+const viewClass = [
+  "inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-sm font-medium whitespace-nowrap text-foreground/70 transition-colors",
   "hover:bg-muted hover:text-foreground",
-  "aria-[current=page]:bg-card aria-[current=page]:font-semibold aria-[current=page]:text-foreground aria-[current=page]:shadow-[inset_0_0_0_1px_var(--border)]",
-  "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:left-0 aria-[current=page]:before:w-[3px] aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-signal",
-  "max-lg:whitespace-nowrap max-lg:aria-[current=page]:before:inset-x-3 max-lg:aria-[current=page]:before:top-auto max-lg:aria-[current=page]:before:bottom-0 max-lg:aria-[current=page]:before:h-[3px] max-lg:aria-[current=page]:before:w-auto",
-  "[&[aria-current=page]_svg]:text-signal-text",
+  "aria-[current=page]:bg-foreground aria-[current=page]:text-background",
 ].join(" ");
 
-/** Buttons for the four views of the same conversation. */
+const toolClass = [
+  "inline-flex h-9 min-w-9 items-center justify-center gap-2 rounded-full px-2.5 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors",
+  "hover:bg-muted hover:text-foreground",
+  "aria-[current=page]:bg-muted aria-[current=page]:text-foreground",
+].join(" ");
+
+/**
+ * Main views on the left, demo tools on the right: inline on wide screens,
+ * behind one menu button on narrow ones.
+ */
 export function ViewNav() {
-  const pathname = useRouterState({
-    select: (state) => state.location.pathname,
-  });
-  const listRef = useRef<HTMLUListElement>(null);
-  const { counts } = useTickets();
-
-  // On the narrow top bar, keep the active view visible after navigating.
-  useEffect(() => {
-    const active = listRef.current?.querySelector<HTMLElement>(
-      '[aria-current="page"]',
-    );
-    active?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [pathname]);
-
   return (
-    <nav aria-label="Navigasi utama" className="grid gap-5 max-lg:flex">
-      <div className="grid gap-1 max-lg:flex">
-        <p
-          id="lab-nav-views"
-          className="px-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase max-lg:sr-only"
-        >
-          Tampilan
-        </p>
-        <ul
-          ref={listRef}
-          aria-labelledby="lab-nav-views"
-          className="grid gap-0.5 max-lg:flex"
-        >
-          {VIEW_LINKS.map((view) => (
-            <li key={view.id}>
-              <Link
-                to={view.to}
-                className={linkClass}
-                aria-keyshortcuts={view.shortcut}
-                title={`${view.label} (tekan ${view.shortcut})`}
-              >
-                <view.icon
-                  className="size-[18px] shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                {view.label}
-                {view.id === "agent" && counts.open > 0 && (
-                  <span
-                    aria-label={`${counts.open} tiket terbuka`}
-                    className="ml-auto rounded-full bg-primary px-2 text-xs leading-[18px] font-semibold text-primary-foreground max-lg:ml-1"
-                  >
-                    {counts.open}
-                  </span>
-                )}
-                <kbd
-                  aria-hidden="true"
-                  className="ml-auto min-w-[22px] rounded-md border bg-card px-1.5 text-center font-mono text-xs leading-[18px] text-muted-foreground max-lg:hidden [span+&]:ml-0"
-                >
-                  {view.shortcut}
-                </kbd>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="grid gap-1 max-lg:flex">
-        <p
-          id="lab-nav-tools"
-          className="px-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase max-lg:sr-only"
-        >
-          Alat demo
-        </p>
-        <ul
-          aria-labelledby="lab-nav-tools"
-          className="grid gap-0.5 max-lg:flex"
-        >
-          {TOOL_LINKS.map((tool) => (
-            <li key={tool.to}>
-              <Link to={tool.to} className={linkClass}>
-                <tool.icon
-                  className="size-[18px] shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                {tool.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="grid gap-1 max-lg:flex">
-        <p
-          id="lab-nav-account"
-          className="px-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase max-lg:sr-only"
-        >
-          Akun
-        </p>
-        <ul aria-labelledby="lab-nav-account" className="grid gap-0.5">
-          <li>
-            <Link to="/pengaturan" className={linkClass}>
-              <Settings
-                className="size-[18px] shrink-0 text-muted-foreground"
-                aria-hidden="true"
-              />
-              Pengaturan
+    <nav
+      aria-label="Navigasi utama"
+      className="flex min-w-0 flex-1 items-center gap-2"
+    >
+      <ul className="flex items-center gap-1">
+        {VIEW_LINKS.map((view) => (
+          <li key={view.id}>
+            <Link
+              to={view.to}
+              className={viewClass}
+              aria-keyshortcuts={view.shortcut}
+              title={`${view.label} (${view.shortcut})`}
+            >
+              <view.icon className="size-4 max-sm:hidden" aria-hidden="true" />
+              {view.label}
             </Link>
           </li>
-        </ul>
+        ))}
+      </ul>
+      <ul className="ml-auto flex items-center gap-0.5 max-md:hidden">
+        {TOOL_LINKS.map((tool) => (
+          <li key={tool.to}>
+            <Link
+              to={tool.to}
+              className={toolClass}
+              aria-label={tool.label}
+              title={tool.label}
+            >
+              <tool.icon className="size-[18px]" aria-hidden="true" />
+              <span aria-hidden="true" className="max-xl:hidden">
+                {tool.label}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <div className="ml-auto md:hidden">
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button type="button" aria-label="Alat lain" className={toolClass}>
+              <Ellipsis className="size-[18px]" aria-hidden="true" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-48">
+            {TOOL_LINKS.map((tool) => (
+              <DropdownMenuItem key={tool.to} asChild>
+                <Link to={tool.to}>
+                  <tool.icon aria-hidden="true" />
+                  {tool.label}
+                </Link>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-      <p className="px-3 text-xs text-muted-foreground max-lg:hidden">
-        Tekan 1–4 untuk pindah tampilan.
-      </p>
     </nav>
   );
 }

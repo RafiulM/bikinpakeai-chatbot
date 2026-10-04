@@ -34,6 +34,8 @@ export const responses = pgTable(
     modelId: text("model_id"),
     inputTokens: integer("input_tokens").default(0).notNull(),
     outputTokens: integer("output_tokens").default(0).notNull(),
+    /** Knowledge entries sent with the message; null on older answers. */
+    docCount: integer("doc_count"),
     verdict: text("verdict").notNull(),
     verdictLabel: text("verdict_label").notNull(),
     issues: jsonb("issues").$type<string[]>().default([]).notNull(),
@@ -67,6 +69,10 @@ export const responses = pgTable(
     check(
       "responses_metrics_check",
       sql`${table.latencyMs} >= 0 and ${table.costUsd} >= 0 and ${table.inputTokens} >= 0 and ${table.outputTokens} >= 0`,
+    ),
+    check(
+      "responses_doc_count_check",
+      sql`${table.docCount} is null or ${table.docCount} >= 0`,
     ),
   ],
 );

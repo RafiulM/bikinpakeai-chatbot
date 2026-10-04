@@ -150,14 +150,14 @@ test("the admin page renders only for a permitted role", async ({ page }) => {
   // too. Wait out the window once instead of weakening the limit.
   const limited = page.getByText("Too many requests");
   const outcome = await Promise.race([
-    page.waitForURL(/\/customer/, { timeout: 8000 }).then(() => "signed-up"),
+    page.waitForURL(/\/compare/, { timeout: 8000 }).then(() => "signed-up"),
     limited.waitFor({ state: "visible", timeout: 8000 }).then(() => "limited"),
   ]);
   if (outcome === "limited") {
     await page.waitForTimeout(10_500);
     await page.getByRole("button", { name: "Create account" }).click();
   }
-  await expect(page).toHaveURL(/\/customer(\?.*)?$/);
+  await expect(page).toHaveURL(/\/compare(\?.*)?$/);
 
   await page.goto("/admin");
   await expect(page.getByText("Every account’s notes")).toHaveCount(0);

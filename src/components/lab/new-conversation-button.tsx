@@ -30,25 +30,26 @@ export function NewConversationButton({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button disabled={disabled}>
+        <Button
+          variant="outline"
+          size="icon-lg"
+          disabled={disabled}
+          aria-label="Percakapan baru"
+          title="Percakapan baru"
+        >
           <Plus aria-hidden="true" />
-          Percakapan baru
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Mulai percakapan baru?</AlertDialogTitle>
           <AlertDialogDescription>
-            Percakapan {currentCode} ({messageCount} pesan) akan diakhiri dan
-            tetap tersimpan beserta hasil perbandingannya. Layar chat
-            dikosongkan supaya kamu bisa mencoba kasus lain.
+            Percakapan {currentCode} ({messageCount} pesan) tetap tersimpan.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Batal</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
-            Mulai percakapan baru
-          </AlertDialogAction>
+          <AlertDialogAction onClick={onConfirm}>Mulai baru</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

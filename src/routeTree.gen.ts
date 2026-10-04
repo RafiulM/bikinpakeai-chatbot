@@ -15,18 +15,17 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
-import { Route as ProtectedAgentRouteImport } from './routes/_protected/agent'
 import { Route as ProtectedCompareRouteImport } from './routes/_protected/compare'
 import { Route as ProtectedCustomerRouteImport } from './routes/_protected/customer'
 import { Route as ProtectedDebugRouteImport } from './routes/_protected/debug'
-import { Route as ProtectedEksporRouteImport } from './routes/_protected/ekspor'
+import { Route as ProtectedKonfigurasiRouteImport } from './routes/_protected/konfigurasi'
 import { Route as ProtectedPengaturanRouteImport } from './routes/_protected/pengaturan'
-import { Route as ProtectedSkenarioRouteImport } from './routes/_protected/skenario'
-import { Route as ProtectedTestSetRouteImport } from './routes/_protected/test-set'
+import { Route as ProtectedRiwayatRouteImport } from './routes/_protected/riwayat'
 import { Route as ApiSuggestionsRouteImport } from './routes/api/suggestions'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiConversationsIndexRouteImport } from './routes/api/conversations/index'
 import { Route as ApiConversationsCurrentRouteImport } from './routes/api/conversations/current'
+import { Route as ApiConversationsOverviewRouteImport } from './routes/api/conversations/overview'
 import { Route as ApiDemoSeedRouteImport } from './routes/api/demo/seed'
 import { Route as ApiExportsSummaryRouteImport } from './routes/api/exports/summary'
 import { Route as ApiExportsTranscriptRouteImport } from './routes/api/exports/transcript'
@@ -35,6 +34,7 @@ import { Route as ApiNotesIdRouteImport } from './routes/api/notes/$id'
 import { Route as ApiScenariosIndexRouteImport } from './routes/api/scenarios/index'
 import { Route as ApiScenariosBatchRouteImport } from './routes/api/scenarios/batch'
 import { Route as ApiSettingsAiRouteImport } from './routes/api/settings/ai'
+import { Route as ApiSettingsDisplayRouteImport } from './routes/api/settings/display'
 import { Route as ApiTestRunsIndexRouteImport } from './routes/api/test-runs/index'
 import { Route as ApiTestSetsIndexRouteImport } from './routes/api/test-sets/index'
 import { Route as ApiTicketsIndexRouteImport } from './routes/api/tickets/index'
@@ -86,11 +86,6 @@ const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => ProtectedRoute,
 } as any)
-const ProtectedAgentRoute = ProtectedAgentRouteImport.update({
-  id: '/agent',
-  path: '/agent',
-  getParentRoute: () => ProtectedRoute,
-} as any)
 const ProtectedCompareRoute = ProtectedCompareRouteImport.update({
   id: '/compare',
   path: '/compare',
@@ -106,9 +101,9 @@ const ProtectedDebugRoute = ProtectedDebugRouteImport.update({
   path: '/debug',
   getParentRoute: () => ProtectedRoute,
 } as any)
-const ProtectedEksporRoute = ProtectedEksporRouteImport.update({
-  id: '/ekspor',
-  path: '/ekspor',
+const ProtectedKonfigurasiRoute = ProtectedKonfigurasiRouteImport.update({
+  id: '/konfigurasi',
+  path: '/konfigurasi',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedPengaturanRoute = ProtectedPengaturanRouteImport.update({
@@ -116,14 +111,9 @@ const ProtectedPengaturanRoute = ProtectedPengaturanRouteImport.update({
   path: '/pengaturan',
   getParentRoute: () => ProtectedRoute,
 } as any)
-const ProtectedSkenarioRoute = ProtectedSkenarioRouteImport.update({
-  id: '/skenario',
-  path: '/skenario',
-  getParentRoute: () => ProtectedRoute,
-} as any)
-const ProtectedTestSetRoute = ProtectedTestSetRouteImport.update({
-  id: '/test-set',
-  path: '/test-set',
+const ProtectedRiwayatRoute = ProtectedRiwayatRouteImport.update({
+  id: '/riwayat',
+  path: '/riwayat',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ApiSuggestionsRoute = ApiSuggestionsRouteImport.update({
@@ -146,6 +136,12 @@ const ApiConversationsCurrentRoute = ApiConversationsCurrentRouteImport.update({
   path: '/api/conversations/current',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiConversationsOverviewRoute =
+  ApiConversationsOverviewRouteImport.update({
+    id: '/api/conversations/overview',
+    path: '/api/conversations/overview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiDemoSeedRoute = ApiDemoSeedRouteImport.update({
   id: '/api/demo/seed',
   path: '/api/demo/seed',
@@ -184,6 +180,11 @@ const ApiScenariosBatchRoute = ApiScenariosBatchRouteImport.update({
 const ApiSettingsAiRoute = ApiSettingsAiRouteImport.update({
   id: '/api/settings/ai',
   path: '/api/settings/ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSettingsDisplayRoute = ApiSettingsDisplayRouteImport.update({
+  id: '/api/settings/display',
+  path: '/api/settings/display',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTestRunsIndexRoute = ApiTestRunsIndexRouteImport.update({
@@ -308,23 +309,23 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/admin': typeof ProtectedAdminRoute
-  '/agent': typeof ProtectedAgentRoute
   '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
-  '/ekspor': typeof ProtectedEksporRoute
+  '/konfigurasi': typeof ProtectedKonfigurasiRoute
   '/pengaturan': typeof ProtectedPengaturanRoute
-  '/skenario': typeof ProtectedSkenarioRoute
-  '/test-set': typeof ProtectedTestSetRoute
+  '/riwayat': typeof ProtectedRiwayatRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
+  '/api/conversations/overview': typeof ApiConversationsOverviewRoute
   '/api/demo/seed': typeof ApiDemoSeedRoute
   '/api/exports/summary': typeof ApiExportsSummaryRoute
   '/api/exports/transcript': typeof ApiExportsTranscriptRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/scenarios/batch': typeof ApiScenariosBatchRoute
   '/api/settings/ai': typeof ApiSettingsAiRoute
+  '/api/settings/display': typeof ApiSettingsDisplayRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
   '/api/scenarios/': typeof ApiScenariosIndexRoute
@@ -356,23 +357,23 @@ export interface FileRoutesByTo {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/admin': typeof ProtectedAdminRoute
-  '/agent': typeof ProtectedAgentRoute
   '/compare': typeof ProtectedCompareRoute
   '/customer': typeof ProtectedCustomerRoute
   '/debug': typeof ProtectedDebugRoute
-  '/ekspor': typeof ProtectedEksporRoute
+  '/konfigurasi': typeof ProtectedKonfigurasiRoute
   '/pengaturan': typeof ProtectedPengaturanRoute
-  '/skenario': typeof ProtectedSkenarioRoute
-  '/test-set': typeof ProtectedTestSetRoute
+  '/riwayat': typeof ProtectedRiwayatRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
+  '/api/conversations/overview': typeof ApiConversationsOverviewRoute
   '/api/demo/seed': typeof ApiDemoSeedRoute
   '/api/exports/summary': typeof ApiExportsSummaryRoute
   '/api/exports/transcript': typeof ApiExportsTranscriptRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/scenarios/batch': typeof ApiScenariosBatchRoute
   '/api/settings/ai': typeof ApiSettingsAiRoute
+  '/api/settings/display': typeof ApiSettingsDisplayRoute
   '/api/conversations': typeof ApiConversationsIndexRoute
   '/api/notes': typeof ApiNotesIndexRoute
   '/api/scenarios': typeof ApiScenariosIndexRoute
@@ -407,23 +408,23 @@ export interface FileRoutesById {
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_protected/admin': typeof ProtectedAdminRoute
-  '/_protected/agent': typeof ProtectedAgentRoute
   '/_protected/compare': typeof ProtectedCompareRoute
   '/_protected/customer': typeof ProtectedCustomerRoute
   '/_protected/debug': typeof ProtectedDebugRoute
-  '/_protected/ekspor': typeof ProtectedEksporRoute
+  '/_protected/konfigurasi': typeof ProtectedKonfigurasiRoute
   '/_protected/pengaturan': typeof ProtectedPengaturanRoute
-  '/_protected/skenario': typeof ProtectedSkenarioRoute
-  '/_protected/test-set': typeof ProtectedTestSetRoute
+  '/_protected/riwayat': typeof ProtectedRiwayatRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
+  '/api/conversations/overview': typeof ApiConversationsOverviewRoute
   '/api/demo/seed': typeof ApiDemoSeedRoute
   '/api/exports/summary': typeof ApiExportsSummaryRoute
   '/api/exports/transcript': typeof ApiExportsTranscriptRoute
   '/api/notes/$id': typeof ApiNotesIdRoute
   '/api/scenarios/batch': typeof ApiScenariosBatchRoute
   '/api/settings/ai': typeof ApiSettingsAiRoute
+  '/api/settings/display': typeof ApiSettingsDisplayRoute
   '/api/conversations/': typeof ApiConversationsIndexRoute
   '/api/notes/': typeof ApiNotesIndexRoute
   '/api/scenarios/': typeof ApiScenariosIndexRoute
@@ -457,23 +458,23 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/admin'
-    | '/agent'
     | '/compare'
     | '/customer'
     | '/debug'
-    | '/ekspor'
+    | '/konfigurasi'
     | '/pengaturan'
-    | '/skenario'
-    | '/test-set'
+    | '/riwayat'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
+    | '/api/conversations/overview'
     | '/api/demo/seed'
     | '/api/exports/summary'
     | '/api/exports/transcript'
     | '/api/notes/$id'
     | '/api/scenarios/batch'
     | '/api/settings/ai'
+    | '/api/settings/display'
     | '/api/conversations/'
     | '/api/notes/'
     | '/api/scenarios/'
@@ -505,23 +506,23 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/admin'
-    | '/agent'
     | '/compare'
     | '/customer'
     | '/debug'
-    | '/ekspor'
+    | '/konfigurasi'
     | '/pengaturan'
-    | '/skenario'
-    | '/test-set'
+    | '/riwayat'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
+    | '/api/conversations/overview'
     | '/api/demo/seed'
     | '/api/exports/summary'
     | '/api/exports/transcript'
     | '/api/notes/$id'
     | '/api/scenarios/batch'
     | '/api/settings/ai'
+    | '/api/settings/display'
     | '/api/conversations'
     | '/api/notes'
     | '/api/scenarios'
@@ -555,23 +556,23 @@ export interface FileRouteTypes {
     | '/_auth/sign-in'
     | '/_auth/sign-up'
     | '/_protected/admin'
-    | '/_protected/agent'
     | '/_protected/compare'
     | '/_protected/customer'
     | '/_protected/debug'
-    | '/_protected/ekspor'
+    | '/_protected/konfigurasi'
     | '/_protected/pengaturan'
-    | '/_protected/skenario'
-    | '/_protected/test-set'
+    | '/_protected/riwayat'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
+    | '/api/conversations/overview'
     | '/api/demo/seed'
     | '/api/exports/summary'
     | '/api/exports/transcript'
     | '/api/notes/$id'
     | '/api/scenarios/batch'
     | '/api/settings/ai'
+    | '/api/settings/display'
     | '/api/conversations/'
     | '/api/notes/'
     | '/api/scenarios/'
@@ -606,12 +607,14 @@ export interface RootRouteChildren {
   ApiSuggestionsRoute: typeof ApiSuggestionsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiConversationsCurrentRoute: typeof ApiConversationsCurrentRoute
+  ApiConversationsOverviewRoute: typeof ApiConversationsOverviewRoute
   ApiDemoSeedRoute: typeof ApiDemoSeedRoute
   ApiExportsSummaryRoute: typeof ApiExportsSummaryRoute
   ApiExportsTranscriptRoute: typeof ApiExportsTranscriptRoute
   ApiNotesIdRoute: typeof ApiNotesIdRoute
   ApiScenariosBatchRoute: typeof ApiScenariosBatchRoute
   ApiSettingsAiRoute: typeof ApiSettingsAiRoute
+  ApiSettingsDisplayRoute: typeof ApiSettingsDisplayRoute
   ApiConversationsIndexRoute: typeof ApiConversationsIndexRoute
   ApiNotesIndexRoute: typeof ApiNotesIndexRoute
   ApiScenariosIndexRoute: typeof ApiScenariosIndexRoute
@@ -683,13 +686,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAdminRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/agent': {
-      id: '/_protected/agent'
-      path: '/agent'
-      fullPath: '/agent'
-      preLoaderRoute: typeof ProtectedAgentRouteImport
-      parentRoute: typeof ProtectedRoute
-    }
     '/_protected/compare': {
       id: '/_protected/compare'
       path: '/compare'
@@ -711,11 +707,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedDebugRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/ekspor': {
-      id: '/_protected/ekspor'
-      path: '/ekspor'
-      fullPath: '/ekspor'
-      preLoaderRoute: typeof ProtectedEksporRouteImport
+    '/_protected/konfigurasi': {
+      id: '/_protected/konfigurasi'
+      path: '/konfigurasi'
+      fullPath: '/konfigurasi'
+      preLoaderRoute: typeof ProtectedKonfigurasiRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/pengaturan': {
@@ -725,18 +721,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPengaturanRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/skenario': {
-      id: '/_protected/skenario'
-      path: '/skenario'
-      fullPath: '/skenario'
-      preLoaderRoute: typeof ProtectedSkenarioRouteImport
-      parentRoute: typeof ProtectedRoute
-    }
-    '/_protected/test-set': {
-      id: '/_protected/test-set'
-      path: '/test-set'
-      fullPath: '/test-set'
-      preLoaderRoute: typeof ProtectedTestSetRouteImport
+    '/_protected/riwayat': {
+      id: '/_protected/riwayat'
+      path: '/riwayat'
+      fullPath: '/riwayat'
+      preLoaderRoute: typeof ProtectedRiwayatRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/api/suggestions': {
@@ -765,6 +754,13 @@ declare module '@tanstack/react-router' {
       path: '/api/conversations/current'
       fullPath: '/api/conversations/current'
       preLoaderRoute: typeof ApiConversationsCurrentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/conversations/overview': {
+      id: '/api/conversations/overview'
+      path: '/api/conversations/overview'
+      fullPath: '/api/conversations/overview'
+      preLoaderRoute: typeof ApiConversationsOverviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/demo/seed': {
@@ -821,6 +817,13 @@ declare module '@tanstack/react-router' {
       path: '/api/settings/ai'
       fullPath: '/api/settings/ai'
       preLoaderRoute: typeof ApiSettingsAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings/display': {
+      id: '/api/settings/display'
+      path: '/api/settings/display'
+      fullPath: '/api/settings/display'
+      preLoaderRoute: typeof ApiSettingsDisplayRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/test-runs/': {
@@ -994,26 +997,22 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface ProtectedRouteChildren {
   ProtectedAdminRoute: typeof ProtectedAdminRoute
-  ProtectedAgentRoute: typeof ProtectedAgentRoute
   ProtectedCompareRoute: typeof ProtectedCompareRoute
   ProtectedCustomerRoute: typeof ProtectedCustomerRoute
   ProtectedDebugRoute: typeof ProtectedDebugRoute
-  ProtectedEksporRoute: typeof ProtectedEksporRoute
+  ProtectedKonfigurasiRoute: typeof ProtectedKonfigurasiRoute
   ProtectedPengaturanRoute: typeof ProtectedPengaturanRoute
-  ProtectedSkenarioRoute: typeof ProtectedSkenarioRoute
-  ProtectedTestSetRoute: typeof ProtectedTestSetRoute
+  ProtectedRiwayatRoute: typeof ProtectedRiwayatRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedAdminRoute: ProtectedAdminRoute,
-  ProtectedAgentRoute: ProtectedAgentRoute,
   ProtectedCompareRoute: ProtectedCompareRoute,
   ProtectedCustomerRoute: ProtectedCustomerRoute,
   ProtectedDebugRoute: ProtectedDebugRoute,
-  ProtectedEksporRoute: ProtectedEksporRoute,
+  ProtectedKonfigurasiRoute: ProtectedKonfigurasiRoute,
   ProtectedPengaturanRoute: ProtectedPengaturanRoute,
-  ProtectedSkenarioRoute: ProtectedSkenarioRoute,
-  ProtectedTestSetRoute: ProtectedTestSetRoute,
+  ProtectedRiwayatRoute: ProtectedRiwayatRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
@@ -1027,12 +1026,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSuggestionsRoute: ApiSuggestionsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiConversationsCurrentRoute: ApiConversationsCurrentRoute,
+  ApiConversationsOverviewRoute: ApiConversationsOverviewRoute,
   ApiDemoSeedRoute: ApiDemoSeedRoute,
   ApiExportsSummaryRoute: ApiExportsSummaryRoute,
   ApiExportsTranscriptRoute: ApiExportsTranscriptRoute,
   ApiNotesIdRoute: ApiNotesIdRoute,
   ApiScenariosBatchRoute: ApiScenariosBatchRoute,
   ApiSettingsAiRoute: ApiSettingsAiRoute,
+  ApiSettingsDisplayRoute: ApiSettingsDisplayRoute,
   ApiConversationsIndexRoute: ApiConversationsIndexRoute,
   ApiNotesIndexRoute: ApiNotesIndexRoute,
   ApiScenariosIndexRoute: ApiScenariosIndexRoute,

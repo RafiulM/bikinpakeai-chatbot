@@ -14,13 +14,12 @@ import { maskSensitive } from "@/lib/lab/mask";
 import type { LabStreamEvent } from "@/lib/lab/stream-events";
 import {
   VIEW_IDS,
-  type AgentReply,
   type ConversationTurn,
   type LabConversation,
   type ViewId,
 } from "@/lib/lab/types";
 
-// One conversation store for every view. Customer, Debug, Compare and Agent
+// One conversation store for every view. Chat, Debug and Agent
 // all read from here, so switching views never loses the conversation. The
 // server is the source of truth: the first render comes from the route
 // loader, changes go through the API, and live updates arrive over SSE.
@@ -54,12 +53,6 @@ type Action =
   | { type: "fail"; conversationId: string; tempId: string }
   | { type: "remove"; conversationId: string; messageId: string }
   | { type: "stream"; conversationId: string; event: LabStreamEvent }
-  | {
-      type: "agentReply";
-      conversationId: string;
-      messageId: string;
-      reply: AgentReply;
-    }
   | { type: "sync"; conversation: LabConversation };
 
 function draftConversation(): StoredConversation {
@@ -110,6 +103,14 @@ function applyEvent(
       return event.response.mode === "with_jev"
         ? { ...turn, withJev: event.response }
         : { ...turn, withoutJev: event.response };
+    case "answer_failed":
+      return {
+        ...turn,
+        answerFailures: {
+          ...turn.answerFailures,
+          [event.failure.mode]: event.failure,
+        },
+      };
     case "agent_reply":
       return turn.agentReplies?.some((reply) => reply.id === event.reply.id)
         ? turn
@@ -142,6 +143,10 @@ function mergeTurns(
 function reducer(state: StoreState, action: Action): StoreState {
   switch (action.type) {
     case "load":
+      // A background load never replaces the open conversation: it is kept
+      // live by the stream and may hold messages still being sent.
+      if (!action.activate && action.conversation.id === state.activeId)
+        return state;
       return {
         ...state,
         activeId: action.activate ? action.conversation.id : state.activeId,
@@ -239,18 +244,6 @@ function reducer(state: StoreState, action: Action): StoreState {
         ),
       );
     }
-    case "agentReply":
-      return updateTurns(state, action.conversationId, (turns) =>
-        turns.map((turn) =>
-          turn.message.id === action.messageId
-            ? applyEvent(turn, {
-                type: "agent_reply",
-                messageId: action.messageId,
-                reply: action.reply,
-              })
-            : turn,
-        ),
-      );
     case "remove":
       return updateTurns(state, action.conversationId, (turns) =>
         turns.filter((turn) => turn.message.id !== action.messageId),
@@ -265,6 +258,7 @@ function reducer(state: StoreState, action: Action): StoreState {
       const inFlight = local.turns.filter(
         (turn) => turn.deliveryStatus && !stored.has(turn.message.id),
       );
+
       return {
         ...state,
         conversations: {
@@ -287,19 +281,9 @@ interface LabConversationValue {
   busy: boolean;
   /** Resolves with the stored message id, or undefined when sending failed. */
   send: (text: string) => Promise<string | undefined>;
-  /** Sends a ready-made scenario through the same pipeline. */
-  runScenario: (
-    scenarioId: string,
-    prompt: string,
-  ) => Promise<string | undefined>;
   retry: (turn: ConversationTurn) => void;
   startNew: () => Promise<{ endedCode: string; code: string } | null>;
   select: (id: string) => void;
-  addAgentReply: (
-    conversationId: string,
-    messageId: string,
-    reply: AgentReply,
-  ) => void;
 }
 
 const LabConversationContext = createContext<LabConversationValue | null>(null);
@@ -390,7 +374,13 @@ export function LabConversationProvider({
         // Ignore malformed events.
       }
     };
-    for (const type of ["analysis", "analysis_failed", "answer", "agent_reply"])
+    for (const type of [
+      "analysis",
+      "analysis_failed",
+      "answer",
+      "answer_failed",
+      "agent_reply",
+    ])
       source.addEventListener(type, forward as EventListener);
     // Each (re)connect catches up on anything sent while disconnected.
     const resync = () =>
@@ -503,12 +493,6 @@ export function LabConversationProvider({
     [deliver],
   );
 
-  const runScenario = useCallback(
-    (scenarioId: string, prompt: string) =>
-      deliver(prompt, (id) => labApi.runScenario(scenarioId, id)),
-    [deliver],
-  );
-
   const retry = useCallback(
     (turn: ConversationTurn) => {
       dispatch({
@@ -541,35 +525,17 @@ export function LabConversationProvider({
     [],
   );
 
-  const addAgentReply = useCallback(
-    (conversationId: string, messageId: string, reply: AgentReply) =>
-      dispatch({ type: "agentReply", conversationId, messageId, reply }),
-    [],
-  );
-
   const value = useMemo<LabConversationValue>(
     () => ({
       conversation: active,
       conversations: Object.values(state.conversations),
       busy: state.pending > 0,
       send,
-      runScenario,
       retry,
       startNew,
       select,
-      addAgentReply,
     }),
-    [
-      active,
-      state.conversations,
-      state.pending,
-      send,
-      runScenario,
-      retry,
-      startNew,
-      select,
-      addAgentReply,
-    ],
+    [active, state.conversations, state.pending, send, retry, startNew, select],
   );
 
   return (
@@ -577,17 +543,6 @@ export function LabConversationProvider({
       {children}
     </LabConversationContext.Provider>
   );
-}
-
-/** Sidebar summary of the conversation shared by every view. */
-export function useActiveConversationSummary() {
-  const { conversation } = useLabConversation();
-  return {
-    id: conversation.id,
-    code: conversation.code,
-    title: conversation.title,
-    messageCount: conversation.turns.length,
-  };
 }
 
 export function useLabConversation() {

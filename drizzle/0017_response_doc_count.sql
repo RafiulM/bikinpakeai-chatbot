@@ -1,0 +1,2 @@
+ALTER TABLE "responses" ADD COLUMN "doc_count" integer;--> statement-breakpoint
+ALTER TABLE "responses" ADD CONSTRAINT "responses_doc_count_check" CHECK ("responses"."doc_count" is null or "responses"."doc_count" >= 0);

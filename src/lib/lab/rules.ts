@@ -20,6 +20,8 @@ export interface Classification {
   refundRequested: boolean;
   /** Probability that the message is too vague to answer. */
   unclear: number;
+  /** How sure Jev is about which product the message is about. */
+  productConfidence: number;
   confidence: number;
   labels: LabelScore[];
 }
@@ -28,8 +30,14 @@ export const THRESHOLDS = {
   frustration: 0.75,
   churn: 0.7,
   unclear: 0.6,
+  knownProduct: 0.6,
   minConfidence: 0.45,
 } as const;
+
+export interface RuleContext {
+  /** Jev's previous reply in this conversation already asked to clarify. */
+  justClarified?: boolean;
+}
 
 export interface RuleResult {
   decision: Decision;
@@ -48,7 +56,10 @@ const score = (value: number) =>
   });
 
 /** Ordered rules: safety first, then hand-off, then clarity, then cost. */
-export function applyRules(c: Classification): RuleResult {
+export function applyRules(
+  c: Classification,
+  context: RuleContext = {},
+): RuleResult {
   if (c.injectionDetected)
     return {
       decision: "blocked",
@@ -99,23 +110,33 @@ export function applyRules(c: Classification): RuleResult {
       escalate: true,
     };
 
-  if (
-    c.unclear >= THRESHOLDS.unclear ||
-    c.confidence < THRESHOLDS.minConfidence
-  )
+  // A vague message only needs a question back when Jev also cannot tell
+  // which product it is about; otherwise the handler can answer it. Never
+  // ask twice in a row: after one question, answer from the conversation.
+  const vague =
+    c.unclear >= THRESHOLDS.unclear &&
+    c.productConfidence < THRESHOLDS.knownProduct;
+  const unsure = c.confidence < THRESHOLDS.minConfidence;
+  if ((vague || unsure) && !context.justClarified)
     return {
       decision: "clarify",
       route: "clarify",
       routeLabel: "Pertanyaan klarifikasi",
       routeReason:
-        "Pesan kurang jelas atau keyakinan klasifikasi rendah, jadi Jev bertanya balik sebelum menjawab.",
+        "Pesan kurang jelas dan produknya belum diketahui, atau keyakinan klasifikasi rendah, jadi Jev bertanya balik sebelum menjawab.",
       rules: [
-        c.unclear >= THRESHOLDS.unclear
-          ? `Pesan kurang jelas (${score(c.unclear)})`
+        vague
+          ? `Pesan kurang jelas (${score(c.unclear)}) dan produk belum diketahui (${score(c.productConfidence)})`
           : `Keyakinan ${score(c.confidence)} di bawah ${score(THRESHOLDS.minConfidence)}`,
       ],
       escalate: false,
     };
+  const answerRules =
+    vague || unsure
+      ? [
+          "Sudah bertanya balik sebelumnya, jadi Jev menjawab dari konteks percakapan",
+        ]
+      : ["Tidak ada aturan khusus yang terpicu"];
 
   if (c.issueType === "saran_fitur")
     return {
@@ -135,7 +156,7 @@ export function applyRules(c: Classification): RuleResult {
       routeLabel: "Model penalaran",
       routeReason:
         "Masalah teknis butuh penalaran langkah demi langkah berdasarkan dokumentasi.",
-      rules: ["Tidak ada aturan khusus yang terpicu"],
+      rules: answerRules,
       escalate: false,
     };
 
@@ -145,7 +166,7 @@ export function applyRules(c: Classification): RuleResult {
     routeLabel: "Model cepat + FAQ & dokumentasi",
     routeReason:
       "Pertanyaan umum yang jawabannya ada di FAQ dan dokumentasi, jadi cukup model cepat.",
-    rules: ["Tidak ada aturan khusus yang terpicu"],
+    rules: answerRules,
     escalate: false,
   };
 }
