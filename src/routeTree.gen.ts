@@ -21,6 +21,7 @@ import { Route as ProtectedDebugRouteImport } from './routes/_protected/debug'
 import { Route as ProtectedKonfigurasiRouteImport } from './routes/_protected/konfigurasi'
 import { Route as ProtectedPengaturanRouteImport } from './routes/_protected/pengaturan'
 import { Route as ProtectedRiwayatRouteImport } from './routes/_protected/riwayat'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiSuggestionsRouteImport } from './routes/api/suggestions'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiConversationsIndexRouteImport } from './routes/api/conversations/index'
@@ -115,6 +116,11 @@ const ProtectedRiwayatRoute = ProtectedRiwayatRouteImport.update({
   id: '/riwayat',
   path: '/riwayat',
   getParentRoute: () => ProtectedRoute,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSuggestionsRoute = ApiSuggestionsRouteImport.update({
   id: '/api/suggestions',
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/konfigurasi': typeof ProtectedKonfigurasiRoute
   '/pengaturan': typeof ProtectedPengaturanRoute
   '/riwayat': typeof ProtectedRiwayatRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
@@ -363,6 +370,7 @@ export interface FileRoutesByTo {
   '/konfigurasi': typeof ProtectedKonfigurasiRoute
   '/pengaturan': typeof ProtectedPengaturanRoute
   '/riwayat': typeof ProtectedRiwayatRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
@@ -414,6 +422,7 @@ export interface FileRoutesById {
   '/_protected/konfigurasi': typeof ProtectedKonfigurasiRoute
   '/_protected/pengaturan': typeof ProtectedPengaturanRoute
   '/_protected/riwayat': typeof ProtectedRiwayatRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/suggestions': typeof ApiSuggestionsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/conversations/current': typeof ApiConversationsCurrentRoute
@@ -464,6 +473,7 @@ export interface FileRouteTypes {
     | '/konfigurasi'
     | '/pengaturan'
     | '/riwayat'
+    | '/api/health'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
@@ -512,6 +522,7 @@ export interface FileRouteTypes {
     | '/konfigurasi'
     | '/pengaturan'
     | '/riwayat'
+    | '/api/health'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
@@ -562,6 +573,7 @@ export interface FileRouteTypes {
     | '/_protected/konfigurasi'
     | '/_protected/pengaturan'
     | '/_protected/riwayat'
+    | '/api/health'
     | '/api/suggestions'
     | '/api/auth/$'
     | '/api/conversations/current'
@@ -604,6 +616,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   ProtectedRoute: typeof ProtectedRouteWithChildren
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiSuggestionsRoute: typeof ApiSuggestionsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiConversationsCurrentRoute: typeof ApiConversationsCurrentRoute
@@ -727,6 +740,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/riwayat'
       preLoaderRoute: typeof ProtectedRiwayatRouteImport
       parentRoute: typeof ProtectedRoute
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/suggestions': {
       id: '/api/suggestions'
@@ -1023,6 +1043,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   ProtectedRoute: ProtectedRouteWithChildren,
+  ApiHealthRoute: ApiHealthRoute,
   ApiSuggestionsRoute: ApiSuggestionsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiConversationsCurrentRoute: ApiConversationsCurrentRoute,

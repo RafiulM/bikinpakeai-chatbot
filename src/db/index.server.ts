@@ -9,6 +9,9 @@ function connect() {
     max: 5,
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 30000,
+    // Idle connections must not keep Node alive once the HTTP server closes on
+    // SIGTERM; otherwise the container waits to be killed instead of exiting.
+    allowExitOnIdle: true,
   });
   pool.on("error", () => {
     console.error(

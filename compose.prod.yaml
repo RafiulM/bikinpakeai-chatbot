@@ -1,0 +1,55 @@
+# Production: the app plus a one-shot migration job. PostgreSQL is an external
+# service (managed provider, Coolify resource, or another host); this file
+# never starts a database and stores no data.
+#
+#   cp .env.production.example .env.production   # fill in real values
+#   docker compose -f compose.prod.yaml --env-file .env.production up -d --build
+#
+# Each `up` rebuilds, runs `migrate` to completion, then (re)starts `app`.
+# See docs/deployment.md.
+
+services:
+  migrate:
+    build:
+      context: .
+      target: migrator
+    image: bikinpakeai-chatbot-migrate
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to the external PostgreSQL connection string}
+      # Optional direct (non-pooled) connection for migrations.
+      MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:-}
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    image: bikinpakeai-chatbot
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to the external PostgreSQL connection string}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET to at least 32 random characters}
+      # The public origin browsers open, e.g. https://lab.example.com
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?Set BETTER_AUTH_URL to the public origin of the app}
+      # Optional client-IP settings for auth rate limiting behind proxies.
+      IP_ADDRESS_HEADERS: ${IP_ADDRESS_HEADERS:-}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      # Optional: blank values fall back to local mode / built-in defaults.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-}
+      LAB_JEV_MODEL: ${LAB_JEV_MODEL:-}
+      LAB_FAST_MODEL: ${LAB_FAST_MODEL:-}
+      LAB_REASONING_MODEL: ${LAB_REASONING_MODEL:-}
+      LAB_BASELINE_MODEL: ${LAB_BASELINE_MODEL:-}
+      LAB_JEV_TIMEOUT_MS: ${LAB_JEV_TIMEOUT_MS:-}
+      LAB_MODEL_TIMEOUT_MS: ${LAB_MODEL_TIMEOUT_MS:-}
+    ports:
+      # Loopback by default: put a TLS reverse proxy (Caddy, nginx, Traefik) in
+      # front. Docker-published ports bypass host firewalls such as ufw, so
+      # only set APP_BIND=0.0.0.0 if the port must be reachable directly.
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"
+    # Forward SIGTERM and reap processes so `docker compose down` is prompt.
+    init: true
+    restart: unless-stopped

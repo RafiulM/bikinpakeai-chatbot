@@ -12,7 +12,11 @@ BETTER_AUTH_SECRET=your-random-secret-at-least-32-characters
 BETTER_AUTH_URL=https://your-app.example
 # Optional direct connection when the runtime URL uses a pooler:
 MIGRATION_DATABASE_URL=postgresql://user:password@direct-host:5432/app
+# Optional: real model answers instead of local mode (see .env.example).
+OPENROUTER_API_KEY=
 ```
+
+`BETTER_AUTH_SECRET` also encrypts the OpenRouter keys accounts save in Pengaturan. Rotating it signs everyone out and makes saved keys unreadable; owners then save them again.
 
 Keep provider-required TLS settings. Do not disable certificate verification. The example credentials are placeholders, not defaults.
 
@@ -24,6 +28,55 @@ npm start
 ```
 
 Apply migrations once per release. `MIGRATION_DATABASE_URL` takes precedence only for migration/Drizzle tooling; the app uses `DATABASE_URL`. Use a role with schema permissions for migrations and the permissions needed by your application at runtime. Auth migrations contain `public` tables and a Drizzle migration-history schema.
+
+## Docker Compose with an external PostgreSQL
+
+`compose.prod.yaml` runs the production image on any Docker host (a VPS, Coolify's Docker Compose resource, or similar). It builds both Dockerfile targets, runs `migrate` to completion, and only then starts `app`. It never starts a database: point `DATABASE_URL` at a PostgreSQL service you already run (a managed provider, a Coolify PostgreSQL resource, or another host).
+
+First deploy:
+
+```sh
+cp .env.production.example .env.production   # fill in real values; never commit it
+DC="docker compose -f compose.prod.yaml --env-file .env.production"
+$DC up -d --build
+$DC logs -f app
+```
+
+Every Compose command needs both flags, hence `DC`. Compose refuses to start when `DATABASE_URL`, `BETTER_AUTH_SECRET`, or `BETTER_AUTH_URL` is missing.
+
+Later releases: migrate first, then replace the app, so a failed migration never takes the running app down:
+
+```sh
+git pull
+$DC build
+$DC run --rm migrate && $DC up -d --no-deps app
+```
+
+A plain `$DC up -d --build` also works, but when the image changed Compose stops the old app before `migrate` finishes; if the migration then fails, the app stays down until you fix it. Write migrations that the previous release can still run against, since it keeps serving while they apply.
+
+The app publishes on `127.0.0.1:3000` by default (`APP_BIND`, `APP_PORT`). Put a TLS reverse proxy such as Caddy, nginx, or Traefik in front and set `BETTER_AUTH_URL` to the public `https://` origin. Docker-published ports bypass host firewalls like ufw, so only set `APP_BIND=0.0.0.0` when the container must be reachable directly. On Coolify, assign the domain to the `app` service on port `3000` and enter the variables in its UI; Coolify reads the `${...}` references in the compose file.
+
+Promote the first admin after signing up through the app. The migrator image carries the role script:
+
+```sh
+$DC run --rm migrate node scripts/set-role.mjs someone@example.com admin
+```
+
+To use the demo data, sign in and use **Isi data demo** in Pengaturan. `npm run db:seed` is a local-development helper and is not part of the image.
+
+### Health checks
+
+- The image `HEALTHCHECK` fetches a static asset: liveness only, so a database outage does not restart healthy containers.
+- `GET /api/health` is the readiness probe: `200 {"status":"ok","database":true}` when PostgreSQL answers, `503` otherwise. It is public and never includes error details. Point your load balancer or platform health check at it.
+
+### Client IP behind a proxy
+
+Better Auth rate-limits sign-in per client IP. By default it reads `X-Forwarded-For` and trusts it only when it holds a single address, which is what Caddy, Traefik, and Coolify send when they are the only proxy. Otherwise every visitor shares one bucket and the server logs a warning once. Set at most what your setup needs:
+
+- `TRUSTED_PROXIES`: comma-separated IPs or CIDR ranges of your proxies (for example nginx with `$proxy_add_x_forwarded_for`, or a load balancer in front of a proxy). The address chain is read from the right, skipping these hops. List only your proxies, not a private range that also contains clients.
+- `IP_ADDRESS_HEADERS`: a header your edge sets and clients cannot forge, such as `cf-connecting-ip` behind Cloudflare. Use it only when the origin accepts Cloudflare traffic alone; otherwise clients can choose their own address.
+
+Keep the app port unreachable except through the proxy (the loopback default above); a directly reachable app lets clients forge `X-Forwarded-For`.
 
 ## Docker image
 
@@ -50,7 +103,7 @@ docker run -d -p 3000:3000 \
 
 `BETTER_AUTH_URL` must be the origin browsers actually use, including the port. Cookie-authenticated mutations reject any other origin. Behind a proxy or load balancer, set it to the public URL, not the container address.
 
-The app listens on `PORT` (default `3000`) and `HOST` (default `0.0.0.0`), and runs as the unprivileged `node` user. The `HEALTHCHECK` requests a static asset, so it reports liveness only: a database outage will not restart a healthy process. Add your own readiness probe if your platform needs one that checks PostgreSQL.
+The app listens on `PORT` (default `3000`) and `HOST` (default `0.0.0.0`), and runs as the unprivileged `node` user. The `HEALTHCHECK` requests a static asset, so it reports liveness only; use `GET /api/health` for readiness. On `SIGTERM` the server stops accepting connections, gives in-flight requests up to 5 seconds (`SERVER_SHUTDOWN_TIMEOUT`), and exits once idle database connections no longer hold it open.
 
 Rebuild the image for each release. The image holds no data, so scale it horizontally and keep the connection-pool guidance below in mind. Set `ARG NODE_VERSION` to pin a specific Node.js tag.
 

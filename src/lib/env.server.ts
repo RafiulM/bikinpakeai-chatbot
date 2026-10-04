@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+// "a, b" -> ["a", "b"]; blank or unset -> undefined so library defaults apply.
+const commaList = z
+  .string()
+  .optional()
+  .transform((value) => {
+    const items = (value ?? "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return items.length > 0 ? items : undefined;
+  });
+
 const schema = z.object({
   DATABASE_URL: z.url().refine((value) => {
     const url = new URL(value);
@@ -27,10 +39,16 @@ const schema = z.object({
       );
     }, "Use an origin, e.g. http://localhost:3000.")
     .default("http://localhost:3000"),
+  // Client IP for auth rate limiting behind proxies. Unset reads a single-value
+  // X-Forwarded-For. See docs/deployment.md before setting either.
+  IP_ADDRESS_HEADERS: commaList,
+  TRUSTED_PROXIES: commaList,
 });
 
 export const env = schema.parse({
   DATABASE_URL: process.env.DATABASE_URL,
   BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
   BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+  IP_ADDRESS_HEADERS: process.env.IP_ADDRESS_HEADERS,
+  TRUSTED_PROXIES: process.env.TRUSTED_PROXIES,
 });

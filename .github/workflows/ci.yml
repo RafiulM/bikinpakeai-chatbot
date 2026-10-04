@@ -28,3 +28,12 @@ jobs:
           name: browser-test-results
           path: test-results/
           retention-days: 7
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the production app image
+        run: docker build -t app .
+      - name: Build the release migration image
+        run: docker build --target migrator -t app-migrate .

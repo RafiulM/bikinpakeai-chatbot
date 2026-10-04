@@ -105,7 +105,7 @@ See [architecture](docs/architecture.md), [derivatives](docs/derivatives.md), [p
 
 Use a Node.js-compatible host and persistent PostgreSQL service. Set private `DATABASE_URL`, `BETTER_AUTH_SECRET`, and public `BETTER_AUTH_URL` settings. Apply migrations once per release, then build and start. The app itself does not need a persistent database file. For serverless or multiple instances, use an appropriate database pooler and connection limits. See [deployment](docs/deployment.md).
 
-For container hosts, `Dockerfile` builds the app (`docker build -t my-app .`) and a release migration job (`docker build --target migrator -t my-app-migrate .`). It is for production only; local development still uses `npm run dev` with `compose.dev.yaml`.
+For container hosts, `Dockerfile` builds the app (`docker build -t my-app .`) and a release migration job (`docker build --target migrator -t my-app-migrate .`). `compose.prod.yaml` runs both against an external PostgreSQL: copy `.env.production.example` to `.env.production`, fill it in, then `docker compose -f compose.prod.yaml --env-file .env.production up -d --build`. `GET /api/health` is the readiness probe. These are for production only; local development still uses `npm run dev` with `compose.dev.yaml`.
 
 Email verification, password recovery email, social login, billing, and AI provider calls are not configured. Add only the services your product needs.
 

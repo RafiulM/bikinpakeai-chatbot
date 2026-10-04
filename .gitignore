@@ -6,6 +6,7 @@ node_modules/
 dist/
 .env*
 !.env.example
+!.env.production.example
 .data/
 *.db
 *.db-shm

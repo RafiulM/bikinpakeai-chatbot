@@ -26,8 +26,16 @@ playwright-report
 playwright.config.ts
 compose.dev.yaml
 compose.test.yaml
+compose.prod.yaml
 Dockerfile
 .dockerignore
+
+# Local accounts, sync metadata, and presentation material.
+.demo-account.json
+.lab-test-account.json
+.ngodingpakeai
+.ngodingpakeaiignore
+slides
 
 # Documentation and editor config.
 docs

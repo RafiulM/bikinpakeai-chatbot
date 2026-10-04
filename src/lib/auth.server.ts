@@ -13,7 +13,15 @@ export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, { provider: "pg", schema }),
-  advanced: { cookiePrefix: `ngodingpakeai-${siteConfig.id}` },
+  advanced: {
+    cookiePrefix: `ngodingpakeai-${siteConfig.id}`,
+    // Which header carries the client IP, and which proxy hops to skip in it,
+    // so sign-in rate limits apply per visitor rather than to one shared bucket.
+    ipAddress: {
+      ipAddressHeaders: env.IP_ADDRESS_HEADERS,
+      trustedProxies: env.TRUSTED_PROXIES,
+    },
+  },
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
